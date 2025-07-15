@@ -6,12 +6,9 @@
  * health/damage system, knockback mechanics, stock system, and visual states.
  */
 
-import {
-  Player,
-  DamageType,
-  DamageInfo,
-  PlayerConfig,
-} from '../../entities/Player';
+import { DamageType } from '@/types';
+import type { DamageInfo, PlayerConfig } from '@/types';
+import { Player } from '../../entities/Player';
 import { GAME_CONFIG, CharacterType } from '../../utils/constants';
 
 // Mock Phaser Physics

@@ -10,8 +10,10 @@
 
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
+import { DamageType } from '@/types';
+import type { DamageInfo } from '@/types';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
-import { Player, DamageType, DamageInfo } from '../entities/Player';
+import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
 
 export class GameScene extends Phaser.Scene {

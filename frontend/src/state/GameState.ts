@@ -8,18 +8,7 @@
  * Keep this file small and purely functional so that it remains tree-shakeable.
  */
 
-import { CharacterType, StageType } from '@/utils/constants';
-
-/**
- * Shape of the global game state object.
- */
-export interface GameState {
-  /** Character selected in the character-select scene */
-  selectedCharacter: CharacterType | null;
-  /** Stage selected in the stage-select scene (future use) */
-  selectedStage: StageType | null;
-  // Extend with additional global flags as needed (e.g., matchId, roomId…)
-}
+import type { GameState } from '@/types/GameState';
 
 const defaultState: GameState = {
   selectedCharacter: null,

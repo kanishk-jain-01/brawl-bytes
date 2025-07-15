@@ -6,7 +6,8 @@
  * boundary setup, hazard management, collision detection, and spawn points.
  */
 
-import { Stage, StageConfig } from '../../entities/Stage';
+import type { StageConfig } from '@/types';
+import { Stage } from '../../entities/Stage';
 import { GAME_CONFIG } from '../../utils/constants';
 
 // Mock Phaser for Stage tests

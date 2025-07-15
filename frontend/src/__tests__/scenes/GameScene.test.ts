@@ -7,8 +7,9 @@
  * and event handling without deep UI mock complexity.
  */
 
+import { DamageType } from '@/types';
 import { GameScene } from '../../scenes/GameScene';
-import { Player, DamageType } from '../../entities/Player';
+import { Player } from '../../entities/Player';
 import { Stage } from '../../entities/Stage';
 import * as GameState from '../../state/GameState';
 import { GAME_CONFIG } from '../../utils/constants';

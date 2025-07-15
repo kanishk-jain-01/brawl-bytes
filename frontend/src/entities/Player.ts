@@ -9,31 +9,9 @@
  */
 
 import Phaser from 'phaser';
+import type { DamageInfo, PlayerConfig } from '@/types';
+import { DamageType } from '@/types';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
-
-export enum DamageType {
-  PHYSICAL = 'physical',
-  ELEMENTAL = 'elemental',
-  ENVIRONMENTAL = 'environmental',
-  FALL = 'fall',
-}
-
-export interface DamageInfo {
-  amount: number;
-  type: DamageType;
-  knockback?: { x: number; y: number };
-  isCritical?: boolean;
-  source?: string;
-}
-
-export interface PlayerConfig {
-  scene: Phaser.Scene;
-  x: number;
-  y: number;
-  characterType: CharacterType;
-  playerId: string;
-  isLocalPlayer: boolean;
-}
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   public characterType: CharacterType;

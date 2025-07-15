@@ -8,14 +8,8 @@
  */
 
 import Phaser from 'phaser';
+import type { StageConfig } from '@/types';
 import { GAME_CONFIG, StageType } from '../utils/constants';
-
-export interface StageConfig {
-  scene: Phaser.Scene;
-  stageType: StageType;
-  worldWidth: number;
-  worldHeight: number;
-}
 
 export class Stage {
   private scene: Phaser.Scene;
