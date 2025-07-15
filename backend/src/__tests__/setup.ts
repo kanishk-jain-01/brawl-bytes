@@ -11,8 +11,8 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
 process.env.JWT_SECRET = 'test_jwt_secret';
 
 // Mock Prisma Client
-jest.mock('../generated/prisma', () => {
-  const { mockPrisma, PrismaClient } = require('./__mocks__/prisma');
+jest.mock('@prisma/client', () => {
+  const { PrismaClient } = require('./__mocks__/prisma');
   return { PrismaClient };
 });
 

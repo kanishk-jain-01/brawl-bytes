@@ -13,6 +13,8 @@ import jwt from 'jsonwebtoken';
 // Mock jwt
 jest.mock('jsonwebtoken');
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
+mockJwt.sign = jest.fn().mockReturnValue('mocked-token');
+mockJwt.verify = jest.fn();
 
 describe('Auth Utils', () => {
   beforeEach(() => {
@@ -28,7 +30,6 @@ describe('Auth Utils', () => {
         email: 'test@example.com',
       };
 
-      mockJwt.sign.mockReturnValue('mocked-token');
 
       const token = generateToken(payload);
 
@@ -49,7 +50,6 @@ describe('Auth Utils', () => {
         email: 'test@example.com',
       };
 
-      mockJwt.sign.mockReturnValue('mocked-token');
 
       generateToken(payload);
 
@@ -69,8 +69,6 @@ describe('Auth Utils', () => {
         email: 'test@example.com',
       };
 
-      mockJwt.sign.mockReturnValue('mocked-refresh-token');
-
       const token = generateRefreshToken(payload);
 
       expect(mockJwt.sign).toHaveBeenCalledWith(
@@ -78,7 +76,7 @@ describe('Auth Utils', () => {
         'test-secret',
         { expiresIn: '30d' }
       );
-      expect(token).toBe('mocked-refresh-token');
+      expect(token).toBe('mocked-token');
     });
   });
 

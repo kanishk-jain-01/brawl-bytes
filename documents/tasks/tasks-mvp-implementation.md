@@ -74,7 +74,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 1.6 Create basic .gitignore files for node_modules, dist, .env
   - [x] 1.7 Set up package.json scripts for dev, build, start, and test commands
 
-- [ ] 2.0 Database Setup & Basic Authentication
+- [x] 2.0 Database Setup & Basic Authentication
   - [x] 2.1 Verify PostgreSQL is running locally via Homebrew
   - [x] 2.2 Create brawlbytes_dev database locally
   - [x] 2.3 Install and configure Prisma ORM in backend
@@ -83,7 +83,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 2.6 Set up basic JWT authentication with Passport.js
   - [x] 2.7 Create user registration and login API endpoints
   - [x] 2.8 Create database seed file with default characters and stages
-  - [ ] 2.9 Write unit tests for UserRepository and authentication endpoints
+  - [x] 2.9 Write unit tests for UserRepository and authentication endpoints
 
 - [ ] 3.0 Core Frontend Game Engine Setup
   - [ ] 3.1 Set up Phaser 3 game configuration and main.ts entry point

@@ -2,24 +2,29 @@ import request from 'supertest';
 import express from 'express';
 import authRoutes from '../../routes/auth';
 import { UserRepository } from '../../database/repositories/UserRepository';
-import { generateToken } from '../../auth/utils';
+import { generateToken, validateEmail, validateUsername, validatePasswordStrength } from '../../auth/utils';
 
 // Mock dependencies
 jest.mock('../../database/repositories/UserRepository');
-jest.mock('../../auth/utils');
+jest.mock('../../auth/utils', () => ({
+  generateToken: jest.fn(),
+  validateEmail: jest.fn(),
+  validateUsername: jest.fn(),
+  validatePasswordStrength: jest.fn(),
+}));
 jest.mock('../../auth/middleware');
 
 const mockUserRepository = UserRepository as jest.Mocked<typeof UserRepository>;
 const mockGenerateToken = generateToken as jest.MockedFunction<typeof generateToken>;
-
-// Mock the auth middleware
-const mockAuthMiddleware = jest.fn((req: any, res: any, next: any) => {
-  req.user = { userId: 'test-user-id', username: 'testuser', email: 'test@example.com' };
-  next();
-});
+const mockValidateEmail = validateEmail as jest.MockedFunction<typeof validateEmail>;
+const mockValidateUsername = validateUsername as jest.MockedFunction<typeof validateUsername>;
+const mockValidatePasswordStrength = validatePasswordStrength as jest.MockedFunction<typeof validatePasswordStrength>;
 
 jest.mock('../../auth/middleware', () => ({
-  authenticateJWT: jest.fn(() => mockAuthMiddleware),
+  authenticateJWT: jest.fn((req: any, _res: any, next: any) => {
+    req.user = { userId: 'test-user-id', username: 'testuser', email: 'test@example.com' };
+    next();
+  }),
 }));
 
 // Setup test app
@@ -59,6 +64,12 @@ describe('Auth Routes', () => {
         },
       };
 
+      // Mock validation functions to return true
+      mockValidateUsername.mockReturnValue(true);
+      mockValidateEmail.mockReturnValue(true);
+      mockValidatePasswordStrength.mockReturnValue({ valid: true });
+
+      // Mock UserRepository functions
       mockUserRepository.getUserByUsername.mockResolvedValue(null);
       mockUserRepository.getUserByEmail.mockResolvedValue(null);
       mockUserRepository.createUser.mockResolvedValue(mockUser);
@@ -99,6 +110,11 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for invalid username format', async () => {
+      // Mock validation functions - username invalid, others valid
+      mockValidateUsername.mockReturnValue(false);
+      mockValidateEmail.mockReturnValue(true);
+      mockValidatePasswordStrength.mockReturnValue({ valid: true });
+
       const response = await request(app)
         .post('/auth/register')
         .send({
@@ -113,10 +129,15 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for invalid email format', async () => {
+      // Mock validation functions - email invalid, others valid
+      mockValidateUsername.mockReturnValue(true);
+      mockValidateEmail.mockReturnValue(false);
+      mockValidatePasswordStrength.mockReturnValue({ valid: true });
+
       const response = await request(app)
         .post('/auth/register')
         .send({
-          username: 'testuser',
+          username: 'validuser',
           email: 'invalid-email',
           password: 'Password123',
         })
@@ -129,10 +150,18 @@ describe('Auth Routes', () => {
     });
 
     it('should return 400 for weak password', async () => {
+      // Mock validation functions - password invalid, others valid
+      mockValidateUsername.mockReturnValue(true);
+      mockValidateEmail.mockReturnValue(true);
+      mockValidatePasswordStrength.mockReturnValue({ 
+        valid: false, 
+        message: 'Password must be at least 8 characters long' 
+      });
+
       const response = await request(app)
         .post('/auth/register')
         .send({
-          username: 'testuser',
+          username: 'validuser',
           email: 'test@example.com',
           password: 'weak',
         })
@@ -143,9 +172,14 @@ describe('Auth Routes', () => {
     });
 
     it('should return 409 for existing username', async () => {
+      // Mock validation functions to pass validation
+      mockValidateUsername.mockReturnValue(true);
+      mockValidateEmail.mockReturnValue(true);
+      mockValidatePasswordStrength.mockReturnValue({ valid: true });
+
       const userData = {
         username: 'existinguser',
-        email: 'test@example.com',
+        email: 'newemail@example.com',
         password: 'Password123',
       };
 
@@ -174,8 +208,13 @@ describe('Auth Routes', () => {
     });
 
     it('should return 409 for existing email', async () => {
+      // Mock validation functions to pass validation
+      mockValidateUsername.mockReturnValue(true);
+      mockValidateEmail.mockReturnValue(true);
+      mockValidatePasswordStrength.mockReturnValue({ valid: true });
+
       const userData = {
-        username: 'testuser',
+        username: 'newuser',
         email: 'existing@example.com',
         password: 'Password123',
       };
@@ -381,8 +420,8 @@ describe('Auth Routes', () => {
             id: mockUser.id,
             username: mockUser.username,
             email: mockUser.email,
-            createdAt: mockUser.createdAt,
-            lastLogin: mockUser.lastLogin,
+            createdAt: mockUser.createdAt.toISOString(),
+            lastLogin: mockUser.lastLogin.toISOString(),
             playerProfile: mockUser.playerProfile,
           },
         },

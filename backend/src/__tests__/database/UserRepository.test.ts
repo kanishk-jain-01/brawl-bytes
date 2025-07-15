@@ -1,8 +1,8 @@
-import { PrismaClient } from '../../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { UserRepository, CreateUserData } from '../../database/repositories/UserRepository';
 
 // Mock Prisma Client
-jest.mock('../../generated/prisma');
+jest.mock('@prisma/client');
 
 describe('UserRepository', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;
@@ -231,7 +231,7 @@ describe('UserRepository', () => {
   describe('verifyPassword', () => {
     it('should return true for correct password', async () => {
       const password = 'Password123';
-      const hashedPassword = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LdtkRdwD0.6X.5K4O'; // bcrypt hash of "Password123"
+      const hashedPassword = '$2b$12$ThvmYdVDiI2uscizV.93HuBbKDcsp5M/iuO5rSapE6uD2/Qk1mWC.'; // bcrypt hash of "Password123"
 
       const result = await UserRepository.verifyPassword(password, hashedPassword);
 
@@ -240,7 +240,7 @@ describe('UserRepository', () => {
 
     it('should return false for incorrect password', async () => {
       const password = 'WrongPassword';
-      const hashedPassword = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LdtkRdwD0.6X.5K4O'; // bcrypt hash of "Password123"
+      const hashedPassword = '$2b$12$ThvmYdVDiI2uscizV.93HuBbKDcsp5M/iuO5rSapE6uD2/Qk1mWC.'; // bcrypt hash of "Password123"
 
       const result = await UserRepository.verifyPassword(password, hashedPassword);
 
