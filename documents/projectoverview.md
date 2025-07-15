@@ -1,0 +1,3 @@
+# Overview: 
+
+Brawl Bytes, inspired by Smash Bros/Brawlhalla, will be a 2D real-time multiplayer brawler where players select characters and stages for intense battles. Core gameplay revolves around knocking opponents off the stage using attacks, jumps, and special moves, with progression through wins unlocking more options. To start simple, focus on multiplayer as the primary mode (via Socket.io for real-time syncing), but include a basic single-player mode for testing/practice (e.g., against a dummy AI or free exploration). 
