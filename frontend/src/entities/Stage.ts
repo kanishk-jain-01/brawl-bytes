@@ -210,19 +210,30 @@ export class Stage {
     // Platform collisions
     this.scene.physics.add.collider(player, this.platforms);
 
-    // Boundary collisions
-    this.scene.physics.add.overlap(
-      player,
-      this.boundaries,
-      (playerObj, boundaryObj) => {
-        this.handleBoundaryCollision(
-          playerObj as Phaser.Physics.Arcade.Sprite,
-          boundaryObj as Phaser.Physics.Arcade.Sprite
+    // Set up different collision types for different boundary types
+    this.boundaries.children.entries.forEach(boundary => {
+      const boundarySprite = boundary as Phaser.Physics.Arcade.Sprite;
+      const boundaryType = boundarySprite.getData('boundaryType');
+
+      if (boundaryType === 'side' || boundaryType === 'ceiling') {
+        // Side and ceiling boundaries should be solid colliders
+        this.scene.physics.add.collider(player, boundarySprite);
+      } else if (boundaryType === 'death') {
+        // Death boundaries should be overlap triggers
+        this.scene.physics.add.overlap(
+          player,
+          boundarySprite,
+          (playerObj, boundaryObj) => {
+            this.handleBoundaryCollision(
+              playerObj as Phaser.Physics.Arcade.Sprite,
+              boundaryObj as Phaser.Physics.Arcade.Sprite
+            );
+          },
+          undefined,
+          this.scene
         );
-      },
-      undefined,
-      this.scene
-    );
+      }
+    });
 
     // Hazard collisions
     this.scene.physics.add.overlap(
@@ -245,30 +256,12 @@ export class Stage {
   ): void {
     const boundaryType = boundary.getData('boundaryType');
 
-    switch (boundaryType) {
-      case 'death':
-        // Player fell off stage
-        this.scene.events.emit('playerFellOffStage', player);
-        break;
-      case 'side':
-        // Push player back from side boundary
-        if (player.body) {
-          const body = player.body as Phaser.Physics.Arcade.Body;
-          const pushForce = boundary.x < this.worldWidth / 2 ? 100 : -100;
-          body.setVelocityX(pushForce);
-        }
-        break;
-      case 'ceiling':
-        // Stop upward movement
-        if (player.body) {
-          const body = player.body as Phaser.Physics.Arcade.Body;
-          body.setVelocityY(0);
-        }
-        break;
-      default:
-        // No specific handling for unknown boundary types
-        break;
+    if (boundaryType === 'death') {
+      // Player fell off stage
+      this.scene.events.emit('playerFellOffStage', player);
     }
+    // Side and ceiling boundaries are now handled by proper colliders
+    // so no manual handling needed
   }
 
   private handleHazardCollision(
