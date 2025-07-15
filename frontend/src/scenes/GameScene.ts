@@ -131,27 +131,39 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Listen for damage events for UI updates
-    this.events.on('playerDamaged', (data: unknown) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Damage dealt: ${(data as any).damage} ${(data as any).damageType} to ${(data as any).playerId}`
-      );
-    });
+    this.events.on(
+      'playerDamaged',
+      (data: { playerId: string; damage: number; damageType: string }) => {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Damage dealt: ${data.damage} ${data.damageType} to ${data.playerId}`
+        );
+      }
+    );
 
     // Listen for healing events
-    this.events.on('playerHealed', (data: unknown) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Healing: ${(data as any).healAmount} to ${(data as any).playerId}`
-      );
-    });
+    this.events.on(
+      'playerHealed',
+      (data: { playerId: string; healAmount: number }) => {
+        // eslint-disable-next-line no-console
+        console.log(`Healing: ${data.healAmount} to ${data.playerId}`);
+      }
+    );
 
     // Listen for respawn events
-    this.events.on('playerRespawned', (data: unknown) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Player ${(data as any).playerId} respawned at (${(data as any).spawnX}, ${(data as any).spawnY})`
-      );
+    this.events.on(
+      'playerRespawned',
+      (data: { playerId: string; spawnX: number; spawnY: number }) => {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Player ${data.playerId} respawned at (${data.spawnX}, ${data.spawnY})`
+        );
+      }
+    );
+
+    // Listen for player defeat events
+    this.events.on('playerDefeated', (playerId: string) => {
+      this.handlePlayerDefeated(playerId);
     });
   }
 
@@ -419,7 +431,7 @@ export class GameScene extends Phaser.Scene {
     this.matchTimeRemaining -= 1000;
 
     if (this.matchTimeRemaining <= 0) {
-      this.endMatch();
+      this.endMatch('timer');
       return;
     }
 
@@ -439,7 +451,35 @@ export class GameScene extends Phaser.Scene {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  private endMatch(): void {
+  private handlePlayerDefeated(playerId: string): void {
+    // eslint-disable-next-line no-console
+    console.log(`Player ${playerId} was defeated!`);
+
+    // Check if match should end due to player elimination
+    this.checkMatchEndConditions();
+  }
+
+  private checkMatchEndConditions(): void {
+    if (!this.gameStarted) return;
+
+    const activePlayers = this.players.filter(player => !player.isDefeated());
+    const localPlayer = this.players.find(player => player.isLocalPlayer);
+
+    // Check victory conditions
+    if (activePlayers.length <= 1) {
+      // Only one player remaining - they win
+      const winner = activePlayers[0];
+      this.endMatch('elimination', winner);
+    } else if (localPlayer && localPlayer.isDefeated()) {
+      // Local player defeated - they lose
+      this.endMatch('defeat', localPlayer);
+    }
+  }
+
+  private endMatch(
+    reason: 'timer' | 'elimination' | 'defeat',
+    winner?: Player
+  ): void {
     this.gameStarted = false;
 
     if (this.matchTimer) {
@@ -447,12 +487,198 @@ export class GameScene extends Phaser.Scene {
     }
 
     // eslint-disable-next-line no-console
-    console.log('GameScene: Match ended');
+    console.log(`GameScene: Match ended due to ${reason}`);
 
-    // For now, return to character select
-    this.time.delayedCall(2000, () => {
+    // Show match results
+    this.showMatchResults(reason, winner);
+
+    // Return to character select after showing results
+    this.time.delayedCall(3000, () => {
       this.returnToCharacterSelect();
     });
+  }
+
+  private showMatchResults(
+    reason: 'timer' | 'elimination' | 'defeat',
+    winner?: Player
+  ): void {
+    // Create results overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.8
+    );
+    overlay.setScrollFactor(0);
+
+    let resultText = '';
+    let resultColor: string = GAME_CONFIG.UI.COLORS.TEXT;
+
+    switch (reason) {
+      case 'timer': {
+        // Time ran out - determine winner by remaining stocks and health
+        const activePlayers = this.players.filter(
+          player => !player.isDefeated()
+        );
+        const localPlayer = this.players.find(player => player.isLocalPlayer);
+
+        if (activePlayers.length === 0) {
+          resultText = 'DRAW!';
+          resultColor = GAME_CONFIG.UI.COLORS.TEXT_SECONDARY;
+        } else if (localPlayer && !localPlayer.isDefeated()) {
+          // Compare local player with opponents
+          const opponent = activePlayers.find(player => !player.isLocalPlayer);
+          if (opponent) {
+            if (localPlayer.getStocks() > opponent.getStocks()) {
+              resultText = 'VICTORY!';
+              resultColor = GAME_CONFIG.UI.COLORS.SUCCESS;
+            } else if (localPlayer.getStocks() < opponent.getStocks()) {
+              resultText = 'DEFEAT!';
+              resultColor = GAME_CONFIG.UI.COLORS.DANGER;
+            } else if (localPlayer.getHealth() > opponent.getHealth()) {
+              // Same stocks - compare health
+              resultText = 'VICTORY!';
+              resultColor = GAME_CONFIG.UI.COLORS.SUCCESS;
+            } else if (localPlayer.getHealth() < opponent.getHealth()) {
+              resultText = 'DEFEAT!';
+              resultColor = GAME_CONFIG.UI.COLORS.DANGER;
+            } else {
+              resultText = 'DRAW!';
+              resultColor = GAME_CONFIG.UI.COLORS.TEXT_SECONDARY;
+            }
+          } else {
+            resultText = 'VICTORY!';
+            resultColor = GAME_CONFIG.UI.COLORS.SUCCESS;
+          }
+        } else {
+          resultText = 'DEFEAT!';
+          resultColor = GAME_CONFIG.UI.COLORS.DANGER;
+        }
+        break;
+      }
+
+      case 'elimination': {
+        if (winner) {
+          if (winner.isLocalPlayer) {
+            resultText = 'VICTORY!';
+            resultColor = GAME_CONFIG.UI.COLORS.SUCCESS;
+          } else {
+            resultText = 'DEFEAT!';
+            resultColor = GAME_CONFIG.UI.COLORS.DANGER;
+          }
+        } else {
+          resultText = 'MATCH COMPLETE!';
+        }
+        break;
+      }
+
+      case 'defeat': {
+        resultText = 'DEFEAT!';
+        resultColor = GAME_CONFIG.UI.COLORS.DANGER;
+        break;
+      }
+
+      default:
+        resultText = 'MATCH COMPLETE!';
+        break;
+    }
+
+    // Main result text
+    this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY - 50,
+        resultText,
+        {
+          fontSize: '48px',
+          fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+          color: resultColor,
+          fontStyle: 'bold',
+        }
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Subtitle text
+    let subtitleText = '';
+    switch (reason) {
+      case 'timer':
+        subtitleText = 'Time ran out!';
+        break;
+      case 'elimination':
+        subtitleText = winner
+          ? `${winner.getCharacterData().name} wins!`
+          : 'Last player standing!';
+        break;
+      case 'defeat':
+        subtitleText = 'Better luck next time!';
+        break;
+      default:
+        subtitleText = 'Match complete!';
+        break;
+    }
+
+    this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY + 20,
+        subtitleText,
+        {
+          fontSize: '24px',
+          fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          fontStyle: 'normal',
+        }
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+
+    // Show final stats
+    const localPlayer = this.players.find(player => player.isLocalPlayer);
+    if (localPlayer) {
+      this.add
+        .text(
+          this.cameras.main.centerX,
+          this.cameras.main.centerY + 80,
+          `Final Stats - Lives: ${localPlayer.getStocks()} | Health: ${localPlayer.getHealth()}/${localPlayer.getMaxHealth()}`,
+          {
+            fontSize: '18px',
+            fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+            color: GAME_CONFIG.UI.COLORS.TEXT,
+            fontStyle: 'normal',
+          }
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0);
+
+      // Add return instruction
+      this.add
+        .text(
+          this.cameras.main.centerX,
+          this.cameras.main.centerY + 120,
+          'Returning to Character Select...',
+          {
+            fontSize: '16px',
+            fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+            color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+            fontStyle: 'italic',
+          }
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0);
+    }
+
+    // Add some visual flair
+    this.cameras.main.flash(500, 255, 255, 255, false);
+
+    // Play different screen shake based on result
+    if (resultText === 'VICTORY!') {
+      this.cameras.main.shake(1000, 0.02);
+    } else if (resultText === 'DEFEAT!') {
+      this.cameras.main.shake(500, 0.01);
+    }
   }
 
   private returnToCharacterSelect(): void {

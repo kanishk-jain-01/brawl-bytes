@@ -101,8 +101,8 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 4.4 Implement basic attack system with hitboxes
   - [x] 4.5 Create Stage entity with platforms and boundaries
   - [x] 4.6 Add health system and damage calculation
-  - [ ] 4.7 Implement knockback mechanics and stock system
-  - [ ] 4.8 Add victory/defeat conditions and match end logic
+  - [x] 4.7 Implement knockback mechanics and stock system
+  - [x] 4.8 Add victory/defeat conditions and match end logic
   - [ ] 4.9 Write unit tests for Player entity and combat mechanics
 
   - [ ] 4.10 Client ↔ Database Integration
