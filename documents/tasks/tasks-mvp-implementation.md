@@ -36,7 +36,13 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `backend/.eslintrc.js` - ESLint configuration for backend with Airbnb + TypeScript ✓
 - `backend/.prettierrc` - Prettier configuration for consistent code formatting ✓
 - `.gitignore` - Root-level gitignore for node_modules, dist, .env, coverage, and OS files ✓
-- `backend/src/database/prisma/schema.prisma` - Database schema definition
+- `backend/prisma/schema.prisma` - Database schema definition with User, PlayerProfile, Match, Character, and Stage models ✓
+- `backend/.env` - Environment variables for database connection ✓
+- `backend/prisma/migrations/20250715003734_init/migration.sql` - Initial database migration file ✓
+- `backend/src/generated/prisma/` - Generated Prisma client for type-safe database access ✓
+- `backend/src/auth/passport.ts` - Passport.js configuration with Local and JWT strategies ✓
+- `backend/src/auth/middleware.ts` - Authentication middleware for protecting routes ✓
+- `backend/src/auth/utils.ts` - JWT token generation and password hashing utilities ✓
 - `backend/src/database/repositories/UserRepository.ts` - User data access layer
 - `backend/src/database/repositories/MatchRepository.ts` - Match data access layer
 - `backend/src/game/GameRoom.ts` - Room management for multiplayer matches
@@ -68,12 +74,12 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 1.7 Set up package.json scripts for dev, build, start, and test commands
 
 - [ ] 2.0 Database Setup & Basic Authentication
-  - [ ] 2.1 Verify PostgreSQL is running locally via Homebrew
-  - [ ] 2.2 Create brawlbytes_dev database locally
-  - [ ] 2.3 Install and configure Prisma ORM in backend
-  - [ ] 2.4 Create Prisma schema with User, PlayerProfile, and basic Match models
-  - [ ] 2.5 Run initial Prisma migration to create database tables
-  - [ ] 2.6 Set up basic JWT authentication with Passport.js
+  - [x] 2.1 Verify PostgreSQL is running locally via Homebrew
+  - [x] 2.2 Create brawlbytes_dev database locally
+  - [x] 2.3 Install and configure Prisma ORM in backend
+  - [x] 2.4 Create Prisma schema with User, PlayerProfile, and basic Match models
+  - [x] 2.5 Run initial Prisma migration to create database tables
+  - [x] 2.6 Set up basic JWT authentication with Passport.js
   - [ ] 2.7 Create user registration and login API endpoints
   - [ ] 2.8 Create database seed file with default characters and stages
   - [ ] 2.9 Write unit tests for UserRepository and authentication endpoints

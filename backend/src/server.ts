@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import passport from './auth/passport';
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +29,9 @@ app.use(
 );
 
 app.use(express.json());
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // Basic health check endpoint
 app.get('/health', (_req, res) => {

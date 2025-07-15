@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username      String   @unique @db.VarChar(50)
+  email         String   @unique @db.VarChar(255)
+  passwordHash  String   @map("password_hash") @db.VarChar(255)
+  displayName   String?  @map("display_name") @db.VarChar(100)
+  avatarUrl     String?  @map("avatar_url") @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  lastLogin     DateTime? @map("last_login") @db.Timestamptz
+  isActive      Boolean  @default(true) @map("is_active")
+  isVerified    Boolean  @default(false) @map("is_verified")
+
+  // Relationships
+  playerProfile     PlayerProfile?
+  userSessions      UserSession[]
+  characterUnlocks  CharacterUnlock[]
+  stageUnlocks      StageUnlock[]
+  matchParticipants MatchParticipant[]
+  wonMatches        Match[] @relation("MatchWinner")
+
+  @@map("users")
+}
+
+model UserSession {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  ipAddress String?  @map("ip_address") @db.Inet
+  userAgent String?  @map("user_agent") @db.Text
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model PlayerProfile {
+  userId           String @id @map("user_id") @db.Uuid
+  level            Int    @default(1)
+  experiencePoints Int    @default(0) @map("experience_points")
+  coins            Int    @default(0)
+  gems             Int    @default(0)
+  totalMatches     Int    @default(0) @map("total_matches")
+  wins             Int    @default(0)
+  losses           Int    @default(0)
+  winStreak        Int    @default(0) @map("win_streak")
+  bestWinStreak    Int    @default(0) @map("best_win_streak")
+  rating           Int    @default(1000)
+  rankTier         String @default("Bronze") @map("rank_tier") @db.VarChar(20)
+  favoriteCharacter String? @map("favorite_character") @db.VarChar(50)
+  settings         Json   @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_profiles")
+}
+
+model CharacterUnlock {
+  userId      String   @map("user_id") @db.Uuid
+  characterId String   @map("character_id") @db.VarChar(50)
+  unlockedAt  DateTime @default(now()) @map("unlocked_at") @db.Timestamptz
+
+  // Relationships
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@id([userId, characterId])
+  @@map("character_unlocks")
+}
+
+model StageUnlock {
+  userId     String   @map("user_id") @db.Uuid
+  stageId    String   @map("stage_id") @db.VarChar(50)
+  unlockedAt DateTime @default(now()) @map("unlocked_at") @db.Timestamptz
+
+  // Relationships
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id])
+
+  @@id([userId, stageId])
+  @@map("stage_unlocks")
+}
+
+model Match {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  matchType       String   @map("match_type") @db.VarChar(20) // 'ranked', 'casual', 'private'
+  stageId         String   @map("stage_id") @db.VarChar(50)
+  maxPlayers      Int      @map("max_players")
+  status          String   @default("waiting") @db.VarChar(20) // 'waiting', 'in_progress', 'completed', 'cancelled'
+  startedAt       DateTime? @map("started_at") @db.Timestamptz
+  endedAt         DateTime? @map("ended_at") @db.Timestamptz
+  durationSeconds Int?     @map("duration_seconds")
+  winnerId        String?  @map("winner_id") @db.Uuid
+  matchData       Json?    @map("match_data") // Full match replay data
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relationships
+  stage        Stage              @relation(fields: [stageId], references: [id])
+  winner       User?              @relation("MatchWinner", fields: [winnerId], references: [id])
+  participants MatchParticipant[]
+
+  @@map("matches")
+}
+
+model MatchParticipant {
+  matchId          String   @map("match_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  characterId      String   @map("character_id") @db.VarChar(50)
+  placement        Int?     // 1st, 2nd, 3rd, 4th place
+  damageDealt      Int      @default(0) @map("damage_dealt")
+  damageTaken      Int      @default(0) @map("damage_taken")
+  kills            Int      @default(0)
+  deaths           Int      @default(0)
+  stocksRemaining  Int      @default(0) @map("stocks_remaining")
+  ratingChange     Int      @default(0) @map("rating_change")
+  experienceGained Int      @default(0) @map("experience_gained")
+  coinsEarned      Int      @default(0) @map("coins_earned")
+  joinedAt         DateTime @default(now()) @map("joined_at") @db.Timestamptz
+  leftAt           DateTime? @map("left_at") @db.Timestamptz
+
+  // Relationships
+  match     Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+
+  @@id([matchId, userId])
+  @@map("match_participants")
+}
+
+model Character {
+  id                 String @id @db.VarChar(50)
+  name               String @db.VarChar(100)
+  description        String? @db.Text
+  stats              Json   // speed, power, health, etc.
+  unlockRequirements Json   @map("unlock_requirements") // level, wins, etc.
+  isActive           Boolean @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relationships
+  unlocks           CharacterUnlock[]
+  matchParticipants MatchParticipant[]
+
+  @@map("characters")
+}
+
+model Stage {
+  id                 String @id @db.VarChar(50)
+  name               String @db.VarChar(100)
+  description        String? @db.Text
+  config             Json   // platforms, hazards, etc.
+  unlockRequirements Json   @map("unlock_requirements")
+  isActive           Boolean @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relationships
+  unlocks StageUnlock[]
+  matches Match[]
+
+  @@map("stages")
+}
