@@ -86,9 +86,9 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 2.9 Write unit tests for UserRepository and authentication endpoints
 
 - [ ] 3.0 Core Frontend Game Engine Setup
-  - [ ] 3.1 Set up Phaser 3 game configuration and main.ts entry point
-  - [ ] 3.2 Create BootScene for asset loading and initial setup
-  - [ ] 3.3 Create MenuScene with play button and basic navigation
+  - [x] 3.1 Set up Phaser 3 game configuration and main.ts entry point
+  - [x] 3.2 Create BootScene for asset loading and initial setup
+  - [x] 3.3 Create MenuScene with play button and basic navigation
   - [ ] 3.4 Create CharacterSelectScene with character grid and selection
   - [ ] 3.5 Create basic GameScene with camera and input setup
   - [ ] 3.6 Set up scene transitions and game state management

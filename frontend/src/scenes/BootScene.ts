@@ -1,96 +1,156 @@
 import Phaser from 'phaser';
+import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
 
 export class BootScene extends Phaser.Scene {
+  private loadingText!: Phaser.GameObjects.Text;
+  private progressBar!: Phaser.GameObjects.Graphics;
+  private progressBox!: Phaser.GameObjects.Graphics;
+  private percentText!: Phaser.GameObjects.Text;
+
   constructor() {
-    super({ key: 'BootScene' });
+    super({ key: GAME_CONFIG.SCENE_KEYS.BOOT });
   }
 
   preload(): void {
-    // Create loading progress bar
-    const progressBar = this.add.graphics();
-    const progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(540, 330, 200, 50);
+    this.createLoadingScreen();
+    this.setupLoadingEvents();
+    this.loadAssets();
+  }
 
-    const { width } = this.cameras.main;
-    const { height } = this.cameras.main;
-    const loadingText = this.make.text({
-      x: width / 2,
-      y: height / 2 - 50,
-      text: 'Loading...',
-      style: {
-        font: '20px monospace',
-        color: '#ffffff',
-      },
+  private createLoadingScreen(): void {
+    const { width, height } = this.cameras.main;
+
+    // Create loading background
+    this.add.rectangle(width / 2, height / 2, width, height, 0x2c3e50);
+
+    // Create progress box
+    this.progressBox = this.add.graphics();
+    this.progressBox.fillStyle(0x222222, 0.8);
+    this.progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50);
+
+    // Create progress bar
+    this.progressBar = this.add.graphics();
+
+    // Create loading text
+    this.loadingText = this.add.text(width / 2, height / 2 - 80, 'Loading Game Assets...', {
+      fontSize: '24px',
+      color: GAME_CONFIG.UI.COLORS.TEXT,
+      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
     });
-    loadingText.setOrigin(0.5, 0.5);
+    this.loadingText.setOrigin(0.5);
 
-    // Update progress bar
+    // Create percentage text
+    this.percentText = this.add.text(width / 2, height / 2, '0%', {
+      fontSize: '18px',
+      color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+      fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+    });
+    this.percentText.setOrigin(0.5);
+  }
+
+  private setupLoadingEvents(): void {
+    const { width, height } = this.cameras.main;
+
     this.load.on('progress', (value: number) => {
-      progressBar.clear();
-      progressBar.fillStyle(0xffffff, 1);
-      progressBar.fillRect(550, 340, 180 * value, 30);
+      const percentage = Math.round(value * 100);
+      this.percentText.setText(`${percentage}%`);
+
+      this.progressBar.clear();
+      this.progressBar.fillStyle(0x3498db, 1);
+      this.progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
+    });
+
+    this.load.on('fileprogress', (file: Phaser.Loader.File) => {
+      this.loadingText.setText(`Loading: ${file.key}`);
     });
 
     this.load.on('complete', () => {
-      loadingText.setText('Brawl Bytes - Press any key to start');
+      this.loadingText.setText('Loading Complete!');
+      this.percentText.setText('100%');
+      
+      this.time.delayedCall(500, () => {
+        this.loadingText.setText('BRAWL BYTES');
+        this.loadingText.setFontSize('48px');
+        this.loadingText.setStyle({ fontStyle: 'bold' });
+        this.percentText.setText('Press any key to continue');
+        this.percentText.setFontSize('20px');
+        this.percentText.setY(height / 2 + 60);
+      });
     });
+  }
 
-    // Load placeholder assets for now
+  private loadAssets(): void {
+    // Load logo (placeholder for now)
     this.load.image(
-      'logo',
+      ASSET_KEYS.IMAGES.LOGO,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzMzNzNkYyIvPgogIDx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkI8L3RleHQ+Cjwvc3ZnPg=='
     );
+
+    // Load placeholder UI button
+    this.load.image(
+      ASSET_KEYS.IMAGES.UI_BUTTON,
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIGZpbGw9IiMzNDk4ZGIiIHJ4PSI1Ii8+CiAgPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE5NCIgaGVpZ2h0PSI1NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIzIi8+Cjwvc3ZnPg=='
+    );
+
+    // Load placeholder platform
+    this.load.image(
+      ASSET_KEYS.IMAGES.PLATFORM,
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAiIGZpbGw9IiM5NWE1YTYiLz4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUiIGZpbGw9IiM3ZjhlOGYiLz4KPC9zdmc+'
+    );
+
+    // Simulate loading time for development
+    for (let i = 0; i < 10; i++) {
+      this.load.image(`placeholder_${i}`, 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    }
   }
 
   create(): void {
-    const { width, height } = this.cameras.main;
+    this.setupInputHandlers();
+  }
 
-    // Add logo
-    const logo = this.add.image(width / 2, height / 2 - 100, 'logo');
-    logo.setScale(2);
+  private setupInputHandlers(): void {
+    let inputEnabled = false;
 
-    // Add title
-    const title = this.add.text(width / 2, height / 2 + 50, 'BRAWL BYTES', {
-      fontSize: '48px',
-      color: '#ffffff',
-      fontFamily: 'Arial, sans-serif',
-      fontStyle: 'bold',
+    // Wait for loading to complete before enabling input
+    this.load.once('complete', () => {
+      this.time.delayedCall(1000, () => {
+        inputEnabled = true;
+        this.setupBlinkingText();
+      });
     });
-    title.setOrigin(0.5);
 
-    // Add subtitle
-    const subtitle = this.add.text(
-      width / 2,
-      height / 2 + 100,
-      'Press any key to continue',
-      {
-        fontSize: '24px',
-        color: '#cccccc',
-        fontFamily: 'Arial, sans-serif',
+    // Listen for any key press
+    this.input.keyboard?.on('keydown', () => {
+      if (inputEnabled) {
+        this.startGame();
       }
-    );
-    subtitle.setOrigin(0.5);
+    });
 
-    // Make subtitle blink
+    // Listen for click/touch
+    this.input.on('pointerdown', () => {
+      if (inputEnabled) {
+        this.startGame();
+      }
+    });
+  }
+
+  private setupBlinkingText(): void {
     this.tweens.add({
-      targets: subtitle,
+      targets: this.percentText,
       alpha: 0.3,
       duration: 1000,
       yoyo: true,
       repeat: -1,
     });
+  }
 
-    // Listen for any key press
-    this.input.keyboard?.once('keydown', () => {
-      console.log('Starting game...');
-      // TODO: Transition to MenuScene when implemented
-    });
-
-    // Listen for click/touch
-    this.input.once('pointerdown', () => {
-      console.log('Starting game...');
-      // TODO: Transition to MenuScene when implemented
+  private startGame(): void {
+    this.tweens.killAll();
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      console.log('Transitioning to MenuScene...');
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);
     });
   }
 }
