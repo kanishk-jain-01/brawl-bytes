@@ -53,6 +53,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private lastAttackTime: number = 0;
 
+  // Animation state
+  private animationState:
+    | 'idle'
+    | 'walking'
+    | 'jumping'
+    | 'falling'
+    | 'attacking' = 'idle';
+
+  private currentTween: Phaser.Tweens.Tween | null = null;
+
   // Input state (for local player)
   private inputState = {
     left: false,
@@ -142,6 +152,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.updateAttack();
     this.updateGroundedState();
     this.updateInvulnerability();
+    this.updateAnimationState();
   }
 
   private updateMovement(): void {
@@ -199,6 +210,131 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.setAlpha(1);
     }
+  }
+
+  private updateAnimationState(): void {
+    if (!this.body) return;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const prevState = this.animationState;
+
+    // Determine new animation state
+    if (this.isAttacking) {
+      this.animationState = 'attacking';
+    } else if (!this.isGrounded && body.velocity.y > 0) {
+      this.animationState = 'falling';
+    } else if (!this.isGrounded && body.velocity.y < 0) {
+      this.animationState = 'jumping';
+    } else if (Math.abs(body.velocity.x) > 10) {
+      this.animationState = 'walking';
+    } else {
+      this.animationState = 'idle';
+    }
+
+    // Apply visual effects if state changed
+    if (prevState !== this.animationState) {
+      this.playAnimation(this.animationState);
+    }
+  }
+
+  private playAnimation(newState: string): void {
+    // Stop current tween
+    if (this.currentTween) {
+      this.currentTween.stop();
+      this.currentTween = null;
+    }
+
+    // Reset transform
+    this.setScale(1);
+    this.setRotation(0);
+
+    // Apply state-specific animations
+    switch (newState) {
+      case 'idle':
+        this.playIdleAnimation();
+        break;
+      case 'walking':
+        this.playWalkingAnimation();
+        break;
+      case 'jumping':
+        this.playJumpingAnimation();
+        break;
+      case 'falling':
+        this.playFallingAnimation();
+        break;
+      case 'attacking':
+        this.playAttackingAnimation();
+        break;
+      default:
+        this.playIdleAnimation();
+        break;
+    }
+  }
+
+  private playIdleAnimation(): void {
+    // Gentle breathing effect
+    this.currentTween = this.scene.tweens.add({
+      targets: this,
+      scaleY: 1.02,
+      duration: 2000,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  private playWalkingAnimation(): void {
+    // Subtle bounce while walking
+    this.currentTween = this.scene.tweens.add({
+      targets: this,
+      scaleY: 1.05,
+      duration: 300,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  private playJumpingAnimation(): void {
+    // Stretch effect when jumping
+    this.currentTween = this.scene.tweens.add({
+      targets: this,
+      scaleY: 1.15,
+      scaleX: 0.95,
+      duration: 200,
+      ease: 'Back.easeOut',
+      yoyo: false,
+      onComplete: () => {
+        this.setScale(1);
+      },
+    });
+  }
+
+  private playFallingAnimation(): void {
+    // Compress effect when falling
+    this.currentTween = this.scene.tweens.add({
+      targets: this,
+      scaleY: 0.9,
+      scaleX: 1.1,
+      duration: 300,
+      ease: 'Sine.easeInOut',
+      yoyo: false,
+    });
+  }
+
+  private playAttackingAnimation(): void {
+    // Scale up briefly for attack
+    this.currentTween = this.scene.tweens.add({
+      targets: this,
+      scaleX: 1.2,
+      scaleY: 1.1,
+      duration: 100,
+      ease: 'Back.easeOut',
+      yoyo: true,
+      onComplete: () => {
+        this.setScale(1);
+      },
+    });
   }
 
   private canJump(): boolean {
@@ -380,6 +516,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   destroy(): void {
     if (this.invulnerabilityTimer) {
       this.invulnerabilityTimer.remove();
+    }
+
+    if (this.currentTween) {
+      this.currentTween.stop();
+      this.currentTween = null;
     }
 
     this.scene.physics.world.off('worldbounds', this.handleWorldBounds, this);
