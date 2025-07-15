@@ -5,7 +5,7 @@ import request from 'supertest';
 import { app, server } from '../server';
 
 // Properly close server after tests
-afterAll((done) => {
+afterAll(done => {
   server.close(done);
 });
 
@@ -31,9 +31,7 @@ describe('Backend Jest Setup', () => {
 
 describe('Health Endpoint', () => {
   it('should return health status', async () => {
-    const response = await request(app)
-      .get('/health')
-      .expect(200);
+    const response = await request(app).get('/health').expect(200);
 
     expect(response.body).toHaveProperty('status', 'OK');
     expect(response.body).toHaveProperty('service', 'brawl-bytes-backend');

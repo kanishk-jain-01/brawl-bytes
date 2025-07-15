@@ -39,9 +39,9 @@ expect.extend({
     const isValid = typeof received === 'string' && received.length > 0;
     return {
       message: () => `expected ${received} to be a valid socket ID`,
-      pass: isValid
+      pass: isValid,
     };
-  }
+  },
 });
 
 export {};

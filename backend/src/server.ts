@@ -13,45 +13,47 @@ const server = createServer(app);
 // Configure CORS for Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
 // Basic health check endpoint
 app.get('/health', (_req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    service: 'brawl-bytes-backend'
+    service: 'brawl-bytes-backend',
   });
 });
 
 // Socket.io connection handling
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   console.log(`Client connected: ${socket.id}`);
 
   // Basic connection test
-  socket.emit('welcome', { 
+  socket.emit('welcome', {
     message: 'Connected to Brawl Bytes server',
-    socketId: socket.id
+    socketId: socket.id,
   });
 
-  socket.on('disconnect', (reason) => {
+  socket.on('disconnect', reason => {
     console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
   });
 
   // Placeholder for game events
-  socket.on('ping', (callback) => {
+  socket.on('ping', callback => {
     if (callback) {
       callback({ pong: Date.now() });
     }
@@ -63,7 +65,9 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`🚀 Brawl Bytes server running on port ${PORT}`);
   console.log(`📡 Socket.io server ready for connections`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}`);
+  console.log(
+    `🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`
+  );
 });
 
 export { app, server, io };

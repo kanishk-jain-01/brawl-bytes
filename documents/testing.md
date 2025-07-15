@@ -30,6 +30,23 @@ npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage report
 ```
 
+### Code Quality Commands
+```bash
+# Frontend linting and formatting
+cd frontend/
+npm run lint              # Check for linting issues
+npm run lint:fix          # Auto-fix linting issues
+npm run format            # Format code with Prettier
+npm run format:check      # Check if code is properly formatted
+
+# Backend linting and formatting
+cd backend/
+npm run lint              # Check for linting issues
+npm run lint:fix          # Auto-fix linting issues
+npm run format            # Format code with Prettier
+npm run format:check      # Check if code is properly formatted
+```
+
 ### Development Workflow Integration
 
 1. **Test-Driven Development (TDD)**
@@ -45,6 +62,7 @@ npm run test:coverage    # Run tests with coverage report
 3. **Pre-commit Testing**
    - Run full test suite before committing
    - Ensure coverage thresholds are met (70% minimum)
+   - Run linting and formatting checks: `npm run lint && npm run format:check`
 
 ## Testing Strategies for Game Components
 

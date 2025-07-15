@@ -22,6 +22,8 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `frontend/src/__tests__/setup.ts` - Jest setup and mocks for frontend ✓
 - `frontend/src/__tests__/main.test.ts` - Basic Jest setup verification test ✓
 - `frontend/src/__mocks__/fileMock.ts` - Asset file mocks ✓
+- `frontend/.eslintrc.js` - ESLint configuration for frontend with Airbnb + TypeScript ✓
+- `frontend/.prettierrc` - Prettier configuration for consistent code formatting ✓
 - `frontend/src/__tests__/entities/Player.test.ts` - Unit tests for Player entity
 - `frontend/src/__tests__/scenes/GameScene.test.ts` - Unit tests for GameScene
 - `backend/package.json` - Backend dependencies (Express, Socket.io, TypeScript, Prisma, PostgreSQL, Jest) ✓
@@ -31,6 +33,9 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `backend/jest.config.ts` - Jest configuration for backend testing ✓
 - `backend/src/__tests__/setup.ts` - Jest setup and custom matchers ✓
 - `backend/src/__tests__/server.test.ts` - Basic Jest setup and API tests ✓
+- `backend/.eslintrc.js` - ESLint configuration for backend with Airbnb + TypeScript ✓
+- `backend/.prettierrc` - Prettier configuration for consistent code formatting ✓
+- `.gitignore` - Root-level gitignore for node_modules, dist, .env, coverage, and OS files ✓
 - `backend/src/database/prisma/schema.prisma` - Database schema definition
 - `backend/src/database/repositories/UserRepository.ts` - User data access layer
 - `backend/src/database/repositories/MatchRepository.ts` - Match data access layer
@@ -53,14 +58,14 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 
 ## Tasks
 
-- [ ] 1.0 Project Setup & Basic Infrastructure
+- [x] 1.0 Project Setup & Basic Infrastructure
   - [x] 1.1 Create project root directory structure (frontend/, backend/, documents/)
   - [x] 1.2 Initialize frontend with Vite + TypeScript + Phaser 3
   - [x] 1.3 Initialize backend with Node.js + Express + TypeScript
   - [x] 1.4 Set up Jest testing framework for both frontend and backend
-  - [ ] 1.5 Set up ESLint/Prettier for both frontend and backend
-  - [ ] 1.6 Create basic .gitignore files for node_modules, dist, .env
-  - [ ] 1.7 Set up package.json scripts for dev, build, start, and test commands
+  - [x] 1.5 Set up ESLint/Prettier for both frontend and backend
+  - [x] 1.6 Create basic .gitignore files for node_modules, dist, .env
+  - [x] 1.7 Set up package.json scripts for dev, build, start, and test commands
 
 - [ ] 2.0 Database Setup & Basic Authentication
   - [ ] 2.1 Verify PostgreSQL is running locally via Homebrew

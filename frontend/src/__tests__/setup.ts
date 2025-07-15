@@ -4,19 +4,22 @@ import 'jest';
 // Mock Phaser globally
 global.Phaser = {
   Scene: class MockScene {
-    constructor(config?: any) {}
+    constructor(_config?: any) {}
+
     preload() {}
+
     create() {}
+
     update() {}
   },
   Game: class MockGame {
-    constructor(config: any) {}
+    constructor(_config: any) {}
   },
   AUTO: 'AUTO',
   Scale: {
     FIT: 'FIT',
-    CENTER_BOTH: 'CENTER_BOTH'
-  }
+    CENTER_BOTH: 'CENTER_BOTH',
+  },
 } as any;
 
 // Mock Canvas API
@@ -38,18 +41,19 @@ Object.defineProperty(window, 'HTMLCanvasElement', {
         lineTo: jest.fn(),
         closePath: jest.fn(),
         stroke: jest.fn(),
-        fill: jest.fn()
+        fill: jest.fn(),
       };
     }
+
     toDataURL() {
       return '';
     }
-  }
+  },
 });
 
 // Mock WebGL context
 Object.defineProperty(window, 'WebGLRenderingContext', {
-  value: class MockWebGLContext {}
+  value: class MockWebGLContext {},
 });
 
 // Mock requestAnimationFrame
