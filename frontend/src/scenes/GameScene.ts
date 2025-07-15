@@ -68,7 +68,12 @@ export class GameScene extends Phaser.Scene {
 
   private setupPhysics(): void {
     // Set world bounds (larger than screen for camera movement)
-    this.physics.world.setBounds(0, 0, 2000, 1200);
+    this.physics.world.setBounds(
+      0,
+      0,
+      GAME_CONFIG.PHYSICS.WORLD_BOUNDS.WIDTH,
+      GAME_CONFIG.PHYSICS.WORLD_BOUNDS.HEIGHT
+    );
 
     // Configure physics
     this.physics.world.gravity.y = GAME_CONFIG.PHYSICS.GRAVITY;
@@ -153,7 +158,7 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerFallOffStage(player: Player): void {
     // Apply fall damage using new damage system
     const fallDamage: DamageInfo = {
-      amount: 25,
+      amount: GAME_CONFIG.DAMAGE.FALL_DAMAGE,
       type: DamageType.FALL,
       source: 'stage_fall',
     };
@@ -630,8 +635,8 @@ export class GameScene extends Phaser.Scene {
     damage: number,
     knockback: { x: number; y: number }
   ): void {
-    // Calculate if this is a critical hit (10% chance)
-    const isCritical = Math.random() < 0.1;
+    // Calculate if this is a critical hit
+    const isCritical = Math.random() < GAME_CONFIG.DAMAGE.CRITICAL_CHANCE;
 
     // Create damage info using new system
     const attackDamage: DamageInfo = {

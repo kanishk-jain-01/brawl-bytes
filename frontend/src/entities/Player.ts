@@ -122,8 +122,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
 
     // Set physics properties based on character
-    body.setCollideWorldBounds(false); // We'll handle boundaries manually
-    body.setBounce(0.1);
+    body.setCollideWorldBounds(false); // Boundaries handled by Stage entity
+    body.setBounce(GAME_CONFIG.PHYSICS.BOUNCE_FACTOR);
     body.setDragX(GAME_CONFIG.PHYSICS.FRICTION * 1000);
     body.setMaxVelocity(this.character.speed * 2, 1000);
 
@@ -159,7 +159,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Handle player falling off stage
     if (this.y > this.scene.physics.world.bounds.height) {
       this.takeDamage({
-        amount: 25,
+        amount: GAME_CONFIG.DAMAGE.FALL_DAMAGE,
         type: DamageType.FALL,
         source: 'world_bounds',
       });
@@ -232,7 +232,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private updateInvulnerability(): void {
     if (this.isInvulnerable) {
       // Flash effect during invulnerability
-      this.setAlpha(this.scene.time.now % 200 < 100 ? 0.5 : 1);
+      this.setAlpha(
+        this.scene.time.now % GAME_CONFIG.TIMING.FLASH_INTERVAL <
+          GAME_CONFIG.TIMING.FLASH_INTERVAL / 2
+          ? 0.5
+          : 1
+      );
     } else {
       this.setAlpha(1);
     }
@@ -251,7 +256,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.animationState = 'falling';
     } else if (!this.isGrounded && body.velocity.y < 0) {
       this.animationState = 'jumping';
-    } else if (Math.abs(body.velocity.x) > 10) {
+    } else if (
+      Math.abs(body.velocity.x) > GAME_CONFIG.PHYSICS.WALKING_THRESHOLD
+    ) {
       this.animationState = 'walking';
     } else {
       this.animationState = 'idle';
@@ -377,7 +384,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(this.character.jumpVelocity);
     } else if (this.canDoubleJump && !this.hasUsedDoubleJump) {
       // Double jump
-      body.setVelocityY(this.character.jumpVelocity * 0.8);
+      body.setVelocityY(
+        this.character.jumpVelocity * GAME_CONFIG.PHYSICS.DOUBLE_JUMP_MULTIPLIER
+      );
       this.hasUsedDoubleJump = true;
     }
   }
@@ -392,7 +401,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private performAttack(): void {
     this.isAttacking = true;
     this.lastAttackTime = this.scene.time.now;
-    this.attackCooldown = 400; // 400ms cooldown
+    this.attackCooldown = GAME_CONFIG.TIMING.ATTACK_COOLDOWN;
 
     // Create attack hitbox
     this.createAttackHitbox();
@@ -491,7 +500,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.applyDamageVisualFeedback(damageInfo);
 
     // Grant temporary invulnerability
-    const invulnerabilityDuration = damageInfo.isCritical ? 1500 : 1000;
+    const invulnerabilityDuration = damageInfo.isCritical
+      ? GAME_CONFIG.TIMING.CRITICAL_INVULNERABILITY_DURATION
+      : GAME_CONFIG.TIMING.INVULNERABILITY_DURATION;
     this.makeInvulnerable(invulnerabilityDuration);
 
     // Check if player is defeated
@@ -539,7 +550,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Apply critical hit multiplier
     if (damageInfo.isCritical) {
-      damage *= 1.5;
+      damage *= GAME_CONFIG.DAMAGE.CRITICAL_MULTIPLIER;
     }
 
     // Apply character-specific damage multiplier
@@ -661,7 +672,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Grant respawn invulnerability
-    this.makeInvulnerable(2000);
+    this.makeInvulnerable(GAME_CONFIG.TIMING.RESPAWN_INVULNERABILITY);
 
     // Emit respawn event
     this.scene.events.emit('playerRespawned', {
