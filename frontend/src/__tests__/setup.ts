@@ -1,6 +1,54 @@
 // Jest setup file for frontend tests
 import 'jest';
 
+// ---------------------------------------------------------------------------
+// Mock the Phaser module so importing scenes doesn't pull in the entire engine
+// (and its optional peer deps like phaser3spectorjs). We expose only the parts
+// our tests interact with.
+// ---------------------------------------------------------------------------
+
+jest.mock('phaser', () => {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  class MockScene {
+    public sys: any;
+    public game: any;
+    public registry: any;
+    public cameras: any;
+    public scene: any;
+
+    constructor(_config: any = {}) {
+      // Minimal mock of properties accessed in tests
+      this.sys = {};
+      this.game = {};
+      this.registry = { get: jest.fn(), set: jest.fn() } as any;
+      this.cameras = { main: {} } as any;
+      this.scene = {} as any;
+    }
+    preload() {}
+    create() {}
+    update() {}
+  }
+
+  const PhaserStub = {
+    AUTO: 'AUTO',
+    Scene: MockScene,
+    Scale: {
+      FIT: 'FIT',
+      CENTER_BOTH: 'CENTER_BOTH',
+    },
+    Math: {
+      Between: jest.fn(() => 0),
+      FloatBetween: jest.fn(() => 0),
+    },
+  } as any;
+
+  return {
+    __esModule: true,
+    default: PhaserStub,
+    ...PhaserStub,
+  };
+});
+
 // Mock Phaser globally
 global.Phaser = {
   Scene: class MockScene {
