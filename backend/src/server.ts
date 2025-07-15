@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from './auth/passport';
+import authRoutes from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,9 @@ app.use(express.json());
 
 // Initialize Passport
 app.use(passport.initialize());
+
+// Routes
+app.use('/auth', authRoutes);
 
 // Basic health check endpoint
 app.get('/health', (_req, res) => {

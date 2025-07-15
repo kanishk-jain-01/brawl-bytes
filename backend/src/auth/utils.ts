@@ -24,7 +24,7 @@ export const hashPassword = async (password: string): Promise<string> => {
   return bcrypt.hash(password, saltRounds);
 };
 
-export const validatePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+export const verifyPassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
 
@@ -56,4 +56,8 @@ export const validatePasswordStrength = (password: string): { valid: boolean; me
   }
   
   return { valid: true };
+};
+
+export const validatePassword = (password: string): boolean => {
+  return validatePasswordStrength(password).valid;
 };

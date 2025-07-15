@@ -40,10 +40,11 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `backend/.env` - Environment variables for database connection ✓
 - `backend/prisma/migrations/20250715003734_init/migration.sql` - Initial database migration file ✓
 - `backend/src/generated/prisma/` - Generated Prisma client for type-safe database access ✓
+- `backend/prisma/seed.ts` - Database seed file with default characters and stages ✓
 - `backend/src/auth/passport.ts` - Passport.js configuration with Local and JWT strategies ✓
 - `backend/src/auth/middleware.ts` - Authentication middleware for protecting routes ✓
 - `backend/src/auth/utils.ts` - JWT token generation and password hashing utilities ✓
-- `backend/src/database/repositories/UserRepository.ts` - User data access layer
+- `backend/src/database/repositories/UserRepository.ts` - User data access layer ✓
 - `backend/src/database/repositories/MatchRepository.ts` - Match data access layer
 - `backend/src/game/GameRoom.ts` - Room management for multiplayer matches
 - `backend/src/game/GameState.ts` - Authoritative game state management
@@ -80,8 +81,8 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 2.4 Create Prisma schema with User, PlayerProfile, and basic Match models
   - [x] 2.5 Run initial Prisma migration to create database tables
   - [x] 2.6 Set up basic JWT authentication with Passport.js
-  - [ ] 2.7 Create user registration and login API endpoints
-  - [ ] 2.8 Create database seed file with default characters and stages
+  - [x] 2.7 Create user registration and login API endpoints
+  - [x] 2.8 Create database seed file with default characters and stages
   - [ ] 2.9 Write unit tests for UserRepository and authentication endpoints
 
 - [ ] 3.0 Core Frontend Game Engine Setup

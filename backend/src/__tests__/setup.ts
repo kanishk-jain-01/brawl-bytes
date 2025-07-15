@@ -7,6 +7,14 @@ import 'jest';
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0'; // Use random port for tests
 process.env.FRONTEND_URL = 'http://localhost:3000';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
+process.env.JWT_SECRET = 'test_jwt_secret';
+
+// Mock Prisma Client
+jest.mock('../generated/prisma', () => {
+  const { mockPrisma, PrismaClient } = require('./__mocks__/prisma');
+  return { PrismaClient };
+});
 
 // Mock console methods to reduce noise in tests (optional)
 const originalConsoleLog = console.log;

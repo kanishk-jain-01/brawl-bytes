@@ -18,6 +18,7 @@ const config: Config = {
     '^@/networking/(.*)$': '<rootDir>/src/networking/$1',
     '^@/utils/(.*)$': '<rootDir>/src/utils/$1'
   },
+  modulePathIgnorePatterns: ['<rootDir>/src/generated/'],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   collectCoverageFrom: [
     'src/**/*.{ts,js}',
