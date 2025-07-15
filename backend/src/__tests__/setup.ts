@@ -12,6 +12,7 @@ process.env.JWT_SECRET = 'test_jwt_secret';
 
 // Mock Prisma Client
 jest.mock('@prisma/client', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports, global-require
   const { PrismaClient } = require('./__mocks__/prisma');
   return { PrismaClient };
 });
@@ -34,6 +35,7 @@ afterAll(() => {
 
 // Global test utilities
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeValidSocketId(): R;

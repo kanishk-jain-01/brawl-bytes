@@ -31,7 +31,7 @@ export interface UserWithProfile {
 export class UserRepository {
   static async createUser(userData: CreateUserData): Promise<UserWithProfile> {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
-    
+
     const user = await prisma.user.create({
       data: {
         username: userData.username,
@@ -56,7 +56,9 @@ export class UserRepository {
     return user;
   }
 
-  static async getUserByUsername(username: string): Promise<UserWithProfile | null> {
+  static async getUserByUsername(
+    username: string
+  ): Promise<UserWithProfile | null> {
     const user = await prisma.user.findUnique({
       where: { username },
       include: {
@@ -96,7 +98,10 @@ export class UserRepository {
     });
   }
 
-  static async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  static async verifyPassword(
+    password: string,
+    hashedPassword: string
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 }

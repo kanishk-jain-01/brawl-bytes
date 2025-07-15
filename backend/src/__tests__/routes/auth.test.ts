@@ -2,7 +2,12 @@ import request from 'supertest';
 import express from 'express';
 import authRoutes from '../../routes/auth';
 import { UserRepository } from '../../database/repositories/UserRepository';
-import { generateToken, validateEmail, validateUsername, validatePasswordStrength } from '../../auth/utils';
+import {
+  generateToken,
+  validateEmail,
+  validateUsername,
+  validatePasswordStrength,
+} from '../../auth/utils';
 
 // Mock dependencies
 jest.mock('../../database/repositories/UserRepository');
@@ -15,14 +20,27 @@ jest.mock('../../auth/utils', () => ({
 jest.mock('../../auth/middleware');
 
 const mockUserRepository = UserRepository as jest.Mocked<typeof UserRepository>;
-const mockGenerateToken = generateToken as jest.MockedFunction<typeof generateToken>;
-const mockValidateEmail = validateEmail as jest.MockedFunction<typeof validateEmail>;
-const mockValidateUsername = validateUsername as jest.MockedFunction<typeof validateUsername>;
-const mockValidatePasswordStrength = validatePasswordStrength as jest.MockedFunction<typeof validatePasswordStrength>;
+const mockGenerateToken = generateToken as jest.MockedFunction<
+  typeof generateToken
+>;
+const mockValidateEmail = validateEmail as jest.MockedFunction<
+  typeof validateEmail
+>;
+const mockValidateUsername = validateUsername as jest.MockedFunction<
+  typeof validateUsername
+>;
+const mockValidatePasswordStrength =
+  validatePasswordStrength as jest.MockedFunction<
+    typeof validatePasswordStrength
+  >;
 
 jest.mock('../../auth/middleware', () => ({
   authenticateJWT: jest.fn((req: any, _res: any, next: any) => {
-    req.user = { userId: 'test-user-id', username: 'testuser', email: 'test@example.com' };
+    req.user = {
+      userId: 'test-user-id',
+      username: 'testuser',
+      email: 'test@example.com',
+    };
     next();
   }),
 }));
@@ -125,7 +143,9 @@ describe('Auth Routes', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Username must be 3-50 characters');
+      expect(response.body.message).toContain(
+        'Username must be 3-50 characters'
+      );
     });
 
     it('should return 400 for invalid email format', async () => {
@@ -153,9 +173,9 @@ describe('Auth Routes', () => {
       // Mock validation functions - password invalid, others valid
       mockValidateUsername.mockReturnValue(true);
       mockValidateEmail.mockReturnValue(true);
-      mockValidatePasswordStrength.mockReturnValue({ 
-        valid: false, 
-        message: 'Password must be at least 8 characters long' 
+      mockValidatePasswordStrength.mockReturnValue({
+        valid: false,
+        message: 'Password must be at least 8 characters long',
       });
 
       const response = await request(app)
@@ -168,7 +188,9 @@ describe('Auth Routes', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Password must be at least 8 characters');
+      expect(response.body.message).toContain(
+        'Password must be at least 8 characters'
+      );
     });
 
     it('should return 409 for existing username', async () => {
@@ -287,7 +309,9 @@ describe('Auth Routes', () => {
         },
       });
 
-      expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
+      expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(
+        mockUser.id
+      );
     });
 
     it('should login user with email instead of username', async () => {
@@ -319,7 +343,9 @@ describe('Auth Routes', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(mockUserRepository.getUserByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockUserRepository.getUserByEmail).toHaveBeenCalledWith(
+        'test@example.com'
+      );
     });
 
     it('should return 400 for missing credentials', async () => {
@@ -409,9 +435,7 @@ describe('Auth Routes', () => {
 
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
 
-      const response = await request(app)
-        .get('/auth/profile')
-        .expect(200);
+      const response = await request(app).get('/auth/profile').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -431,9 +455,7 @@ describe('Auth Routes', () => {
     it('should return 404 if user not found', async () => {
       mockUserRepository.getUserById.mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/auth/profile')
-        .expect(404);
+      const response = await request(app).get('/auth/profile').expect(404);
 
       expect(response.body).toEqual({
         success: false,
@@ -458,9 +480,7 @@ describe('Auth Routes', () => {
       mockUserRepository.getUserById.mockResolvedValue(mockUser);
       mockGenerateToken.mockReturnValue('new-jwt-token');
 
-      const response = await request(app)
-        .post('/auth/refresh')
-        .expect(200);
+      const response = await request(app).post('/auth/refresh').expect(200);
 
       expect(response.body).toEqual({
         success: true,
@@ -474,9 +494,7 @@ describe('Auth Routes', () => {
     it('should return 401 if user not found during refresh', async () => {
       mockUserRepository.getUserById.mockResolvedValue(null);
 
-      const response = await request(app)
-        .post('/auth/refresh')
-        .expect(401);
+      const response = await request(app).post('/auth/refresh').expect(401);
 
       expect(response.body).toEqual({
         success: false,

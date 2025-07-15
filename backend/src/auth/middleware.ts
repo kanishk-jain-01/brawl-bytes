@@ -5,7 +5,11 @@ export interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
-export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateJWT = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   passport.authenticate('jwt', { session: false }, (err: any, user: any) => {
     if (err) {
       return res.status(500).json({ error: 'Authentication error' });
@@ -20,7 +24,11 @@ export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: 
   })(req, res, next);
 };
 
-export const optionalAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const optionalAuth = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   passport.authenticate('jwt', { session: false }, (err: any, user: any) => {
     if (!err && user) {
       req.user = user;

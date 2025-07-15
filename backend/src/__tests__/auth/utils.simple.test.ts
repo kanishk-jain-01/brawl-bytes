@@ -54,19 +54,25 @@ describe('Auth Utils - Basic Validation', () => {
     it('should reject passwords that are too short', () => {
       const result = validatePasswordStrength('Pass123');
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must be at least 8 characters long');
+      expect(result.message).toBe(
+        'Password must be at least 8 characters long'
+      );
     });
 
     it('should reject passwords without lowercase letters', () => {
       const result = validatePasswordStrength('PASSWORD123');
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must contain at least one lowercase letter');
+      expect(result.message).toBe(
+        'Password must contain at least one lowercase letter'
+      );
     });
 
     it('should reject passwords without uppercase letters', () => {
       const result = validatePasswordStrength('password123');
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must contain at least one uppercase letter');
+      expect(result.message).toBe(
+        'Password must contain at least one uppercase letter'
+      );
     });
 
     it('should reject passwords without numbers', () => {
@@ -95,7 +101,7 @@ describe('Auth Utils - Basic Validation', () => {
     it('should hash passwords correctly', async () => {
       const password = 'TestPassword123';
       const hashedPassword = await hashPassword(password);
-      
+
       expect(hashedPassword).toBeTruthy();
       expect(hashedPassword).not.toBe(password);
       expect(hashedPassword).toMatch(/^\$2b\$12\$/); // bcrypt format with 12 rounds
@@ -104,10 +110,10 @@ describe('Auth Utils - Basic Validation', () => {
     it('should verify passwords correctly', async () => {
       const password = 'TestPassword123';
       const hashedPassword = await hashPassword(password);
-      
+
       const isValid = await verifyPassword(password, hashedPassword);
       expect(isValid).toBe(true);
-      
+
       const isInvalid = await verifyPassword('WrongPassword', hashedPassword);
       expect(isInvalid).toBe(false);
     });

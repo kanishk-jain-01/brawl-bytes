@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import {
   generateToken,
   generateRefreshToken,
@@ -8,7 +9,6 @@ import {
   validatePasswordStrength,
   validatePassword,
 } from '../../auth/utils';
-import jwt from 'jsonwebtoken';
 
 // Mock jwt
 jest.mock('jsonwebtoken');
@@ -30,34 +30,28 @@ describe('Auth Utils', () => {
         email: 'test@example.com',
       };
 
-
       const token = generateToken(payload);
 
-      expect(mockJwt.sign).toHaveBeenCalledWith(
-        payload,
-        'test-secret',
-        { expiresIn: '15m' }
-      );
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test-secret', {
+        expiresIn: '15m',
+      });
       expect(token).toBe('mocked-token');
     });
 
     it('should use fallback secret if JWT_SECRET is not set', () => {
       delete process.env.JWT_SECRET;
-      
+
       const payload = {
         userId: 'test-user-id',
         username: 'testuser',
         email: 'test@example.com',
       };
 
-
       generateToken(payload);
 
-      expect(mockJwt.sign).toHaveBeenCalledWith(
-        payload,
-        'fallback_secret',
-        { expiresIn: '15m' }
-      );
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'fallback_secret', {
+        expiresIn: '15m',
+      });
     });
   });
 
@@ -71,11 +65,9 @@ describe('Auth Utils', () => {
 
       const token = generateRefreshToken(payload);
 
-      expect(mockJwt.sign).toHaveBeenCalledWith(
-        payload,
-        'test-secret',
-        { expiresIn: '30d' }
-      );
+      expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'test-secret', {
+        expiresIn: '30d',
+      });
       expect(token).toBe('mocked-token');
     });
   });
@@ -83,9 +75,9 @@ describe('Auth Utils', () => {
   describe('hashPassword', () => {
     it('should hash password with correct salt rounds', async () => {
       const password = 'testpassword';
-      
+
       const hashedPassword = await hashPassword(password);
-      
+
       expect(hashedPassword).toBeTruthy();
       expect(hashedPassword).not.toBe(password);
       expect(hashedPassword).toMatch(/^\$2b\$12\$/); // bcrypt format with 12 rounds
@@ -96,9 +88,9 @@ describe('Auth Utils', () => {
     it('should return true for matching passwords', async () => {
       const password = 'testpassword';
       const hashedPassword = await hashPassword(password);
-      
+
       const isValid = await verifyPassword(password, hashedPassword);
-      
+
       expect(isValid).toBe(true);
     });
 
@@ -106,9 +98,9 @@ describe('Auth Utils', () => {
       const password = 'testpassword';
       const wrongPassword = 'wrongpassword';
       const hashedPassword = await hashPassword(password);
-      
+
       const isValid = await verifyPassword(wrongPassword, hashedPassword);
-      
+
       expect(isValid).toBe(false);
     });
   });
@@ -198,7 +190,9 @@ describe('Auth Utils', () => {
       const result = validatePasswordStrength(shortPassword);
 
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must be at least 8 characters long');
+      expect(result.message).toBe(
+        'Password must be at least 8 characters long'
+      );
     });
 
     it('should return invalid for passwords without lowercase', () => {
@@ -207,7 +201,9 @@ describe('Auth Utils', () => {
       const result = validatePasswordStrength(password);
 
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must contain at least one lowercase letter');
+      expect(result.message).toBe(
+        'Password must contain at least one lowercase letter'
+      );
     });
 
     it('should return invalid for passwords without uppercase', () => {
@@ -216,7 +212,9 @@ describe('Auth Utils', () => {
       const result = validatePasswordStrength(password);
 
       expect(result.valid).toBe(false);
-      expect(result.message).toBe('Password must contain at least one uppercase letter');
+      expect(result.message).toBe(
+        'Password must contain at least one uppercase letter'
+      );
     });
 
     it('should return invalid for passwords without numbers', () => {
@@ -231,11 +229,7 @@ describe('Auth Utils', () => {
 
   describe('validatePassword', () => {
     it('should return true for valid passwords', () => {
-      const validPasswords = [
-        'Password123',
-        'ValidPass1',
-        'MyStr0ngPassword',
-      ];
+      const validPasswords = ['Password123', 'ValidPass1', 'MyStr0ngPassword'];
 
       validPasswords.forEach(password => {
         expect(validatePassword(password)).toBe(true);

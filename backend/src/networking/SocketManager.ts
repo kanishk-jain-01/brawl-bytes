@@ -16,7 +16,9 @@ export interface GameRoom {
 
 export class SocketManager {
   private io: Server;
+
   private rooms: Map<string, GameRoom>;
+
   private playerSocketMap: Map<string, AuthenticatedSocket>;
 
   constructor(io: Server) {
@@ -49,15 +51,15 @@ export class SocketManager {
       });
 
       // Handle game events (placeholder for now)
-      socket.on('playerMove', (data) => {
+      socket.on('playerMove', data => {
         this.handlePlayerMove(socket, data);
       });
 
-      socket.on('playerAttack', (data) => {
+      socket.on('playerAttack', data => {
         this.handlePlayerAttack(socket, data);
       });
 
-      socket.on('disconnect', (reason) => {
+      socket.on('disconnect', reason => {
         this.handleDisconnect(socket, reason);
       });
 
@@ -79,23 +81,28 @@ export class SocketManager {
         });
         return;
       }
-      
-      const decoded = jwt.verify(token, jwtSecret) as any;
+
+      const decoded = jwt.verify(token, jwtSecret) as {
+        id: string;
+        username: string;
+      };
+      // eslint-disable-next-line no-param-reassign
       socket.userId = decoded.id;
+      // eslint-disable-next-line no-param-reassign
       socket.username = decoded.username;
-      
+
       if (socket.userId) {
         this.playerSocketMap.set(socket.userId, socket);
       }
-      
+
       socket.emit('authenticated', {
         success: true,
         userId: socket.userId,
         username: socket.username,
       });
-      
+
       console.log(`User authenticated: ${socket.username} (${socket.userId})`);
-    } catch (error) {
+    } catch {
       socket.emit('authenticated', {
         success: false,
         error: 'Invalid token',
@@ -106,7 +113,9 @@ export class SocketManager {
 
   private createRoom(socket: AuthenticatedSocket): void {
     if (!socket.userId) {
-      socket.emit('roomError', { message: 'Must be authenticated to create room' });
+      socket.emit('roomError', {
+        message: 'Must be authenticated to create room',
+      });
       return;
     }
 
@@ -134,7 +143,9 @@ export class SocketManager {
 
   private joinRoom(socket: AuthenticatedSocket, roomId: string): void {
     if (!socket.userId) {
-      socket.emit('roomError', { message: 'Must be authenticated to join room' });
+      socket.emit('roomError', {
+        message: 'Must be authenticated to join room',
+      });
       return;
     }
 
@@ -178,11 +189,13 @@ export class SocketManager {
       });
     }
 
-    console.log(`${socket.username} joined room ${roomId} (${room.players.length}/${room.maxPlayers})`);
+    console.log(
+      `${socket.username} joined room ${roomId} (${room.players.length}/${room.maxPlayers})`
+    );
   }
 
   private leaveRoom(socket: AuthenticatedSocket): void {
-    for (const [roomId, room] of this.rooms.entries()) {
+    this.rooms.forEach((room, roomId) => {
       const playerIndex = room.players.findIndex(p => p.id === socket.id);
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
@@ -201,55 +214,60 @@ export class SocketManager {
           this.rooms.delete(roomId);
           console.log(`Room ${roomId} deleted (empty)`);
         } else {
+          // eslint-disable-next-line no-param-reassign
           room.isActive = false; // Pause game if someone leaves
         }
 
         console.log(`${socket.username} left room ${roomId}`);
-        break;
       }
-    }
+    });
   }
 
-  private handlePlayerMove(socket: AuthenticatedSocket, data: any): void {
+  private handlePlayerMove(
+    socket: AuthenticatedSocket,
+    data: Record<string, unknown>
+  ): void {
     // Find the room this player is in
-    for (const [roomId, room] of this.rooms.entries()) {
+    this.rooms.forEach((room, roomId) => {
       if (room.players.some(p => p.id === socket.id) && room.isActive) {
         // Broadcast to other players in the room
         socket.to(roomId).emit('playerMove', {
           playerId: socket.userId,
           ...data,
         });
-        break;
       }
-    }
+    });
   }
 
-  private handlePlayerAttack(socket: AuthenticatedSocket, data: any): void {
+  private handlePlayerAttack(
+    socket: AuthenticatedSocket,
+    data: Record<string, unknown>
+  ): void {
     // Find the room this player is in
-    for (const [roomId, room] of this.rooms.entries()) {
+    this.rooms.forEach((room, roomId) => {
       if (room.players.some(p => p.id === socket.id) && room.isActive) {
         // Broadcast to other players in the room
         socket.to(roomId).emit('playerAttack', {
           playerId: socket.userId,
           ...data,
         });
-        break;
       }
-    }
+    });
   }
 
   private handleDisconnect(socket: AuthenticatedSocket, reason: string): void {
     console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
-    
+
     // Remove from player map
     if (socket.userId) {
       this.playerSocketMap.delete(socket.userId);
     }
-    
+
     // Remove from any rooms
     this.leaveRoom(socket);
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private generateRoomId(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
@@ -264,11 +282,8 @@ export class SocketManager {
   }
 
   public getRoomByPlayerId(playerId: string): GameRoom | undefined {
-    for (const room of this.rooms.values()) {
-      if (room.players.some(p => p.userId === playerId)) {
-        return room;
-      }
-    }
-    return undefined;
+    return Array.from(this.rooms.values()).find(room =>
+      room.players.some(p => p.userId === playerId)
+    );
   }
 }
