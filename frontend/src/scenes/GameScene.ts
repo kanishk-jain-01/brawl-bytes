@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
+import { Player } from '../entities/Player';
 
 export class GameScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -13,7 +14,7 @@ export class GameScene extends Phaser.Scene {
 
   private platforms: Phaser.Physics.Arcade.StaticGroup | null = null;
 
-  private player: Phaser.Physics.Arcade.Sprite | null = null;
+  private player: Player | null = null;
 
   private cameraTarget: Phaser.GameObjects.GameObject | null = null;
 
@@ -163,26 +164,18 @@ export class GameScene extends Phaser.Scene {
   private createPlayer(): void {
     if (!this.selectedCharacter) return;
 
-    const character = GAME_CONFIG.CHARACTERS[this.selectedCharacter];
     const spawnX = this.physics.world.bounds.width / 2;
     const spawnY = this.physics.world.bounds.height - 200;
 
-    // Create player sprite (using placeholder sprite)
-    const playerColor = this.getCharacterColor(this.selectedCharacter);
-    this.player = this.physics.add.sprite(spawnX, spawnY, 'player_placeholder');
-    this.player.setDisplaySize(60, 80);
-    this.player.setTint(playerColor);
-
-    // Set physics properties based on character
-    this.player.setCollideWorldBounds(false); // We'll handle boundaries manually
-    this.player.setBounce(0.1);
-    this.player.setDragX(GAME_CONFIG.PHYSICS.FRICTION * 1000);
-    this.player.setMaxVelocity(character.speed * 2, 1000);
-
-    // Store character data on player
-    this.player.setData('character', character);
-    this.player.setData('health', character.health);
-    this.player.setData('stocks', GAME_CONFIG.GAME.MAX_STOCKS);
+    // Create player using the Player entity class
+    this.player = new Player({
+      scene: this,
+      x: spawnX,
+      y: spawnY,
+      characterType: this.selectedCharacter,
+      playerId: 'local_player',
+      isLocalPlayer: true,
+    });
 
     // Set up collisions with platforms
     if (this.platforms) {
@@ -191,15 +184,6 @@ export class GameScene extends Phaser.Scene {
 
     // Set camera target
     this.cameraTarget = this.player;
-  }
-
-  private getCharacterColor(characterKey: CharacterType): number {
-    const colors = {
-      FAST_LIGHTWEIGHT: 0x27ae60,
-      BALANCED_ALLROUNDER: 0x3498db,
-      HEAVY_HITTER: 0xe74c3c,
-    };
-    return colors[characterKey];
   }
 
   private setupCamera(): void {
@@ -305,9 +289,9 @@ export class GameScene extends Phaser.Scene {
   private createPlayerHUD(): void {
     if (!this.uiContainer || !this.player) return;
 
-    const character = this.player.getData('character');
-    const health = this.player.getData('health');
-    const stocks = this.player.getData('stocks');
+    const character = this.player.getCharacterData();
+    const health = this.player.getHealth();
+    const stocks = this.player.getStocks();
 
     // Health bar
     const healthBarBg = this.add.rectangle(150, 100, 250, 30, 0x2c3e50, 0.8);
@@ -432,6 +416,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameStarted || !this.player) return;
 
     this.handlePlayerInput();
+    this.player.update();
     this.updateUI();
     this.updateDebugInfo();
   }
@@ -439,44 +424,30 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerInput(): void {
     if (!this.player || !this.cursors) return;
 
-    const character = this.player.getData('character');
-    const isOnGround = this.player.body?.touching.down || false;
-
-    // Horizontal movement
-    let moveX = 0;
-
-    if (this.cursors.left.isDown || this.wasdKeys.A?.isDown) {
-      moveX = -1;
-    } else if (this.cursors.right.isDown || this.wasdKeys.D?.isDown) {
-      moveX = 1;
-    }
-
-    if (moveX !== 0) {
-      this.player.setVelocityX(moveX * character.speed);
-    }
-
-    // Jumping
-    if (
-      (this.cursors.up.isDown ||
+    // Gather input state
+    const inputState = {
+      left: this.cursors.left.isDown || this.wasdKeys.A?.isDown || false,
+      right: this.cursors.right.isDown || this.wasdKeys.D?.isDown || false,
+      up:
+        this.cursors.up.isDown ||
         this.wasdKeys.W?.isDown ||
-        this.actionKeys.SPACE?.isDown) &&
-      isOnGround
-    ) {
-      this.player.setVelocityY(character.jumpVelocity);
-    }
+        this.actionKeys.SPACE?.isDown ||
+        false,
+      down: this.cursors.down.isDown || this.wasdKeys.S?.isDown || false,
+      attack: this.actionKeys.X?.isDown || false,
+      special: this.actionKeys.Z?.isDown || false,
+    };
 
-    // Basic attack (placeholder)
-    if (this.actionKeys.X?.isDown) {
-      // TODO: Implement attack system
-      console.log('Attack!');
-    }
+    // Update player input state
+    this.player.updateInputState(inputState);
   }
 
   private updateUI(): void {
     if (!this.uiContainer || !this.player) return;
 
-    const health = this.player.getData('health');
-    const character = this.player.getData('character');
+    const health = this.player.getHealth();
+    const maxHealth = this.player.getMaxHealth();
+    const stocks = this.player.getStocks();
 
     // Update health bar
     const healthBar = this.uiContainer.getByName(
@@ -487,9 +458,9 @@ export class GameScene extends Phaser.Scene {
     ) as Phaser.GameObjects.Text;
 
     if (healthBar && healthText) {
-      const healthPercent = health / character.health;
+      const healthPercent = health / maxHealth;
       healthBar.setScale(healthPercent, 1);
-      healthText.setText(`${health}/${character.health}`);
+      healthText.setText(`${health}/${maxHealth}`);
 
       // Color based on health
       if (healthPercent > 0.6) {
@@ -499,6 +470,14 @@ export class GameScene extends Phaser.Scene {
       } else {
         healthBar.setFillStyle(0xe74c3c);
       }
+    }
+
+    // Update stock counter
+    const stockText = this.uiContainer.getByName(
+      'stockText'
+    ) as Phaser.GameObjects.Text;
+    if (stockText) {
+      stockText.setText(`Lives: ${stocks}`);
     }
   }
 
@@ -524,11 +503,14 @@ export class GameScene extends Phaser.Scene {
           `Velocity: ${Math.round(velocity?.x || 0)}, ${Math.round(velocity?.y || 0)}`,
           `On Ground: ${this.player.body?.touching.down || false}`,
           `Character: ${this.selectedCharacter}`,
+          `Health: ${this.player.getHealth()}/${this.player.getMaxHealth()}`,
+          `Stocks: ${this.player.getStocks()}`,
           '',
           'Controls:',
           'Arrow Keys / WASD: Move',
           'Space: Jump',
           'X: Attack',
+          'Z: Special',
           'ESC: Return to Character Select',
         ].join('\n')
       );

@@ -11,9 +11,13 @@ jest.mock('phaser', () => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   class MockScene {
     public sys: any;
+
     public game: any;
+
     public registry: any;
+
     public cameras: any;
+
     public scene: any;
 
     constructor(_config: any = {}) {
@@ -24,8 +28,11 @@ jest.mock('phaser', () => {
       this.cameras = { main: {} } as any;
       this.scene = {} as any;
     }
+
     preload() {}
+
     create() {}
+
     update() {}
   }
 

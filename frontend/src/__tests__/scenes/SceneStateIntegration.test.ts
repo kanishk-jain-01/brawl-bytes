@@ -40,4 +40,4 @@ describe('CharacterSelectScene integration', () => {
     expect(spy).toHaveBeenCalledWith({ selectedCharacter: CHOSEN });
     expect(GameState.getState().selectedCharacter).toBe(CHOSEN);
   });
-}); 
+});

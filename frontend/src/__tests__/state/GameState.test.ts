@@ -4,11 +4,7 @@
  * Verifies that the lightweight global store behaves predictably.
  */
 
-import {
-  getState,
-  updateState,
-  resetState,
-} from '@/state/GameState';
+import { getState, updateState, resetState } from '@/state/GameState';
 import type { CharacterType } from '@/utils/constants';
 
 const SAMPLE_CHARACTER: CharacterType = 'FAST_LIGHTWEIGHT';
@@ -39,4 +35,4 @@ describe('GameState store', () => {
     resetState();
     expect(getState().selectedCharacter).toBeNull();
   });
-}); 
+});
