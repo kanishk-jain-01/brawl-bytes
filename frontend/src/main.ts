@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { BootScene } from '@/scenes/BootScene';
 import { MenuScene } from '@/scenes/MenuScene';
+import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
+import { GameScene } from '@/scenes/GameScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -16,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
       fps: 60,
     },
   },
-  scene: [BootScene, MenuScene],
+  scene: [BootScene, MenuScene, CharacterSelectScene, GameScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

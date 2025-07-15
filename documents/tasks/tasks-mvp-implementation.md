@@ -10,9 +10,9 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `frontend/index.html` - Main HTML entry point ✓
 - `frontend/src/main.ts` - Phaser game initialization and entry point ✓
 - `frontend/src/scenes/BootScene.ts` - Initial loading scene for assets ✓
-- `frontend/src/scenes/MenuScene.ts` - Main menu with play options
-- `frontend/src/scenes/CharacterSelectScene.ts` - Character selection interface
-- `frontend/src/scenes/GameScene.ts` - Core gameplay scene with physics and combat
+- `frontend/src/scenes/MenuScene.ts` - Main menu with play options ✓
+- `frontend/src/scenes/CharacterSelectScene.ts` - Character selection interface ✓
+- `frontend/src/scenes/GameScene.ts` - Core gameplay scene with physics and combat ✓
 - `frontend/src/entities/Player.ts` - Player entity with movement, combat, and health
 - `frontend/src/entities/Stage.ts` - Stage platforms and boundaries
 - `frontend/src/utils/socket.ts` - Socket.io client setup for multiplayer
@@ -89,9 +89,9 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 3.1 Set up Phaser 3 game configuration and main.ts entry point
   - [x] 3.2 Create BootScene for asset loading and initial setup
   - [x] 3.3 Create MenuScene with play button and basic navigation
-  - [ ] 3.4 Create CharacterSelectScene with character grid and selection
-  - [ ] 3.5 Create basic GameScene with camera and input setup
-  - [ ] 3.6 Set up scene transitions and game state management
+  - [x] 3.4 Create CharacterSelectScene with character grid and selection
+  - [x] 3.5 Create basic GameScene with camera and input setup
+  - [x] 3.6 Set up scene transitions and game state management
   - [ ] 3.7 Configure Vite for asset bundling and development server
 
 - [ ] 4.0 Basic Character System & Physics

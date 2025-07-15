@@ -1,0 +1,500 @@
+import Phaser from 'phaser';
+import { updateState } from '@/state/GameState';
+import { GAME_CONFIG, CharacterType } from '../utils/constants';
+
+export class CharacterSelectScene extends Phaser.Scene {
+  private selectedCharacter: CharacterType | null = null;
+
+  private characterCards: Phaser.GameObjects.Container[] = [];
+
+  private previewContainer: Phaser.GameObjects.Container | null = null;
+
+  private confirmButton: Phaser.GameObjects.Container | null = null;
+
+  private backButton: Phaser.GameObjects.Container | null = null;
+
+  constructor() {
+    super({ key: GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT });
+  }
+
+  create(): void {
+    console.log('CharacterSelectScene: Starting character selection');
+
+    this.createBackground();
+    this.createTitle();
+    this.createCharacterGrid();
+    this.createPreviewArea();
+    this.createNavigationButtons();
+    this.setupInputs();
+  }
+
+  private createBackground(): void {
+    // Create dark background
+    this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x1a1a2e
+    );
+
+    // Add subtle animated background pattern
+    this.createBackgroundPattern();
+  }
+
+  private createBackgroundPattern(): void {
+    const graphics = this.add.graphics();
+    graphics.lineStyle(1, 0x3498db, 0.1);
+
+    // Create grid pattern
+    for (let x = 0; x < this.cameras.main.width; x += 50) {
+      graphics.moveTo(x, 0);
+      graphics.lineTo(x, this.cameras.main.height);
+    }
+
+    for (let y = 0; y < this.cameras.main.height; y += 50) {
+      graphics.moveTo(0, y);
+      graphics.lineTo(this.cameras.main.width, y);
+    }
+
+    graphics.strokePath();
+
+    // Animate the pattern
+    this.tweens.add({
+      targets: graphics,
+      alpha: { from: 0.1, to: 0.3 },
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+  }
+
+  private createTitle(): void {
+    const title = this.add
+      .text(this.cameras.main.centerX, 80, 'SELECT YOUR FIGHTER', {
+        fontSize: '42px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
+    // Add glow effect
+    title.setStroke('#3498db', 4);
+    title.setShadow(2, 2, '#000000', 2, true, true);
+
+    // Animate title
+    this.tweens.add({
+      targets: title,
+      scaleX: { from: 1, to: 1.05 },
+      scaleY: { from: 1, to: 1.05 },
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+  }
+
+  private createCharacterGrid(): void {
+    const characters = Object.entries(GAME_CONFIG.CHARACTERS);
+    const cardWidth = 200;
+    const cardHeight = 280;
+    const spacing = 50;
+    const startX =
+      this.cameras.main.centerX -
+      ((characters.length - 1) * (cardWidth + spacing)) / 2;
+    const startY = 250;
+
+    characters.forEach(([key, character], index) => {
+      const x = startX + index * (cardWidth + spacing);
+      const card = this.createCharacterCard(
+        key as CharacterType,
+        character,
+        x,
+        startY,
+        cardWidth,
+        cardHeight
+      );
+      this.characterCards.push(card);
+    });
+  }
+
+  private createCharacterCard(
+    characterKey: CharacterType,
+    character: (typeof GAME_CONFIG.CHARACTERS)[CharacterType],
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+
+    // Card background
+    const background = this.add.rectangle(0, 0, width, height, 0x2c3e50);
+    background.setStrokeStyle(2, 0x3498db);
+    container.add(background);
+
+    // Character placeholder image (using colored rectangle for now)
+    const characterColors = {
+      FAST_LIGHTWEIGHT: 0x27ae60,
+      BALANCED_ALLROUNDER: 0x3498db,
+      HEAVY_HITTER: 0xe74c3c,
+    };
+
+    const characterImage = this.add.rectangle(
+      0,
+      -50,
+      120,
+      120,
+      characterColors[characterKey]
+    );
+    characterImage.setStrokeStyle(2, 0xffffff);
+    container.add(characterImage);
+
+    // Character name
+    const nameText = this.add
+      .text(0, 20, character.name, {
+        fontSize: '24px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(nameText);
+
+    // Character stats preview
+    const statsText = this.add
+      .text(
+        0,
+        60,
+        `Speed: ${character.speed}\nHealth: ${character.health}\nAttack: ${character.attackDamage}`,
+        {
+          fontSize: '14px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          align: 'center',
+        }
+      )
+      .setOrigin(0.5);
+    container.add(statsText);
+
+    // Make card interactive
+    background.setInteractive();
+    background.on('pointerdown', () => this.selectCharacter(characterKey));
+    background.on('pointerover', () => this.onCardHover(container, background));
+    background.on('pointerout', () =>
+      this.onCardHoverOut(container, background)
+    );
+
+    return container;
+  }
+
+  private onCardHover(
+    container: Phaser.GameObjects.Container,
+    background: Phaser.GameObjects.Rectangle
+  ): void {
+    background.setFillStyle(0x34495e);
+    background.setStrokeStyle(2, 0x5dade2);
+
+    this.tweens.add({
+      targets: container,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 150,
+      ease: 'Power2',
+    });
+  }
+
+  private onCardHoverOut(
+    container: Phaser.GameObjects.Container,
+    background: Phaser.GameObjects.Rectangle
+  ): void {
+    if (this.getCharacterFromContainer(container) !== this.selectedCharacter) {
+      background.setFillStyle(0x2c3e50);
+      background.setStrokeStyle(2, 0x3498db);
+    }
+
+    this.tweens.add({
+      targets: container,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 150,
+      ease: 'Power2',
+    });
+  }
+
+  private selectCharacter(characterKey: CharacterType): void {
+    console.log(`CharacterSelectScene: Character selected - ${characterKey}`);
+
+    // Update visual selection
+    this.updateCardSelection(characterKey);
+    this.selectedCharacter = characterKey;
+    this.updatePreview();
+    this.updateConfirmButton();
+  }
+
+  private updateCardSelection(selectedKey: CharacterType): void {
+    const characters = Object.keys(GAME_CONFIG.CHARACTERS);
+
+    this.characterCards.forEach((card, index) => {
+      const background = card.list[0] as Phaser.GameObjects.Rectangle;
+      const characterKey = characters[index] as CharacterType;
+
+      if (characterKey === selectedKey) {
+        background.setFillStyle(0x27ae60);
+        background.setStrokeStyle(3, 0x2ecc71);
+      } else {
+        background.setFillStyle(0x2c3e50);
+        background.setStrokeStyle(2, 0x3498db);
+      }
+    });
+  }
+
+  private getCharacterFromContainer(
+    container: Phaser.GameObjects.Container
+  ): CharacterType | null {
+    const index = this.characterCards.indexOf(container);
+    if (index === -1) return null;
+    return Object.keys(GAME_CONFIG.CHARACTERS)[index] as CharacterType;
+  }
+
+  private createPreviewArea(): void {
+    this.previewContainer = this.add.container(this.cameras.main.centerX, 450);
+
+    const previewBg = this.add.rectangle(0, 0, 400, 150, 0x34495e);
+    previewBg.setStrokeStyle(2, 0x3498db);
+    this.previewContainer.add(previewBg);
+
+    const previewTitle = this.add
+      .text(0, -50, 'Character Preview', {
+        fontSize: '20px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    this.previewContainer.add(previewTitle);
+
+    const instructionText = this.add
+      .text(0, 0, 'Select a character to view details', {
+        fontSize: '16px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        align: 'center',
+      })
+      .setOrigin(0.5);
+    this.previewContainer.add(instructionText);
+
+    this.previewContainer.setVisible(true);
+  }
+
+  private updatePreview(): void {
+    if (!this.previewContainer || !this.selectedCharacter) return;
+
+    // Clear existing preview content (except background and title)
+    while (this.previewContainer.list.length > 2) {
+      this.previewContainer.list.pop()?.destroy();
+    }
+
+    const character = GAME_CONFIG.CHARACTERS[this.selectedCharacter];
+
+    // Character stats display
+    const statsText = this.add
+      .text(
+        0,
+        -10,
+        `${character.name}\n\n` +
+          `Speed: ${character.speed}\n` +
+          `Health: ${character.health}\n` +
+          `Attack Damage: ${character.attackDamage}\n` +
+          `Weight: ${character.weight}`,
+        {
+          fontSize: '14px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT,
+          align: 'center',
+        }
+      )
+      .setOrigin(0.5);
+    this.previewContainer.add(statsText);
+
+    // Character description
+    const descriptions = {
+      FAST_LIGHTWEIGHT: 'Quick and agile fighter with high mobility',
+      BALANCED_ALLROUNDER: 'Well-rounded fighter with balanced stats',
+      HEAVY_HITTER: 'Powerful fighter with high damage output',
+    };
+
+    const descText = this.add
+      .text(0, 40, descriptions[this.selectedCharacter], {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        align: 'center',
+        wordWrap: { width: 350 },
+      })
+      .setOrigin(0.5);
+    this.previewContainer.add(descText);
+  }
+
+  private createNavigationButtons(): void {
+    this.createBackButton();
+    this.createConfirmButton();
+  }
+
+  private createBackButton(): void {
+    this.backButton = this.add.container(100, this.cameras.main.height - 80);
+
+    const backBg = this.add.rectangle(0, 0, 120, 50, 0x7f8c8d);
+    backBg.setStrokeStyle(2, 0x95a5a6);
+    this.backButton.add(backBg);
+
+    const backText = this.add
+      .text(0, 0, 'BACK', {
+        fontSize: '18px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    this.backButton.add(backText);
+
+    backBg.setInteractive();
+    backBg.on('pointerdown', () => this.goBackToMenu());
+    backBg.on('pointerover', () => {
+      backBg.setFillStyle(0x95a5a6);
+      this.tweens.add({
+        targets: this.backButton,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 100,
+      });
+    });
+    backBg.on('pointerout', () => {
+      backBg.setFillStyle(0x7f8c8d);
+      this.tweens.add({
+        targets: this.backButton,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 100,
+      });
+    });
+  }
+
+  private createConfirmButton(): void {
+    this.confirmButton = this.add.container(
+      this.cameras.main.width - 100,
+      this.cameras.main.height - 80
+    );
+
+    const confirmBg = this.add.rectangle(0, 0, 140, 50, 0x95a5a6);
+    confirmBg.setStrokeStyle(2, 0xbdc3c7);
+    this.confirmButton.add(confirmBg);
+
+    const confirmText = this.add
+      .text(0, 0, 'CONFIRM', {
+        fontSize: '18px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    this.confirmButton.add(confirmText);
+
+    confirmBg.setInteractive();
+    confirmBg.on('pointerdown', () => this.confirmSelection());
+    confirmBg.on('pointerover', () => {
+      if (this.selectedCharacter) {
+        confirmBg.setFillStyle(0x27ae60);
+        this.tweens.add({
+          targets: this.confirmButton,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 100,
+        });
+      }
+    });
+    confirmBg.on('pointerout', () => {
+      const color = this.selectedCharacter ? 0x27ae60 : 0x95a5a6;
+      confirmBg.setFillStyle(color);
+      this.tweens.add({
+        targets: this.confirmButton,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 100,
+      });
+    });
+
+    // Initially disabled
+    this.confirmButton.setAlpha(0.5);
+  }
+
+  private updateConfirmButton(): void {
+    if (!this.confirmButton) return;
+
+    const background = this.confirmButton
+      .list[0] as Phaser.GameObjects.Rectangle;
+
+    if (this.selectedCharacter) {
+      this.confirmButton.setAlpha(1);
+      background.setFillStyle(0x27ae60);
+      background.setStrokeStyle(2, 0x2ecc71);
+    } else {
+      this.confirmButton.setAlpha(0.5);
+      background.setFillStyle(0x95a5a6);
+      background.setStrokeStyle(2, 0xbdc3c7);
+    }
+  }
+
+  private setupInputs(): void {
+    // ESC key to go back
+    this.input.keyboard?.addKey('ESC').on('down', () => {
+      this.goBackToMenu();
+    });
+
+    // Enter key to confirm
+    this.input.keyboard?.addKey('ENTER').on('down', () => {
+      if (this.selectedCharacter) {
+        this.confirmSelection();
+      }
+    });
+
+    // Number keys for quick selection
+    [1, 2, 3].forEach((num, index) => {
+      this.input.keyboard?.addKey(`DIGIT${num}`).on('down', () => {
+        const characters = Object.keys(GAME_CONFIG.CHARACTERS);
+        if (index < characters.length) {
+          this.selectCharacter(characters[index] as CharacterType);
+        }
+      });
+    });
+  }
+
+  private goBackToMenu(): void {
+    console.log('CharacterSelectScene: Returning to menu');
+
+    // Transition animation
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);
+    });
+  }
+
+  private confirmSelection(): void {
+    if (!this.selectedCharacter) return;
+
+    console.log(
+      `CharacterSelectScene: Confirming selection - ${this.selectedCharacter}`
+    );
+
+    // Persist selected character to global state for the GameScene
+    updateState({ selectedCharacter: this.selectedCharacter });
+
+    // Transition to GameScene
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.GAME);
+    });
+  }
+}

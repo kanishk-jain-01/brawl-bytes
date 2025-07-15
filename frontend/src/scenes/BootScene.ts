@@ -3,8 +3,11 @@ import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
 
 export class BootScene extends Phaser.Scene {
   private loadingText!: Phaser.GameObjects.Text;
+
   private progressBar!: Phaser.GameObjects.Graphics;
+
   private progressBox!: Phaser.GameObjects.Graphics;
+
   private percentText!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -32,11 +35,16 @@ export class BootScene extends Phaser.Scene {
     this.progressBar = this.add.graphics();
 
     // Create loading text
-    this.loadingText = this.add.text(width / 2, height / 2 - 80, 'Loading Game Assets...', {
-      fontSize: '24px',
-      color: GAME_CONFIG.UI.COLORS.TEXT,
-      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-    });
+    this.loadingText = this.add.text(
+      width / 2,
+      height / 2 - 80,
+      'Loading Game Assets...',
+      {
+        fontSize: '24px',
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+      }
+    );
     this.loadingText.setOrigin(0.5);
 
     // Create percentage text
@@ -57,7 +65,12 @@ export class BootScene extends Phaser.Scene {
 
       this.progressBar.clear();
       this.progressBar.fillStyle(0x3498db, 1);
-      this.progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
+      this.progressBar.fillRect(
+        width / 2 - 150,
+        height / 2 - 15,
+        300 * value,
+        30
+      );
     });
 
     this.load.on('fileprogress', (file: Phaser.Loader.File) => {
@@ -67,7 +80,7 @@ export class BootScene extends Phaser.Scene {
     this.load.on('complete', () => {
       this.loadingText.setText('Loading Complete!');
       this.percentText.setText('100%');
-      
+
       this.time.delayedCall(500, () => {
         this.loadingText.setText('BRAWL BYTES');
         this.loadingText.setFontSize('48px');
@@ -98,9 +111,18 @@ export class BootScene extends Phaser.Scene {
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAiIGZpbGw9IiM5NWE1YTYiLz4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUiIGZpbGw9IiM3ZjhlOGYiLz4KPC9zdmc+'
     );
 
+    // Load player placeholder
+    this.load.image(
+      'player_placeholder',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KPC9zdmc+'
+    );
+
     // Simulate loading time for development
     for (let i = 0; i < 10; i++) {
-      this.load.image(`placeholder_${i}`, 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+      this.load.image(
+        `placeholder_${i}`,
+        'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      );
     }
   }
 
@@ -111,12 +133,10 @@ export class BootScene extends Phaser.Scene {
   private setupInputHandlers(): void {
     let inputEnabled = false;
 
-    // Wait for loading to complete before enabling input
-    this.load.once('complete', () => {
-      this.time.delayedCall(1000, () => {
-        inputEnabled = true;
-        this.setupBlinkingText();
-      });
+    // Enable input after a delay (loading has already completed by create())
+    this.time.delayedCall(1000, () => {
+      inputEnabled = true;
+      this.setupBlinkingText();
     });
 
     // Listen for any key press
@@ -147,7 +167,7 @@ export class BootScene extends Phaser.Scene {
   private startGame(): void {
     this.tweens.killAll();
     this.cameras.main.fadeOut(300, 0, 0, 0);
-    
+
     this.cameras.main.once('camerafadeoutcomplete', () => {
       console.log('Transitioning to MenuScene...');
       this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);

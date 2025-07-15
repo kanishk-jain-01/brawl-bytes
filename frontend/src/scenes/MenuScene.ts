@@ -3,9 +3,13 @@ import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
 
 export class MenuScene extends Phaser.Scene {
   private playButton!: Phaser.GameObjects.Image;
+
   private playButtonText!: Phaser.GameObjects.Text;
+
   private logo!: Phaser.GameObjects.Image;
+
   private title!: Phaser.GameObjects.Text;
+
   private subtitle!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -24,21 +28,21 @@ export class MenuScene extends Phaser.Scene {
 
   private createBackground(): void {
     const { width, height } = this.cameras.main;
-    
+
     // Create gradient background
     const graphics = this.add.graphics();
     graphics.fillGradientStyle(0x2c3e50, 0x2c3e50, 0x34495e, 0x34495e, 1);
     graphics.fillRect(0, 0, width, height);
-    
+
     // Add some decorative elements
     for (let i = 0; i < 20; i++) {
       const x = Phaser.Math.Between(0, width);
       const y = Phaser.Math.Between(0, height);
       const size = Phaser.Math.Between(2, 8);
       const alpha = Phaser.Math.FloatBetween(0.1, 0.3);
-      
+
       const star = this.add.circle(x, y, size, 0xffffff, alpha);
-      
+
       // Add twinkling animation
       this.tweens.add({
         targets: star,
@@ -52,7 +56,11 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createLogo(width: number, height: number): void {
-    this.logo = this.add.image(width / 2, height / 2 - 200, ASSET_KEYS.IMAGES.LOGO);
+    this.logo = this.add.image(
+      width / 2,
+      height / 2 - 200,
+      ASSET_KEYS.IMAGES.LOGO
+    );
     this.logo.setScale(3);
     this.logo.setTint(0x3498db);
   }
@@ -68,18 +76,27 @@ export class MenuScene extends Phaser.Scene {
     });
     this.title.setOrigin(0.5);
 
-    this.subtitle = this.add.text(width / 2, height / 2 - 50, 'Real-time Multiplayer Brawler', {
-      fontSize: '24px',
-      color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-      fontStyle: 'italic',
-    });
+    this.subtitle = this.add.text(
+      width / 2,
+      height / 2 - 50,
+      'Real-time Multiplayer Brawler',
+      {
+        fontSize: '24px',
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        fontStyle: 'italic',
+      }
+    );
     this.subtitle.setOrigin(0.5);
   }
 
   private createButtons(width: number, height: number): void {
     // Play Button
-    this.playButton = this.add.image(width / 2, height / 2 + 50, ASSET_KEYS.IMAGES.UI_BUTTON);
+    this.playButton = this.add.image(
+      width / 2,
+      height / 2 + 50,
+      ASSET_KEYS.IMAGES.UI_BUTTON
+    );
     this.playButton.setInteractive({ useHandCursor: true });
     this.playButton.setScale(1.2);
 
@@ -97,7 +114,11 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Additional menu buttons (for future features)
-    const optionsButton = this.add.image(width / 2, height / 2 + 130, ASSET_KEYS.IMAGES.UI_BUTTON);
+    const optionsButton = this.add.image(
+      width / 2,
+      height / 2 + 130,
+      ASSET_KEYS.IMAGES.UI_BUTTON
+    );
     optionsButton.setInteractive({ useHandCursor: true });
     optionsButton.setScale(1.0);
     optionsButton.setTint(0x95a5a6);
@@ -114,7 +135,11 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Credits button
-    const creditsButton = this.add.image(width / 2, height / 2 + 210, ASSET_KEYS.IMAGES.UI_BUTTON);
+    const creditsButton = this.add.image(
+      width / 2,
+      height / 2 + 210,
+      ASSET_KEYS.IMAGES.UI_BUTTON
+    );
     creditsButton.setInteractive({ useHandCursor: true });
     creditsButton.setScale(1.0);
     creditsButton.setTint(0x95a5a6);
@@ -149,7 +174,11 @@ export class MenuScene extends Phaser.Scene {
 
     button.on('pointerout', () => {
       button.clearTint();
-      text.setColor(button.tintTopLeft === 0x95a5a6 ? GAME_CONFIG.UI.COLORS.TEXT_SECONDARY : GAME_CONFIG.UI.COLORS.TEXT);
+      text.setColor(
+        button.tintTopLeft === 0x95a5a6
+          ? GAME_CONFIG.UI.COLORS.TEXT_SECONDARY
+          : GAME_CONFIG.UI.COLORS.TEXT
+      );
       this.tweens.add({
         targets: [button, text],
         scaleX: button.scaleX / 1.05,
@@ -208,14 +237,10 @@ export class MenuScene extends Phaser.Scene {
 
   private startCharacterSelect(): void {
     this.cameras.main.fadeOut(500, 0, 0, 0);
-    
+
     this.cameras.main.once('camerafadeoutcomplete', () => {
       console.log('Transitioning to Character Select...');
-      // TODO: Uncomment when CharacterSelectScene is implemented
-      // this.scene.start(GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT);
-      
-      // For now, show a placeholder message
-      console.log('Character Select Scene - Coming next!');
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT);
     });
   }
 }
