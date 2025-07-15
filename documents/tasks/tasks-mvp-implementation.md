@@ -85,14 +85,14 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 2.8 Create database seed file with default characters and stages
   - [x] 2.9 Write unit tests for UserRepository and authentication endpoints
 
-- [ ] 3.0 Core Frontend Game Engine Setup
+- [x] 3.0 Core Frontend Game Engine Setup
   - [x] 3.1 Set up Phaser 3 game configuration and main.ts entry point
   - [x] 3.2 Create BootScene for asset loading and initial setup
   - [x] 3.3 Create MenuScene with play button and basic navigation
   - [x] 3.4 Create CharacterSelectScene with character grid and selection
   - [x] 3.5 Create basic GameScene with camera and input setup
   - [x] 3.6 Set up scene transitions and game state management
-  - [ ] 3.7 Configure Vite for asset bundling and development server
+  - [x] 3.7 Configure Vite for asset bundling and development server
 
 - [ ] 4.0 Basic Character System & Physics
   - [ ] 4.1 Create Player entity class with Phaser physics body
