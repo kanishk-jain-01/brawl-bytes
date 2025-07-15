@@ -11,6 +11,21 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
 
+export enum DamageType {
+  PHYSICAL = 'physical',
+  ELEMENTAL = 'elemental',
+  ENVIRONMENTAL = 'environmental',
+  FALL = 'fall',
+}
+
+export interface DamageInfo {
+  amount: number;
+  type: DamageType;
+  knockback?: { x: number; y: number };
+  isCritical?: boolean;
+  source?: string;
+}
+
 export interface PlayerConfig {
   scene: Phaser.Scene;
   x: number;
@@ -38,6 +53,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private isInvulnerable: boolean = false;
 
   private invulnerabilityTimer: Phaser.Time.TimerEvent | null = null;
+
+  // Damage system
+  private damageMultiplier: number = 1.0;
+
+  private lastDamageTime: number = 0;
+
+  private accumulatedDamage: number = 0;
 
   // Movement state
   private isGrounded: boolean = false;
@@ -136,7 +158,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private handleWorldBounds(): void {
     // Handle player falling off stage
     if (this.y > this.scene.physics.world.bounds.height) {
-      this.takeDamage(25); // Fall damage
+      this.takeDamage({
+        amount: 25,
+        type: DamageType.FALL,
+        source: 'world_bounds',
+      });
       this.respawn();
     }
   }
@@ -411,14 +437,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Store attack data on hitbox
     attackHitbox.setData('attacker', this);
     attackHitbox.setData('damage', this.character.attackDamage);
-    attackHitbox.setData('knockback', this.calculateKnockback());
+    attackHitbox.setData('knockback', this.calculateAttackKnockback());
 
     // Emit event for GameScene to handle collisions
     this.scene.events.emit('attackHitboxCreated', {
       hitbox: attackHitbox,
       attacker: this,
       damage: this.character.attackDamage,
-      knockback: this.calculateKnockback(),
+      knockback: this.calculateAttackKnockback(),
     });
 
     // Remove hitbox after brief duration
@@ -433,7 +459,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setData('attackHitbox', attackHitbox);
   }
 
-  private calculateKnockback(): { x: number; y: number } {
+  private calculateAttackKnockback(): { x: number; y: number } {
     const knockbackForce = 300;
     const direction = this.flipX ? -1 : 1;
 
@@ -443,33 +469,146 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     };
   }
 
-  public takeDamage(
-    damage: number,
-    knockback?: { x: number; y: number }
-  ): void {
+  public takeDamage(damageInfo: DamageInfo): void {
     if (this.isInvulnerable || this.currentHealth <= 0) return;
 
-    this.currentHealth = Math.max(0, this.currentHealth - damage);
+    // Calculate actual damage
+    const actualDamage = this.calculateDamage(damageInfo);
+
+    // Apply damage
+    this.currentHealth = Math.max(0, this.currentHealth - actualDamage);
+    this.accumulatedDamage += actualDamage;
+    this.lastDamageTime = this.scene.time.now;
 
     // Apply knockback
-    if (knockback && this.body) {
+    if (damageInfo.knockback && this.body) {
       const body = this.body as Phaser.Physics.Arcade.Body;
-      body.setVelocity(knockback.x, knockback.y);
+      const scaledKnockback = this.calculateKnockback(damageInfo);
+      body.setVelocity(scaledKnockback.x, scaledKnockback.y);
     }
 
     // Visual feedback
-    this.setTint(0xff0000);
-    this.scene.time.delayedCall(200, () => {
-      this.setTint(this.getCharacterColor());
-    });
+    this.applyDamageVisualFeedback(damageInfo);
 
     // Grant temporary invulnerability
-    this.makeInvulnerable(1000);
+    const invulnerabilityDuration = damageInfo.isCritical ? 1500 : 1000;
+    this.makeInvulnerable(invulnerabilityDuration);
 
     // Check if player is defeated
     if (this.currentHealth <= 0) {
       this.loseStock();
     }
+
+    // Emit damage event for logging/statistics
+    this.scene.events.emit('playerDamaged', {
+      playerId: this.playerId,
+      damage: actualDamage,
+      damageType: damageInfo.type,
+      isCritical: damageInfo.isCritical,
+      source: damageInfo.source,
+      remainingHealth: this.currentHealth,
+      remainingStocks: this.currentStocks,
+    });
+  }
+
+  private calculateDamage(damageInfo: DamageInfo): number {
+    let damage = damageInfo.amount;
+
+    // Apply damage type modifiers
+    switch (damageInfo.type) {
+      case DamageType.PHYSICAL:
+        // Physical damage is affected by character weight (heavier = more resistant)
+        damage *= this.getPhysicalDamageMultiplier();
+        break;
+      case DamageType.ELEMENTAL:
+        // Elemental damage bypasses some physical defenses
+        damage *= 1.1;
+        break;
+      case DamageType.ENVIRONMENTAL:
+        // Environmental damage is consistent
+        damage *= 1.0;
+        break;
+      case DamageType.FALL:
+        // Fall damage scales with accumulated damage
+        damage *= this.getFallDamageMultiplier();
+        break;
+      default:
+        damage *= 1.0;
+        break;
+    }
+
+    // Apply critical hit multiplier
+    if (damageInfo.isCritical) {
+      damage *= 1.5;
+    }
+
+    // Apply character-specific damage multiplier
+    damage *= this.damageMultiplier;
+
+    return Math.ceil(damage);
+  }
+
+  private getPhysicalDamageMultiplier(): number {
+    // Heavier characters take less physical damage
+    const weightResistance = 1.0 - (this.character.weight - 1.0) * 0.1;
+    return Math.max(0.7, weightResistance);
+  }
+
+  private getFallDamageMultiplier(): number {
+    // Fall damage increases with accumulated damage (like in Smash Bros)
+    const damagePercent = (this.accumulatedDamage / this.maxHealth) * 100;
+    return 1.0 + damagePercent * 0.01;
+  }
+
+  private calculateKnockback(damageInfo: DamageInfo): { x: number; y: number } {
+    if (!damageInfo.knockback) return { x: 0, y: 0 };
+
+    const { x, y } = damageInfo.knockback;
+
+    // Knockback scales with accumulated damage and character weight
+    const damagePercent = (this.accumulatedDamage / this.maxHealth) * 100;
+    const knockbackMultiplier = 1.0 + damagePercent * 0.015;
+    const weightMultiplier = 1.0 / this.character.weight;
+
+    return {
+      x: x * knockbackMultiplier * weightMultiplier,
+      y: y * knockbackMultiplier * weightMultiplier,
+    };
+  }
+
+  private applyDamageVisualFeedback(damageInfo: DamageInfo): void {
+    // Different visual effects based on damage type
+    let tintColor = 0xff0000; // Default red
+    let shakeDuration = 200;
+
+    switch (damageInfo.type) {
+      case DamageType.PHYSICAL:
+        tintColor = 0xff0000; // Red
+        break;
+      case DamageType.ELEMENTAL:
+        tintColor = 0x00ffff; // Cyan
+        break;
+      case DamageType.ENVIRONMENTAL:
+        tintColor = 0xffff00; // Yellow
+        break;
+      case DamageType.FALL:
+        tintColor = 0xff8800; // Orange
+        break;
+      default:
+        tintColor = 0xff0000; // Default to red
+        break;
+    }
+
+    // Critical hits have more intense visual feedback
+    if (damageInfo.isCritical) {
+      tintColor = 0xffffff; // White flash for critical
+      shakeDuration = 300;
+    }
+
+    this.setTint(tintColor);
+    this.scene.time.delayedCall(shakeDuration, () => {
+      this.setTint(this.getCharacterColor());
+    });
   }
 
   private makeInvulnerable(duration: number): void {
@@ -496,18 +635,41 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private respawn(): void {
-    // Reset position to spawn point
-    const spawnX = this.scene.physics.world.bounds.width / 2;
-    const spawnY = this.scene.physics.world.bounds.height - 200;
+    // Get spawn point from scene event (if available)
+    const spawnEvent = { x: 0, y: 0 };
+    this.scene.events.emit('getSpawnPoint', spawnEvent);
+
+    // Use spawn point if provided, otherwise use default
+    const spawnX = spawnEvent.x || this.scene.physics.world.bounds.width / 2;
+    const spawnY = spawnEvent.y || this.scene.physics.world.bounds.height - 200;
 
     this.setPosition(spawnX, spawnY);
     this.setVelocity(0, 0);
 
-    // Reset health
+    // Reset health and accumulated damage
     this.currentHealth = this.maxHealth;
+    this.accumulatedDamage = 0;
+
+    // Reset visual state
+    this.setVisible(true);
+    this.setTint(this.getCharacterColor());
+    this.setAlpha(1);
+
+    // Re-enable physics
+    if (this.body) {
+      (this.body as Phaser.Physics.Arcade.Body).enable = true;
+    }
 
     // Grant respawn invulnerability
     this.makeInvulnerable(2000);
+
+    // Emit respawn event
+    this.scene.events.emit('playerRespawned', {
+      playerId: this.playerId,
+      spawnX,
+      spawnY,
+      remainingStocks: this.currentStocks,
+    });
   }
 
   private defeat(): void {
@@ -519,6 +681,42 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Emit defeat event
     this.scene.events.emit('playerDefeated', this.playerId);
+  }
+
+  // Healing and recovery methods
+  public heal(amount: number): void {
+    if (this.currentHealth <= 0) return;
+
+    const healAmount = Math.min(amount, this.maxHealth - this.currentHealth);
+    this.currentHealth += healAmount;
+
+    // Visual feedback for healing
+    this.setTint(0x00ff00); // Green tint
+    this.scene.time.delayedCall(300, () => {
+      this.setTint(this.getCharacterColor());
+    });
+
+    // Emit healing event
+    this.scene.events.emit('playerHealed', {
+      playerId: this.playerId,
+      healAmount,
+      currentHealth: this.currentHealth,
+    });
+  }
+
+  public resetDamageMultiplier(): void {
+    this.damageMultiplier = 1.0;
+  }
+
+  public applyDamageBoost(multiplier: number, duration: number): void {
+    this.damageMultiplier = multiplier;
+    this.scene.time.delayedCall(duration, () => {
+      this.damageMultiplier = 1.0;
+    });
+  }
+
+  public getDamagePercent(): number {
+    return (this.accumulatedDamage / this.maxHealth) * 100;
   }
 
   // Getters for UI and game state
@@ -544,6 +742,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   public getAttackHitbox(): Phaser.GameObjects.Rectangle | null {
     return this.getData('attackHitbox') || null;
+  }
+
+  public getAccumulatedDamage(): number {
+    return this.accumulatedDamage;
+  }
+
+  public getTimeSinceLastDamage(): number {
+    return this.scene.time.now - this.lastDamageTime;
   }
 
   destroy(): void {

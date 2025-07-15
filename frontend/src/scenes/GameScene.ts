@@ -10,8 +10,9 @@
 
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
-import { GAME_CONFIG, CharacterType } from '../utils/constants';
-import { Player } from '../entities/Player';
+import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
+import { Player, DamageType, DamageInfo } from '../entities/Player';
+import { Stage } from '../entities/Stage';
 
 export class GameScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -22,7 +23,9 @@ export class GameScene extends Phaser.Scene {
 
   private actionKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
 
-  private platforms: Phaser.Physics.Arcade.StaticGroup | null = null;
+  private stage: Stage | null = null;
+
+  private selectedStage: StageType = 'BATTLE_ARENA';
 
   private player: Player | null = null;
 
@@ -77,118 +80,129 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createStage(): void {
-    // Create stage background
-    this.createStageBackground();
+    // Create stage using Stage entity
+    this.stage = new Stage({
+      scene: this,
+      stageType: this.selectedStage,
+      worldWidth: this.physics.world.bounds.width,
+      worldHeight: this.physics.world.bounds.height,
+    });
 
-    // Create platforms
-    this.createPlatforms();
-
-    // Create boundaries
-    this.createBoundaries();
+    // Set up stage event listeners
+    this.setupStageEvents();
 
     // Create player
     this.createPlayer();
   }
 
-  private createStageBackground(): void {
-    // Create gradient background
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x87ceeb, 0x87ceeb, 0x98fb98, 0x98fb98, 1);
-    graphics.fillRect(
-      0,
-      0,
-      this.physics.world.bounds.width,
-      this.physics.world.bounds.height
+  private setupStageEvents(): void {
+    // Listen for stage-related events
+    this.events.on('playerFellOffStage', (player: Player) => {
+      this.handlePlayerFallOffStage(player);
+    });
+
+    this.events.on(
+      'playerHitHazard',
+      (data: {
+        player: Player;
+        hazardType: string;
+        damage: number;
+        knockback: { x: number; y: number };
+      }) => {
+        this.handlePlayerHitHazard(data);
+      }
     );
 
-    // Add some decorative clouds
-    for (let i = 0; i < 5; i += 1) {
-      const x = Phaser.Math.Between(100, this.physics.world.bounds.width - 100);
-      const y = Phaser.Math.Between(50, 200);
-      const cloud = this.add.circle(x, y, 40, 0xffffff, 0.8);
-      cloud.setScrollFactor(0.5); // Parallax effect
-    }
+    // Listen for spawn point requests
+    this.events.on('getSpawnPoint', (spawnEvent: { x: number; y: number }) => {
+      if (this.stage) {
+        const spawnPoints = this.stage.getSpawnPoints();
+        const randomSpawn = Phaser.Math.RND.pick(spawnPoints);
+        // eslint-disable-next-line no-param-reassign
+        spawnEvent.x = randomSpawn.x;
+        // eslint-disable-next-line no-param-reassign
+        spawnEvent.y = randomSpawn.y;
+      }
+    });
+
+    // Listen for damage events for UI updates
+    this.events.on('playerDamaged', (data: unknown) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Damage dealt: ${(data as any).damage} ${(data as any).damageType} to ${(data as any).playerId}`
+      );
+    });
+
+    // Listen for healing events
+    this.events.on('playerHealed', (data: unknown) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Healing: ${(data as any).healAmount} to ${(data as any).playerId}`
+      );
+    });
+
+    // Listen for respawn events
+    this.events.on('playerRespawned', (data: unknown) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Player ${(data as any).playerId} respawned at (${(data as any).spawnX}, ${(data as any).spawnY})`
+      );
+    });
   }
 
-  private createPlatforms(): void {
-    this.platforms = this.physics.add.staticGroup();
+  private handlePlayerFallOffStage(player: Player): void {
+    // Apply fall damage using new damage system
+    const fallDamage: DamageInfo = {
+      amount: 25,
+      type: DamageType.FALL,
+      source: 'stage_fall',
+    };
 
-    // Main platform (ground)
-    const mainPlatform = this.platforms.create(
-      this.physics.world.bounds.width / 2,
-      this.physics.world.bounds.height - 50,
-      'platform'
-    );
-    mainPlatform.setScale(10, 1).refreshBody();
-    mainPlatform.setTint(0x8b4513);
+    player.takeDamage(fallDamage);
 
-    // Left platform
-    const leftPlatform = this.platforms.create(400, 800, 'platform');
-    leftPlatform.setScale(4, 1).refreshBody();
-    leftPlatform.setTint(0x8b4513);
+    // Visual feedback
+    this.cameras.main.shake(200, 0.03);
 
-    // Right platform
-    const rightPlatform = this.platforms.create(1600, 800, 'platform');
-    rightPlatform.setScale(4, 1).refreshBody();
-    rightPlatform.setTint(0x8b4513);
-
-    // Center elevated platform
-    const centerPlatform = this.platforms.create(1000, 600, 'platform');
-    centerPlatform.setScale(3, 1).refreshBody();
-    centerPlatform.setTint(0x8b4513);
-
-    // Top platforms
-    const topLeftPlatform = this.platforms.create(600, 400, 'platform');
-    topLeftPlatform.setScale(2, 1).refreshBody();
-    topLeftPlatform.setTint(0x8b4513);
-
-    const topRightPlatform = this.platforms.create(1400, 400, 'platform');
-    topRightPlatform.setScale(2, 1).refreshBody();
-    topRightPlatform.setTint(0x8b4513);
+    // eslint-disable-next-line no-console
+    console.log(`${player.playerId} fell off the stage!`);
   }
 
-  private createBoundaries(): void {
-    // Create invisible boundaries to prevent players from falling off the world
-    const boundaries = this.physics.add.staticGroup();
+  private handlePlayerHitHazard(data: {
+    player: Player;
+    hazardType: string;
+    damage: number;
+    knockback: { x: number; y: number };
+  }): void {
+    // Apply hazard damage using new damage system
+    const hazardDamage: DamageInfo = {
+      amount: data.damage,
+      type: DamageType.ENVIRONMENTAL,
+      knockback: data.knockback,
+      source: `hazard_${data.hazardType}`,
+    };
 
-    // Bottom boundary (death zone)
-    const bottomBoundary = boundaries.create(
-      this.physics.world.bounds.width / 2,
-      this.physics.world.bounds.height + 50,
-      ''
-    );
-    bottomBoundary.setSize(this.physics.world.bounds.width, 100);
-    bottomBoundary.setVisible(false);
+    data.player.takeDamage(hazardDamage);
 
-    // Side boundaries
-    const leftBoundary = boundaries.create(
-      -50,
-      this.physics.world.bounds.height / 2,
-      ''
-    );
-    leftBoundary.setSize(100, this.physics.world.bounds.height);
-    leftBoundary.setVisible(false);
+    // Visual feedback
+    this.cameras.main.shake(150, 0.025);
 
-    const rightBoundary = boundaries.create(
-      this.physics.world.bounds.width + 50,
-      this.physics.world.bounds.height / 2,
-      ''
+    // eslint-disable-next-line no-console
+    console.log(
+      `${data.player.playerId} hit ${data.hazardType} hazard for ${data.damage} damage`
     );
-    rightBoundary.setSize(100, this.physics.world.bounds.height);
-    rightBoundary.setVisible(false);
   }
 
   private createPlayer(): void {
-    if (!this.selectedCharacter) return;
+    if (!this.selectedCharacter || !this.stage) return;
 
-    const spawnX = this.physics.world.bounds.width / 2;
-    const spawnY = this.physics.world.bounds.height - 200;
+    // Get spawn points from stage
+    const spawnPoints = this.stage.getSpawnPoints();
 
     // Create main player
     this.player = new Player({
       scene: this,
-      x: spawnX - 100,
-      y: spawnY,
+      x: spawnPoints[0].x,
+      y: spawnPoints[0].y,
       characterType: this.selectedCharacter,
       playerId: 'local_player',
       isLocalPlayer: true,
@@ -200,8 +214,8 @@ export class GameScene extends Phaser.Scene {
     // Create a second player for testing combat (dummy AI)
     const dummyPlayer = new Player({
       scene: this,
-      x: spawnX + 100,
-      y: spawnY,
+      x: spawnPoints[1].x,
+      y: spawnPoints[1].y,
       characterType: 'HEAVY_HITTER',
       playerId: 'dummy_player',
       isLocalPlayer: false,
@@ -209,11 +223,9 @@ export class GameScene extends Phaser.Scene {
 
     this.players.push(dummyPlayer);
 
-    // Set up collisions with platforms for both players
-    if (this.platforms) {
-      this.physics.add.collider(this.player, this.platforms);
-      this.physics.add.collider(dummyPlayer, this.platforms);
-    }
+    // Set up stage collisions for both players
+    this.stage.setupPlayerCollisions(this.player);
+    this.stage.setupPlayerCollisions(dummyPlayer);
 
     // Set camera target
     this.cameraTarget = this.player;
@@ -618,18 +630,32 @@ export class GameScene extends Phaser.Scene {
     damage: number,
     knockback: { x: number; y: number }
   ): void {
-    // Apply damage and knockback to the victim
-    victim.takeDamage(damage, knockback);
+    // Calculate if this is a critical hit (10% chance)
+    const isCritical = Math.random() < 0.1;
 
-    // Visual feedback
-    this.cameras.main.shake(100, 0.02);
+    // Create damage info using new system
+    const attackDamage: DamageInfo = {
+      amount: damage,
+      type: DamageType.PHYSICAL,
+      knockback,
+      isCritical,
+      source: `attack_${attacker.playerId}`,
+    };
+
+    // Apply damage using new system
+    victim.takeDamage(attackDamage);
+
+    // Visual feedback (enhanced for critical hits)
+    const shakeIntensity = isCritical ? 0.04 : 0.02;
+    const shakeDuration = isCritical ? 200 : 100;
+    this.cameras.main.shake(shakeDuration, shakeIntensity);
 
     // Audio feedback (placeholder)
-    // this.sound.play('hit_sound');
+    // this.sound.play(isCritical ? 'critical_hit_sound' : 'hit_sound');
 
     // eslint-disable-next-line no-console
     console.log(
-      `${attacker.playerId} hit ${victim.playerId} for ${damage} damage`
+      `${attacker.playerId} hit ${victim.playerId} for ${damage} damage${isCritical ? ' (CRITICAL!)' : ''}`
     );
   }
 }
