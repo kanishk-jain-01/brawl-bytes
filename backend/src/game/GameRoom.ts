@@ -1,0 +1,759 @@
+import { AuthenticatedSocket } from '../networking/SocketManager';
+
+export enum GameState {
+  WAITING = 'waiting',
+  STARTING = 'starting',
+  PLAYING = 'playing',
+  PAUSED = 'paused',
+  ENDED = 'ended',
+}
+
+export enum PlayerState {
+  CONNECTED = 'connected',
+  READY = 'ready',
+  PLAYING = 'playing',
+  DISCONNECTED = 'disconnected',
+}
+
+export interface GameRoomPlayer {
+  socket: AuthenticatedSocket;
+  userId: string;
+  username: string;
+  state: PlayerState;
+  character?: string | undefined;
+  joinedAt: Date;
+  isHost: boolean;
+}
+
+export interface GameRoomConfig {
+  maxPlayers: number;
+  gameMode: string;
+  stage?: string | undefined;
+  timeLimit?: number;
+  stockCount?: number;
+}
+
+export interface GameResults {
+  winnerId?: string | undefined;
+  winnerUsername?: string | undefined;
+  loserId?: string | undefined;
+  loserUsername?: string | undefined;
+  endReason: 'knockout' | 'timeout' | 'forfeit' | 'disconnect';
+  finalScores: { [playerId: string]: number };
+  matchDuration: number;
+  endedAt: Date;
+}
+
+export interface RoomState {
+  roomId: string;
+  gameState: GameState;
+  config: GameRoomConfig;
+  players: {
+    userId: string;
+    username: string;
+    state: PlayerState;
+    character?: string | undefined;
+    isHost: boolean;
+    joinedAt: Date;
+  }[];
+  createdAt: Date;
+  lastActivity: Date;
+  lastGameResults?: GameResults | undefined;
+}
+
+export interface PlayerInputData {
+  type: 'move' | 'attack' | 'jump' | 'special';
+  data: any;
+  sequence?: number;
+}
+
+export interface ProcessedPlayerInput {
+  playerId: string;
+  timestamp: number;
+  inputType: string;
+  data: any;
+  sequence: number;
+}
+
+export interface GameEvent {
+  type: 'player_hit' | 'player_ko' | 'match_timeout' | 'stage_hazard';
+  data: any;
+}
+
+export interface ProcessedGameEvent extends GameEvent {
+  timestamp: number;
+  roomId: string;
+}
+
+export interface GameSyncState {
+  roomId: string;
+  gameState: GameState;
+  players: {
+    userId: string;
+    username: string;
+    character?: string | undefined;
+    state: PlayerState;
+  }[];
+  config: GameRoomConfig;
+  timestamp: number;
+}
+
+export class GameRoom {
+  public readonly id: string;
+
+  private players: Map<string, GameRoomPlayer>;
+
+  private gameState: GameState;
+
+  private config: GameRoomConfig;
+
+  private createdAt: Date;
+
+  private lastActivity: Date;
+
+  private hostId: string | null;
+
+  private lastGameResults?: GameResults | undefined;
+
+  constructor(id: string, config: Partial<GameRoomConfig> = {}) {
+    this.id = id;
+    this.players = new Map();
+    this.gameState = GameState.WAITING;
+    this.config = {
+      maxPlayers: 2,
+      gameMode: 'versus',
+      timeLimit: 300, // 5 minutes in seconds
+      stockCount: 3,
+      ...config,
+    };
+    this.createdAt = new Date();
+    this.lastActivity = new Date();
+    this.hostId = null;
+  }
+
+  // Basic room information getters
+  public getId(): string {
+    return this.id;
+  }
+
+  public getGameState(): GameState {
+    return this.gameState;
+  }
+
+  public getConfig(): GameRoomConfig {
+    return { ...this.config };
+  }
+
+  public getPlayerCount(): number {
+    return this.players.size;
+  }
+
+  public getMaxPlayers(): number {
+    return this.config.maxPlayers;
+  }
+
+  public isFull(): boolean {
+    return this.players.size >= this.config.maxPlayers;
+  }
+
+  public isEmpty(): boolean {
+    return this.players.size === 0;
+  }
+
+  public getPlayers(): GameRoomPlayer[] {
+    return Array.from(this.players.values());
+  }
+
+  public getPlayer(userId: string): GameRoomPlayer | undefined {
+    return this.players.get(userId);
+  }
+
+  public hasPlayer(userId: string): boolean {
+    return this.players.has(userId);
+  }
+
+  public getHost(): GameRoomPlayer | undefined {
+    if (!this.hostId) return undefined;
+    return this.players.get(this.hostId);
+  }
+
+  public getCreatedAt(): Date {
+    return this.createdAt;
+  }
+
+  public getLastActivity(): Date {
+    return this.lastActivity;
+  }
+
+  public getLastGameResults(): GameResults | undefined {
+    return this.lastGameResults;
+  }
+
+  // Update activity timestamp
+  private updateActivity(): void {
+    this.lastActivity = new Date();
+  }
+
+  // Helper method to check if all players are ready
+  public areAllPlayersReady(): boolean {
+    if (this.players.size === 0) return false;
+    return Array.from(this.players.values()).every(
+      player =>
+        player.state === PlayerState.READY ||
+        player.state === PlayerState.PLAYING
+    );
+  }
+
+  // Helper method to get players by state
+  public getPlayersByState(state: PlayerState): GameRoomPlayer[] {
+    return Array.from(this.players.values()).filter(
+      player => player.state === state
+    );
+  }
+
+  // Player management methods
+  public addPlayer(socket: AuthenticatedSocket): {
+    success: boolean;
+    error?: string;
+  } {
+    if (!socket.userId || !socket.username) {
+      return { success: false, error: 'Socket must be authenticated' };
+    }
+
+    if (this.isFull()) {
+      return { success: false, error: 'Room is full' };
+    }
+
+    if (this.hasPlayer(socket.userId)) {
+      return { success: false, error: 'Player already in room' };
+    }
+
+    if (this.gameState === GameState.PLAYING) {
+      return { success: false, error: 'Game already in progress' };
+    }
+
+    // First player becomes host
+    const isHost = this.isEmpty();
+    if (isHost) {
+      this.hostId = socket.userId;
+    }
+
+    const player: GameRoomPlayer = {
+      socket,
+      userId: socket.userId,
+      username: socket.username,
+      state: PlayerState.CONNECTED,
+      joinedAt: new Date(),
+      isHost,
+    };
+
+    this.players.set(socket.userId, player);
+    this.updateActivity();
+
+    // Join the socket.io room
+    socket.join(this.id);
+
+    return { success: true };
+  }
+
+  public removePlayer(userId: string): {
+    success: boolean;
+    player?: GameRoomPlayer;
+  } {
+    const player = this.players.get(userId);
+    if (!player) {
+      return { success: false };
+    }
+
+    // Leave the socket.io room
+    player.socket.leave(this.id);
+
+    // Remove player
+    this.players.delete(userId);
+    this.updateActivity();
+
+    // Handle host transfer if host left
+    if (this.hostId === userId) {
+      this.hostId = null;
+      // Transfer host to next player
+      const remainingPlayers = Array.from(this.players.values());
+      if (remainingPlayers.length > 0) {
+        const newHost = remainingPlayers[0];
+        this.hostId = newHost.userId;
+        // eslint-disable-next-line no-param-reassign
+        newHost.isHost = true;
+      }
+    }
+
+    // Reset game state if needed
+    if (this.gameState === GameState.PLAYING && this.players.size < 2) {
+      this.gameState = GameState.WAITING;
+    }
+
+    return { success: true, player };
+  }
+
+  public setPlayerReady(
+    userId: string,
+    ready: boolean = true
+  ): { success: boolean; error?: string } {
+    const player = this.players.get(userId);
+    if (!player) {
+      return { success: false, error: 'Player not found in room' };
+    }
+
+    if (this.gameState === GameState.PLAYING) {
+      return { success: false, error: 'Game already in progress' };
+    }
+
+    // eslint-disable-next-line no-param-reassign
+    player.state = ready ? PlayerState.READY : PlayerState.CONNECTED;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public setPlayerCharacter(
+    userId: string,
+    character: string
+  ): { success: boolean; error?: string } {
+    const player = this.players.get(userId);
+    if (!player) {
+      return { success: false, error: 'Player not found in room' };
+    }
+
+    if (this.gameState === GameState.PLAYING) {
+      return { success: false, error: 'Cannot change character during game' };
+    }
+
+    // eslint-disable-next-line no-param-reassign
+    player.character = character;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public setPlayerState(
+    userId: string,
+    state: PlayerState
+  ): { success: boolean; error?: string } {
+    const player = this.players.get(userId);
+    if (!player) {
+      return { success: false, error: 'Player not found in room' };
+    }
+
+    // eslint-disable-next-line no-param-reassign
+    player.state = state;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public handlePlayerDisconnect(userId: string): void {
+    const player = this.players.get(userId);
+    if (player) {
+      // eslint-disable-next-line no-param-reassign
+      player.state = PlayerState.DISCONNECTED;
+      this.updateActivity();
+
+      // If game is in progress, pause it
+      if (this.gameState === GameState.PLAYING) {
+        this.gameState = GameState.PAUSED;
+      }
+    }
+  }
+
+  public handlePlayerReconnect(socket: AuthenticatedSocket): {
+    success: boolean;
+    error?: string;
+  } {
+    if (!socket.userId) {
+      return { success: false, error: 'Socket must be authenticated' };
+    }
+
+    const player = this.players.get(socket.userId);
+    if (!player) {
+      return { success: false, error: 'Player not found in room' };
+    }
+
+    // Update socket reference and rejoin room
+    // eslint-disable-next-line no-param-reassign
+    player.socket = socket;
+    // eslint-disable-next-line no-param-reassign
+    player.state =
+      this.gameState === GameState.PLAYING
+        ? PlayerState.PLAYING
+        : PlayerState.CONNECTED;
+    socket.join(this.id);
+    this.updateActivity();
+
+    // Resume game if all players are back
+    if (
+      this.gameState === GameState.PAUSED &&
+      this.getPlayersByState(PlayerState.DISCONNECTED).length === 0
+    ) {
+      this.gameState = GameState.PLAYING;
+    }
+
+    return { success: true };
+  }
+
+  // Match state management methods
+  public canStartGame(): { canStart: boolean; reason?: string | undefined } {
+    if (this.gameState !== GameState.WAITING) {
+      return { canStart: false, reason: 'Game is not in waiting state' };
+    }
+
+    if (this.players.size < 2) {
+      return { canStart: false, reason: 'Need at least 2 players to start' };
+    }
+
+    if (!this.areAllPlayersReady()) {
+      return { canStart: false, reason: 'Not all players are ready' };
+    }
+
+    // Check if all players have selected characters
+    const playersWithoutCharacter = Array.from(this.players.values()).filter(
+      p => !p.character
+    );
+    if (playersWithoutCharacter.length > 0) {
+      return { canStart: false, reason: 'All players must select a character' };
+    }
+
+    if (!this.config.stage) {
+      return { canStart: false, reason: 'Stage must be selected' };
+    }
+
+    return { canStart: true };
+  }
+
+  public startGame(): { success: boolean; error?: string } {
+    const canStart = this.canStartGame();
+    if (!canStart.canStart) {
+      return { success: false, error: canStart.reason || 'Cannot start game' };
+    }
+
+    this.gameState = GameState.STARTING;
+    this.updateActivity();
+
+    // Set all players to playing state
+    this.players.forEach(player => {
+      // eslint-disable-next-line no-param-reassign
+      player.state = PlayerState.PLAYING;
+    });
+
+    // Transition to playing after a short delay (simulating countdown)
+    setTimeout(() => {
+      if (this.gameState === GameState.STARTING) {
+        this.gameState = GameState.PLAYING;
+        this.updateActivity();
+      }
+    }, 3000); // 3 second countdown
+
+    return { success: true };
+  }
+
+  public pauseGame(): { success: boolean; error?: string } {
+    if (this.gameState !== GameState.PLAYING) {
+      return { success: false, error: 'Game is not currently playing' };
+    }
+
+    this.gameState = GameState.PAUSED;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public resumeGame(): { success: boolean; error?: string } {
+    if (this.gameState !== GameState.PAUSED) {
+      return { success: false, error: 'Game is not currently paused' };
+    }
+
+    // Check if we have enough connected players to resume
+    const disconnectedPlayers = this.getPlayersByState(
+      PlayerState.DISCONNECTED
+    );
+    if (disconnectedPlayers.length > 0) {
+      return {
+        success: false,
+        error: 'Cannot resume with disconnected players',
+      };
+    }
+
+    this.gameState = GameState.PLAYING;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public endGame(results?: GameResults): { success: boolean; error?: string } {
+    if (
+      this.gameState !== GameState.PLAYING &&
+      this.gameState !== GameState.PAUSED
+    ) {
+      return { success: false, error: 'No active game to end' };
+    }
+
+    this.gameState = GameState.ENDED;
+    this.updateActivity();
+
+    // Reset player states to connected
+    this.players.forEach(player => {
+      if (player.state !== PlayerState.DISCONNECTED) {
+        // eslint-disable-next-line no-param-reassign
+        player.state = PlayerState.CONNECTED;
+      }
+    });
+
+    // Store results if provided
+    if (results) {
+      this.lastGameResults = results;
+    }
+
+    return { success: true };
+  }
+
+  public resetRoom(): void {
+    this.gameState = GameState.WAITING;
+    this.updateActivity();
+
+    // Reset all player states and characters
+    this.players.forEach(player => {
+      if (player.state !== PlayerState.DISCONNECTED) {
+        // eslint-disable-next-line no-param-reassign
+        player.state = PlayerState.CONNECTED;
+      }
+      // eslint-disable-next-line no-param-reassign
+      player.character = undefined;
+    });
+
+    // Clear stage selection
+    this.config.stage = undefined;
+    this.lastGameResults = undefined;
+  }
+
+  public setStage(stage: string): { success: boolean; error?: string } {
+    if (this.gameState === GameState.PLAYING) {
+      return {
+        success: false,
+        error: 'Cannot change stage during active game',
+      };
+    }
+
+    this.config.stage = stage;
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  public updateGameConfig(newConfig: Partial<GameRoomConfig>): {
+    success: boolean;
+    error?: string;
+  } {
+    if (this.gameState === GameState.PLAYING) {
+      return {
+        success: false,
+        error: 'Cannot change config during active game',
+      };
+    }
+
+    // Validate max players change
+    if (newConfig.maxPlayers && newConfig.maxPlayers < this.players.size) {
+      return {
+        success: false,
+        error: 'Cannot reduce max players below current player count',
+      };
+    }
+
+    this.config = { ...this.config, ...newConfig };
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  // Game loop and state synchronization methods
+  public broadcastToRoom(event: string, data: any): void {
+    this.players.forEach(player => {
+      if (player.state !== PlayerState.DISCONNECTED) {
+        player.socket.emit(event, data);
+      }
+    });
+    this.updateActivity();
+  }
+
+  public broadcastToOthers(
+    excludeUserId: string,
+    event: string,
+    data: any
+  ): void {
+    this.players.forEach(player => {
+      if (
+        player.userId !== excludeUserId &&
+        player.state !== PlayerState.DISCONNECTED
+      ) {
+        player.socket.emit(event, data);
+      }
+    });
+    this.updateActivity();
+  }
+
+  public getRoomState(): RoomState {
+    return {
+      roomId: this.id,
+      gameState: this.gameState,
+      config: this.config,
+      players: Array.from(this.players.values()).map(player => ({
+        userId: player.userId,
+        username: player.username,
+        state: player.state,
+        character: player.character,
+        isHost: player.isHost,
+        joinedAt: player.joinedAt,
+      })),
+      createdAt: this.createdAt,
+      lastActivity: this.lastActivity,
+      lastGameResults: this.lastGameResults,
+    };
+  }
+
+  public handlePlayerInput(userId: string, inputData: PlayerInputData): void {
+    const player = this.players.get(userId);
+    if (
+      !player ||
+      player.state !== PlayerState.PLAYING ||
+      this.gameState !== GameState.PLAYING
+    ) {
+      return;
+    }
+
+    // Validate and process input
+    const processedInput: ProcessedPlayerInput = {
+      playerId: userId,
+      timestamp: Date.now(),
+      inputType: inputData.type,
+      data: inputData.data,
+      sequence: inputData.sequence || 0,
+    };
+
+    // Broadcast to other players for client-side prediction
+    this.broadcastToOthers(userId, 'playerInput', processedInput);
+
+    // Store for server-side validation if needed
+    this.updateActivity();
+  }
+
+  public handleGameEvent(event: GameEvent): void {
+    if (this.gameState !== GameState.PLAYING) {
+      return;
+    }
+
+    // Process game event and broadcast to all players
+    const processedEvent: ProcessedGameEvent = {
+      ...event,
+      timestamp: Date.now(),
+      roomId: this.id,
+    };
+
+    this.broadcastToRoom('gameEvent', processedEvent);
+
+    // Handle specific event types
+    switch (event.type) {
+      case 'player_hit':
+        this.handlePlayerHit(event.data);
+        break;
+      case 'player_ko':
+        this.handlePlayerKO(event.data);
+        break;
+      case 'match_timeout':
+        this.handleMatchTimeout();
+        break;
+      default:
+        break;
+    }
+
+    this.updateActivity();
+  }
+
+  // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+  private handlePlayerHit(_data: any): void {
+    // Process hit validation and damage calculation
+    // This would integrate with the physics system
+  }
+
+  private handlePlayerKO(data: any): void {
+    const { playerId } = data;
+
+    // Check if this results in a match end
+    const alivePlayers = Array.from(this.players.values()).filter(
+      p => p.state === PlayerState.PLAYING && p.userId !== playerId
+    );
+
+    if (alivePlayers.length === 1) {
+      // Match over - we have a winner
+      const winner = alivePlayers[0];
+      const results: GameResults = {
+        winnerId: winner.userId,
+        winnerUsername: winner.username,
+        loserId: playerId,
+        loserUsername: this.players.get(playerId)?.username,
+        endReason: 'knockout',
+        finalScores: {}, // Would be populated with actual scores
+        matchDuration: Date.now() - this.createdAt.getTime(),
+        endedAt: new Date(),
+      };
+
+      this.endGame(results);
+      this.broadcastToRoom('matchEnd', results);
+    }
+  }
+
+  private handleMatchTimeout(): void {
+    // Handle match ending due to timeout
+    const results: GameResults = {
+      endReason: 'timeout',
+      finalScores: {}, // Would determine winner by score/health
+      matchDuration: this.config.timeLimit! * 1000,
+      endedAt: new Date(),
+    };
+
+    this.endGame(results);
+    this.broadcastToRoom('matchEnd', results);
+  }
+
+  public syncRoomState(): void {
+    const roomState = this.getRoomState();
+    this.broadcastToRoom('roomStateSync', roomState);
+  }
+
+  public requestGameStateSync(userId: string): void {
+    const player = this.players.get(userId);
+    if (!player) return;
+
+    const gameState = this.getGameSyncState();
+    player.socket.emit('gameStateSync', gameState);
+  }
+
+  private getGameSyncState(): GameSyncState {
+    return {
+      roomId: this.id,
+      gameState: this.gameState,
+      players: Array.from(this.players.values()).map(p => ({
+        userId: p.userId,
+        username: p.username,
+        character: p.character,
+        state: p.state,
+      })),
+      config: this.config,
+      timestamp: Date.now(),
+    };
+  }
+
+  // Periodic state synchronization
+  public startPeriodicSync(intervalMs: number = 1000): NodeJS.Timeout {
+    return setInterval(() => {
+      if (this.gameState === GameState.PLAYING) {
+        this.syncRoomState();
+      }
+    }, intervalMs);
+  }
+}
