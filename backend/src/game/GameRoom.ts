@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { AuthenticatedSocket } from '../networking/SocketManager';
 import {
   PhysicsSystem,
@@ -866,6 +866,7 @@ export class GameRoom {
     this.physicsSystem.setStageData(stageData);
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private getStageConfiguration(stageName: string): StageData {
     // Basic stage configurations - will be loaded from database later
     const stageConfigurations: Record<string, StageData> = {

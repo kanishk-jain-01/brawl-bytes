@@ -942,7 +942,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     let fromState = null;
     let toState = null;
 
-    for (let i = 0; i < this.interpolationBuffer.length - 1; i++) {
+    for (let i = 0; i < this.interpolationBuffer.length - 1; i += 1) {
       const current = this.interpolationBuffer[i];
       const next = this.interpolationBuffer[i + 1];
 
@@ -1095,7 +1095,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setVelocity(serverVelocity.x, serverVelocity.y);
 
     // Replay inputs from the correction point
-    for (let i = correctionIndex + 1; i < this.inputBuffer.length; i++) {
+    for (let i = correctionIndex + 1; i < this.inputBuffer.length; i += 1) {
       const input = this.inputBuffer[i];
       this.simulateInput(input.input);
     }

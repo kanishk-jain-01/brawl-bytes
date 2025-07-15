@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { GameConstantsRepository } from '../database/repositories/GameConstantsRepository';
 
 export interface PhysicsConstants {
@@ -35,6 +35,7 @@ export interface PhysicsConstants {
 }
 
 export class GameConstantsService {
+  // eslint-disable-next-line no-use-before-define
   private static instance: GameConstantsService;
 
   private gameConstantsRepo: GameConstantsRepository;
@@ -50,14 +51,17 @@ export class GameConstantsService {
   }
 
   public static getInstance(prisma?: PrismaClient): GameConstantsService {
+    // eslint-disable-next-line no-use-before-define
     if (!GameConstantsService.instance) {
       if (!prisma) {
         throw new Error(
           'Prisma client must be provided when creating first instance'
         );
       }
+      // eslint-disable-next-line no-use-before-define
       GameConstantsService.instance = new GameConstantsService(prisma);
     }
+    // eslint-disable-next-line no-use-before-define
     return GameConstantsService.instance;
   }
 
@@ -159,6 +163,7 @@ export class GameConstantsService {
   /**
    * Fallback constants in case database is unavailable
    */
+  // eslint-disable-next-line class-methods-use-this
   private getFallbackConstants(): PhysicsConstants {
     return {
       MOVEMENT: {

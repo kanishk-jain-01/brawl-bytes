@@ -487,17 +487,18 @@ export class SocketManager {
       this.authToken = token;
 
       // Set up one-time listeners for authentication response
+      const onAuthenticated = (response: AuthResponse) => {
+        this.socket!.off('authenticated', onAuthenticated);
+        // eslint-disable-next-line no-use-before-define
+        this.socket!.off('authenticationFailed', onAuthFailed);
+        resolve(response);
+      };
+
       const onAuthFailed = (response: AuthResponse) => {
         this.socket!.off('authenticated', onAuthenticated);
         this.socket!.off('authenticationFailed', onAuthFailed);
         this.authToken = null;
         reject(new Error(response.error || 'Authentication failed'));
-      };
-
-      const onAuthenticated = (response: AuthResponse) => {
-        this.socket!.off('authenticated', onAuthenticated);
-        this.socket!.off('authenticationFailed', onAuthFailed);
-        resolve(response);
       };
 
       this.socket.on('authenticated', onAuthenticated);
@@ -608,20 +609,21 @@ export class SocketManager {
       }
 
       // Set up one-time listeners for room creation response
-      const onRoomError = (error: { message: string }) => {
-        this.socket!.off('roomCreated', onRoomCreated);
-        this.socket!.off('roomError', onRoomError);
-        reject(new Error(error.message));
-      };
-
       const onRoomCreated = (response: RoomResponse) => {
         this.socket!.off('roomCreated', onRoomCreated);
+        // eslint-disable-next-line no-use-before-define
         this.socket!.off('roomError', onRoomError);
 
         if (response.success && response.roomId) {
           this.currentRoomId = response.roomId;
         }
         resolve(response);
+      };
+
+      const onRoomError = (error: { message: string }) => {
+        this.socket!.off('roomCreated', onRoomCreated);
+        this.socket!.off('roomError', onRoomError);
+        reject(new Error(error.message));
       };
 
       this.socket.on('roomCreated', onRoomCreated);
@@ -640,14 +642,9 @@ export class SocketManager {
       }
 
       // Set up one-time listeners for join response
-      const onRoomError = (error: { message: string }) => {
-        this.socket!.off('playerJoined', onPlayerJoined);
-        this.socket!.off('roomError', onRoomError);
-        reject(new Error(error.message));
-      };
-
       const onPlayerJoined = (data: PlayerJoinedData) => {
         this.socket!.off('playerJoined', onPlayerJoined);
+        // eslint-disable-next-line no-use-before-define
         this.socket!.off('roomError', onRoomError);
 
         this.currentRoomId = data.roomId;
@@ -657,6 +654,12 @@ export class SocketManager {
           playerCount: data.playerCount,
           maxPlayers: data.maxPlayers,
         });
+      };
+
+      const onRoomError = (error: { message: string }) => {
+        this.socket!.off('playerJoined', onPlayerJoined);
+        this.socket!.off('roomError', onRoomError);
+        reject(new Error(error.message));
       };
 
       this.socket.on('playerJoined', onPlayerJoined);

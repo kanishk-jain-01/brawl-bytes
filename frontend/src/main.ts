@@ -45,6 +45,7 @@ async function initializeGame(): Promise<Phaser.Game> {
   console.log('🎮 Starting Brawl Bytes...');
 
   // Show loading indicator
+  // eslint-disable-next-line no-use-before-define
   showLoadingIndicator('Fetching game configuration...');
 
   try {
@@ -52,6 +53,7 @@ async function initializeGame(): Promise<Phaser.Game> {
     await loadGameConstants();
 
     // Update loading indicator
+    // eslint-disable-next-line no-use-before-define
     showLoadingIndicator('Starting game engine...');
 
     // Create Phaser config with updated constants
@@ -103,6 +105,7 @@ async function initializeGame(): Promise<Phaser.Game> {
     const game = new Phaser.Game(config);
 
     // Hide loading indicator
+    // eslint-disable-next-line no-use-before-define
     hideLoadingIndicator();
 
     if (process.env.NODE_ENV === 'development') {
@@ -119,10 +122,12 @@ async function initializeGame(): Promise<Phaser.Game> {
 
     // Check if it's a constants loading error
     if (error instanceof Error && error.message.includes('constants')) {
+      // eslint-disable-next-line no-use-before-define
       showErrorMessage(
         'Unable to connect to game server. Please check your connection and try again.'
       );
     } else {
+      // eslint-disable-next-line no-use-before-define
       showErrorMessage('Failed to initialize game. Please refresh the page.');
     }
 
@@ -214,13 +219,15 @@ function showErrorMessage(message: string): void {
 }
 
 // Initialize the game
-let game: Phaser.Game | undefined;
-initializeGame()
-  .then(gameInstance => {
-    game = gameInstance;
+const gamePromise = initializeGame();
+let gameInstance: Phaser.Game | undefined;
+gamePromise
+  .then(gameResult => {
+    gameInstance = gameResult;
   })
   .catch(error => {
     console.error('Game initialization failed:', error);
   });
 
-export default game;
+// eslint-disable-next-line import/no-mutable-exports
+export default gameInstance;
