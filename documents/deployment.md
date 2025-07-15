@@ -23,6 +23,7 @@ Add env vars (e.g., PORT=443 for HTTPS).
 Deploy—gets a URL like my-socket.onrender.com.
 Update frontend Socket.io client: io('https://my-socket.onrender.com').
 Cost: Free tier (500ms CPU/month, good for testing); paid starts at ~$7/month for always-on.
++Note: To meet the performance targets outlined in `performance-requirements.md` (e.g., 10 000 concurrent users, auto-scaling), plan to upgrade to a paid Render plan that supports auto-scaling and higher resource limits before production launch.
 
 ## Database: PostgreSQL on Render
 Why PostgreSQL on Render? Native PostgreSQL support, automatic backups, connection pooling, and seamless integration with your backend service. Render's managed PostgreSQL eliminates database administration overhead.

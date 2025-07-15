@@ -123,7 +123,7 @@ interface DemoFlow {
   // Immediate gameplay without registration
   demoFeatures: {
     playableCharacter: 'warrior'; // Pre-selected
-    aiOpponent: 'easy_bot';
+    aiOpponent: 'static_dummy'; // Dummy target; AI bots will be added post-MVP
     stage: 'training_arena';
     timeLimit: 60; // seconds
     tutorialHints: true;
