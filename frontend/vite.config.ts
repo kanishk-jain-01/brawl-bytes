@@ -41,9 +41,13 @@ export default defineConfig(({ mode }) => ({
 
   optimizeDeps: {
     /**
-     * Phaser bundles its own build; excluding it from pre-bundling speeds up
-     * dev start-up and avoids duplicated code.
+     * Include Phaser in optimization to fix default import issues
      */
-    exclude: ['phaser'],
+    include: ['phaser'],
+  },
+
+  esbuild: {
+    // Handle Phaser's export patterns correctly
+    keepNames: true,
   },
 }))
