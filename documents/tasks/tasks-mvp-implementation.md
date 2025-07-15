@@ -46,7 +46,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `backend/src/auth/utils.ts` - JWT token generation and password hashing utilities ✓
 - `backend/src/database/repositories/UserRepository.ts` - User data access layer ✓
 - `backend/src/database/repositories/MatchRepository.ts` - Match data access layer
-- `backend/src/game/GameRoom.ts` - Room management for multiplayer matches
+- `backend/src/game/GameRoom.ts` - Room management for multiplayer matches with player state, match lifecycle, and real-time synchronization ✓
 - `backend/src/game/GameState.ts` - Authoritative game state management
 - `backend/src/game/PhysicsSystem.ts` - Server-side physics validation
 - `backend/src/networking/SocketManager.ts` - Socket connection and message handling with room management, authentication, and game events ✓
@@ -107,7 +107,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 
 - [ ] 5.0 Multiplayer Networking Foundation
   - [x] 5.1 Set up Socket.io server in backend with room management
-  - [ ] 5.2 Create GameRoom class for match state and player management
+  - [x] 5.2 Create GameRoom class for match state and player management
   - [ ] 5.3 Implement client-side Socket.io connection and authentication
   - [ ] 5.4 Add real-time player position and input synchronization
   - [ ] 5.5 Create server-side physics validation and authority
