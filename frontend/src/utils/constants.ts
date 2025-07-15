@@ -1,3 +1,12 @@
+/*
+ * Game Constants
+ * --------------
+ * Central configuration file containing all game constants and settings.
+ * Defines scene keys, physics parameters, character stats, stage layouts, game rules, and UI styling.
+ * Includes character balance data (speed, health, damage), stage platform configurations, and asset key mappings.
+ * Provides type definitions for characters, stages, and scenes to ensure type safety throughout the application.
+ */
+
 export const GAME_CONFIG = {
   SCENE_KEYS: {
     BOOT: 'BootScene',

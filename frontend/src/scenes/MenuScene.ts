@@ -1,3 +1,12 @@
+/*
+ * Menu Scene
+ * ----------
+ * The main menu scene that serves as the game's home screen.
+ * Features an animated background with twinkling stars, the game logo, and interactive buttons.
+ * Includes play button (leads to character select), options button (future feature), and credits button.
+ * All buttons have hover effects and smooth animations to enhance user experience.
+ */
+
 import Phaser from 'phaser';
 import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
 

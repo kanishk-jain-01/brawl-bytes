@@ -1,3 +1,11 @@
+/*
+ * Main Game Entry Point
+ * ---------------------
+ * This file initializes the Phaser game engine and sets up the core game configuration.
+ * It defines the game window dimensions, physics settings, scene order, and rendering options.
+ * The game starts by loading the BootScene, which handles asset loading and transitions to the MenuScene.
+ */
+
 import Phaser from 'phaser';
 import { BootScene } from '@/scenes/BootScene';
 import { MenuScene } from '@/scenes/MenuScene';

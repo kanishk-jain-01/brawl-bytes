@@ -1,3 +1,12 @@
+/*
+ * Boot Scene
+ * ----------
+ * The initial loading scene that handles asset loading and displays a loading screen.
+ * This scene preloads all game assets (images, audio, spritesheets) with a visual progress bar.
+ * Once loading is complete, it displays the game title and waits for user input to transition to the MenuScene.
+ * Features animated loading bar, file progress tracking, and smooth scene transitions.
+ */
+
 import Phaser from 'phaser';
 import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
 

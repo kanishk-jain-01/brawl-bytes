@@ -1,3 +1,13 @@
+/*
+ * Game Scene
+ * ----------
+ * The main gameplay scene where the fighting action takes place.
+ * Manages physics world, stage platforms, player entities, camera following, and UI elements.
+ * Handles real-time input processing, collision detection, match timer, and health/stock tracking.
+ * Features multiple platforms, world boundaries, respawn system, and debug information for development.
+ * Supports both arrow keys and WASD for movement, with additional action keys for attacks.
+ */
+
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';

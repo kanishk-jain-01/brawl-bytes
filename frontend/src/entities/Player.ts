@@ -1,3 +1,13 @@
+/*
+ * Player Entity
+ * -------------
+ * The main player character class that extends Phaser's Arcade Physics Sprite.
+ * Handles character movement, jumping (including double jump), attack system, health management, and stock system.
+ * Features physics-based movement with character-specific stats, invulnerability frames, knockback mechanics, and respawn logic.
+ * Supports both local and network player types, with input state management and visual feedback for actions.
+ * Includes collision detection, damage calculation, and defeat conditions for the fighting game mechanics.
+ */
+
 import Phaser from 'phaser';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
 

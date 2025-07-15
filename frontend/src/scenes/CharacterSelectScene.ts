@@ -1,3 +1,13 @@
+/*
+ * Character Select Scene
+ * ----------------------
+ * Allows players to choose their fighter from available characters.
+ * Displays character cards with stats, visual previews, and descriptions.
+ * Features animated grid pattern background, character hover effects, and detailed character information.
+ * Supports both mouse/touch input and keyboard shortcuts (1,2,3 for quick selection).
+ * Saves selected character to global state and transitions to GameScene.
+ */
+
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
