@@ -20,21 +20,25 @@ describe('CharacterSelectScene integration', () => {
     const scene = new CharacterSelectScene();
 
     // Manually inject minimal mocks to satisfy internal calls
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (scene as any).cameras = {
       main: {
         fadeOut: jest.fn(),
         once: jest.fn(),
       },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (scene as any).scene = { start: jest.fn() };
 
     // Pre-select a character
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (scene as any).selectedCharacter = CHOSEN;
 
     // Spy on updateState
     const spy = jest.spyOn(GameState, 'updateState');
 
     // Invoke confirmation logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (scene as any).confirmSelection();
 
     expect(spy).toHaveBeenCalledWith({ selectedCharacter: CHOSEN });

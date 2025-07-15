@@ -51,6 +51,7 @@ const config: Phaser.Types.Core.GameConfig = {
 const game = new Phaser.Game(config);
 
 if (process.env.NODE_ENV === 'development') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).game = game;
 }
 

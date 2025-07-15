@@ -307,7 +307,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private loseStock(): void {
-    this.currentStocks--;
+    this.currentStocks -= 1;
 
     if (this.currentStocks <= 0) {
       this.defeat();

@@ -118,7 +118,7 @@ export class BootScene extends Phaser.Scene {
     );
 
     // Simulate loading time for development
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i += 1) {
       this.load.image(
         `placeholder_${i}`,
         'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -169,6 +169,7 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 0, 0, 0);
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
+      // eslint-disable-next-line no-console
       console.log('Transitioning to MenuScene...');
       this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);
     });

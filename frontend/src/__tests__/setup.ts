@@ -1,4 +1,5 @@
 // Jest setup file for frontend tests
+/* eslint-disable max-classes-per-file, class-methods-use-this */
 import 'jest';
 
 // ---------------------------------------------------------------------------
@@ -20,20 +21,30 @@ jest.mock('phaser', () => {
 
     public scene: any;
 
-    constructor(_config: any = {}) {
+    constructor(config: any = {}) {
       // Minimal mock of properties accessed in tests
       this.sys = {};
       this.game = {};
       this.registry = { get: jest.fn(), set: jest.fn() } as any;
       this.cameras = { main: {} } as any;
       this.scene = {} as any;
+      // Use config to avoid unused var warning
+      if (config) {
+        Object.assign(this, config);
+      }
     }
 
-    preload() {}
+    preload() {
+      // Mock method - no implementation needed
+    }
 
-    create() {}
+    create() {
+      // Mock method - no implementation needed
+    }
 
-    update() {}
+    update() {
+      // Mock method - no implementation needed
+    }
   }
 
   const PhaserStub = {
@@ -59,16 +70,32 @@ jest.mock('phaser', () => {
 // Mock Phaser globally
 global.Phaser = {
   Scene: class MockScene {
-    constructor(_config?: any) {}
+    constructor(config?: any) {
+      // Use config to avoid unused var warning
+      if (config) {
+        Object.assign(this, config);
+      }
+    }
 
-    preload() {}
+    preload() {
+      // Mock method - no implementation needed
+    }
 
-    create() {}
+    create() {
+      // Mock method - no implementation needed
+    }
 
-    update() {}
+    update() {
+      // Mock method - no implementation needed
+    }
   },
   Game: class MockGame {
-    constructor(_config: any) {}
+    constructor(config: any) {
+      // Use config to avoid unused var warning
+      if (config) {
+        Object.assign(this, config);
+      }
+    }
   },
   AUTO: 'AUTO',
   Scale: {

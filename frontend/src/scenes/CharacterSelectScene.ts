@@ -18,6 +18,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   create(): void {
+    // eslint-disable-next-line no-console
     console.log('CharacterSelectScene: Starting character selection');
 
     this.createBackground();
@@ -225,6 +226,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private selectCharacter(characterKey: CharacterType): void {
+    // eslint-disable-next-line no-console
     console.log(`CharacterSelectScene: Character selected - ${characterKey}`);
 
     // Update visual selection
@@ -472,6 +474,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private goBackToMenu(): void {
+    // eslint-disable-next-line no-console
     console.log('CharacterSelectScene: Returning to menu');
 
     // Transition animation
@@ -484,6 +487,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   private confirmSelection(): void {
     if (!this.selectedCharacter) return;
 
+    // eslint-disable-next-line no-console
     console.log(
       `CharacterSelectScene: Confirming selection - ${this.selectedCharacter}`
     );

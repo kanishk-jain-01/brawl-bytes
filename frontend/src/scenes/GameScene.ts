@@ -31,11 +31,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    // eslint-disable-next-line no-console
     console.log('GameScene: Starting game');
 
     // Retrieve selected character from global state, fallback to default
     this.selectedCharacter =
       getState().selectedCharacter || 'BALANCED_ALLROUNDER';
+    // eslint-disable-next-line no-console
     console.log(`GameScene: Selected character - ${this.selectedCharacter}`);
 
     this.setupPhysics();
@@ -85,7 +87,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     // Add some decorative clouds
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i += 1) {
       const x = Phaser.Math.Between(100, this.physics.world.bounds.width - 100);
       const y = Phaser.Math.Between(50, 200);
       const cloud = this.add.circle(x, y, 40, 0xffffff, 0.8);
@@ -271,7 +273,7 @@ export class GameScene extends Phaser.Scene {
       .text(
         this.cameras.main.centerX,
         50,
-        this.formatTime(GAME_CONFIG.GAME.MATCH_TIME),
+        GameScene.formatTime(GAME_CONFIG.GAME.MATCH_TIME),
         {
           fontSize: '24px',
           fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
@@ -359,6 +361,7 @@ export class GameScene extends Phaser.Scene {
       loop: true,
     });
 
+    // eslint-disable-next-line no-console
     console.log('GameScene: Match started');
   }
 
@@ -377,11 +380,11 @@ export class GameScene extends Phaser.Scene {
       'matchTimer'
     ) as Phaser.GameObjects.Text;
     if (timerText) {
-      timerText.setText(this.formatTime(this.matchTimeRemaining));
+      timerText.setText(GameScene.formatTime(this.matchTimeRemaining));
     }
   }
 
-  private formatTime(milliseconds: number): string {
+  private static formatTime(milliseconds: number): string {
     const totalSeconds = Math.ceil(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -395,6 +398,7 @@ export class GameScene extends Phaser.Scene {
       this.matchTimer.remove();
     }
 
+    // eslint-disable-next-line no-console
     console.log('GameScene: Match ended');
 
     // For now, return to character select
@@ -404,6 +408,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private returnToCharacterSelect(): void {
+    // eslint-disable-next-line no-console
     console.log('GameScene: Returning to character select');
 
     this.cameras.main.fadeOut(300, 0, 0, 0);

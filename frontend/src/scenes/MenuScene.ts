@@ -35,7 +35,7 @@ export class MenuScene extends Phaser.Scene {
     graphics.fillRect(0, 0, width, height);
 
     // Add some decorative elements
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 20; i += 1) {
       const x = Phaser.Math.Between(0, width);
       const y = Phaser.Math.Between(0, height);
       const size = Phaser.Math.Between(2, 8);
@@ -131,6 +131,7 @@ export class MenuScene extends Phaser.Scene {
     optionsText.setOrigin(0.5);
 
     this.setupButtonInteractions(optionsButton, optionsText, () => {
+      // eslint-disable-next-line no-console
       console.log('Options menu - Coming soon!');
     });
 
@@ -152,6 +153,7 @@ export class MenuScene extends Phaser.Scene {
     creditsText.setOrigin(0.5);
 
     this.setupButtonInteractions(creditsButton, creditsText, () => {
+      // eslint-disable-next-line no-console
       console.log('Credits - MVP by Brawl Bytes Team');
     });
   }
@@ -239,6 +241,7 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.fadeOut(500, 0, 0, 0);
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
+      // eslint-disable-next-line no-console
       console.log('Transitioning to Character Select...');
       this.scene.start(GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT);
     });
