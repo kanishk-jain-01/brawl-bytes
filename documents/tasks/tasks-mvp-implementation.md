@@ -94,7 +94,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 3.6 Set up scene transitions and game state management
   - [x] 3.7 Configure Vite for asset bundling and development server
 
-- [] 4.0 Basic Character System & Physics
+- [x] 4.0 Basic Character System & Physics
   - [x] 4.1 Create Player entity class with Phaser physics body
   - [x] 4.2 Implement basic movement (left/right movement, jumping)
   - [x] 4.3 Add character sprites and basic animations (idle, walk, jump)
@@ -104,14 +104,6 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 4.7 Implement knockback mechanics and stock system
   - [x] 4.8 Add victory/defeat conditions and match end logic
   - [x] 4.9 Write unit tests for Player entity and combat mechanics
-
-  - [ ] 4.10 Client ↔ Database Integration
-    - [ ] 4.10.1 Expose REST endpoint GET `/profile/me` to return authenticated player's profile, coins, and unlock state
-    - [ ] 4.10.2 Expose REST endpoints GET `/characters` and `/stages` to return available and unlocked items
-    - [ ] 4.10.3 Expose REST endpoint POST `/matches` to persist match summary and award XP/coins
-    - [ ] 4.10.4 Implement frontend `src/utils/api.ts` service layer with typed wrappers for the above endpoints
-    - [ ] 4.10.5 Add frontend state slice to store profile and progression data (unlocks, coins, XP)
-    - [ ] 4.10.6 Write Jest tests for backend endpoints (using Supertest helper) and frontend API service
 
 - [ ] 5.0 Multiplayer Networking Foundation
   - [ ] 5.1 Set up Socket.io server in backend with room management
