@@ -199,8 +199,138 @@ async function main() {
     console.log(`✓ Created stage: ${stage.name}`);
   }
 
+  // Create Game Constants
+  console.log('📝 Creating game constants...');
+  
+  const gameConstants = [
+    // Physics Constants
+    {
+      id: 'physics_gravity',
+      category: 'physics',
+      name: 'gravity',
+      description: 'Gravity force applied to players',
+      value: 800,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_jump_velocity',
+      category: 'physics',
+      name: 'jump_velocity',
+      description: 'Initial velocity for player jumps',
+      value: -600,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_move_speed',
+      category: 'physics',
+      name: 'move_speed',
+      description: 'Base movement speed for players',
+      value: 200,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_max_velocity',
+      category: 'physics',
+      name: 'max_velocity',
+      description: 'Maximum velocity limit for players',
+      value: 800,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_friction',
+      category: 'physics',
+      name: 'friction',
+      description: 'Ground friction coefficient',
+      value: 0.9,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_bounds',
+      category: 'physics',
+      name: 'world_bounds',
+      description: 'Game world boundaries',
+      value: {
+        min_x: -1000,
+        max_x: 1000,
+        min_y: -500,
+        max_y: 600,
+        death_zone_y: 800
+      },
+      dataType: 'object'
+    },
+    
+    // Combat Constants
+    {
+      id: 'combat_attack_cooldown',
+      category: 'combat',
+      name: 'attack_cooldown',
+      description: 'Minimum time between attacks (ms)',
+      value: 400,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_invulnerability',
+      category: 'combat',
+      name: 'invulnerability_duration',
+      description: 'Invulnerability time after taking damage (ms)',
+      value: 1000,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_max_damage',
+      category: 'combat',
+      name: 'max_damage_per_hit',
+      description: 'Maximum damage allowed per single hit',
+      value: 50,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_max_knockback',
+      category: 'combat',
+      name: 'max_knockback_velocity',
+      description: 'Maximum knockback velocity from attacks',
+      value: 1200,
+      dataType: 'number'
+    },
+    
+    // Game Constants
+    {
+      id: 'game_max_stocks',
+      category: 'game',
+      name: 'max_stocks',
+      description: 'Default number of lives per player',
+      value: 3,
+      dataType: 'number'
+    },
+    {
+      id: 'game_match_time',
+      category: 'game',
+      name: 'match_time',
+      description: 'Default match duration in milliseconds',
+      value: 180000,
+      dataType: 'number'
+    },
+    {
+      id: 'game_respawn_time',
+      category: 'game',
+      name: 'respawn_time',
+      description: 'Time before respawn after KO (ms)',
+      value: 2000,
+      dataType: 'number'
+    }
+  ];
+
+  for (const constant of gameConstants) {
+    await prisma.gameConstants.upsert({
+      where: { id: constant.id },
+      update: constant,
+      create: constant,
+    });
+    console.log(`✓ Created game constant: ${constant.name}`);
+  }
+
   console.log('🎉 Database seed completed successfully!');
-  console.log(`📊 Created ${characters.length} characters and ${stages.length} stages`);
+  console.log(`📊 Created ${characters.length} characters, ${stages.length} stages, and ${gameConstants.length} game constants`);
 }
 
 main()

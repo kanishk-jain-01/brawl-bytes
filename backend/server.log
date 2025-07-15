@@ -1,0 +1,40 @@
+
+> backend@1.0.0 dev
+> nodemon src/server.ts
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: ts,json[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+[dotenv@17.2.0] injecting env (0) from .env (tip: ⚙️  enable debug logging with { debug: true })
+🚀 Brawl Bytes server running on port 3001
+📡 Socket.io server ready for connections
+🌐 Frontend URL: http://localhost:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `ts-node src/server.ts`[39m
+/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/auth/passport.ts(5,30): error TS2307: Cannot find module 'prisma-client-f56464f8a6c49984ca4e438f13e69a569accfab863d556fb3c094966cb43fe8a' or its corresponding type declarations.
+
+    at createTSError (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:1617:30)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Object.require.extensions.<computed> [as .ts] (/Users/kanishkjain/Documents/Personal Code/brawl-bytes/backend/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19) {
+  diagnosticCodes: [ 2307 ]
+}
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

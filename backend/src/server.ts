@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from './auth/passport';
 import authRoutes from './routes/auth';
+import gameConstantsRoutes from './routes/gameConstants';
 import { SocketManager } from './networking/SocketManager';
 
 // Load environment variables
@@ -37,6 +38,7 @@ app.use(passport.initialize());
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/api/constants', gameConstantsRoutes);
 
 // Basic health check endpoint
 app.get('/health', (_req, res) => {

@@ -177,3 +177,18 @@ model Stage {
 
   @@map("stages")
 }
+
+model GameConstants {
+  id          String   @id @db.VarChar(50)
+  category    String   @db.VarChar(50) // 'physics', 'combat', 'game'
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  value       Json     // The actual constant value
+  dataType    String   @map("data_type") @db.VarChar(20) // 'number', 'object', 'array'
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([category, name])
+  @@map("game_constants")
+}

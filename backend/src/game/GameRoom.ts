@@ -1,4 +1,11 @@
+import { PrismaClient } from '../generated/prisma';
 import { AuthenticatedSocket } from '../networking/SocketManager';
+import {
+  PhysicsSystem,
+  type AttackData,
+  type StageData,
+} from './PhysicsSystem';
+import { GameConstantsService } from '../services/GameConstantsService';
 
 export enum GameState {
   WAITING = 'waiting',
@@ -120,6 +127,10 @@ export class GameRoom {
 
   private lastGameResults?: GameResults | undefined;
 
+  private physicsSystem: PhysicsSystem;
+
+  private physicsUpdateInterval: NodeJS.Timeout | null = null;
+
   constructor(id: string, config: Partial<GameRoomConfig> = {}) {
     this.id = id;
     this.players = new Map();
@@ -134,6 +145,11 @@ export class GameRoom {
     this.createdAt = new Date();
     this.lastActivity = new Date();
     this.hostId = null;
+
+    // Initialize physics system with constants service
+    const prisma = new PrismaClient();
+    const constantsService = GameConstantsService.getInstance(prisma);
+    this.physicsSystem = new PhysicsSystem(constantsService);
   }
 
   // Basic room information getters
@@ -255,6 +271,9 @@ export class GameRoom {
     this.players.set(socket.userId, player);
     this.updateActivity();
 
+    // Initialize physics for the player
+    this.physicsSystem.initializePlayer(player);
+
     // Join the socket.io room
     socket.join(this.id);
 
@@ -272,6 +291,9 @@ export class GameRoom {
 
     // Leave the socket.io room
     player.socket.leave(this.id);
+
+    // Remove player from physics system
+    this.physicsSystem.removePlayer(userId);
 
     // Remove player
     this.players.delete(userId);
@@ -452,6 +474,9 @@ export class GameRoom {
       if (this.gameState === GameState.STARTING) {
         this.gameState = GameState.PLAYING;
         this.updateActivity();
+
+        // Start physics updates when game begins
+        this.startPhysicsUpdate();
       }
     }, 3000); // 3 second countdown
 
@@ -502,6 +527,9 @@ export class GameRoom {
     this.gameState = GameState.ENDED;
     this.updateActivity();
 
+    // Stop physics updates
+    this.stopPhysicsUpdate();
+
     // Reset player states to connected
     this.players.forEach(player => {
       if (player.state !== PlayerState.DISCONNECTED) {
@@ -546,6 +574,9 @@ export class GameRoom {
     }
 
     this.config.stage = stage;
+
+    // Initialize stage data in physics system
+    this.initializeStagePhysics(stage);
     this.updateActivity();
 
     return { success: true };
@@ -647,12 +678,12 @@ export class GameRoom {
     this.updateActivity();
   }
 
-  public handlePlayerMove(
+  public async handlePlayerMove(
     userId: string,
     position: { x: number; y: number },
     velocity: { x: number; y: number },
     sequence?: number
-  ): void {
+  ): Promise<void> {
     const player = this.players.get(userId);
     if (
       !player ||
@@ -664,8 +695,15 @@ export class GameRoom {
 
     const currentTime = Date.now();
 
-    // Basic server-side validation
-    if (GameRoom.validatePlayerMove(player, position, velocity, currentTime)) {
+    // Use physics system for validation
+    const validationResult = await this.physicsSystem.validateMovement(
+      userId,
+      position,
+      velocity,
+      currentTime
+    );
+
+    if (validationResult.valid) {
       // Update server state
       // eslint-disable-next-line no-param-reassign
       player.position = { ...position };
@@ -694,65 +732,24 @@ export class GameRoom {
       });
     } else {
       // Send correction back to client
-      GameRoom.sendPositionCorrection(player);
-    }
+      const { correctedState } = validationResult;
+      if (correctedState) {
+        const finalPosition = correctedState.position ||
+          player.position || { x: 0, y: 0 };
+        const finalVelocity = correctedState.velocity ||
+          player.velocity || { x: 0, y: 0 };
 
-    this.updateActivity();
-  }
-
-  private static validatePlayerMove(
-    player: GameRoomPlayer,
-    position: { x: number; y: number },
-    velocity: { x: number; y: number },
-    timestamp: number
-  ): boolean {
-    // Basic validation - check for reasonable position changes
-    if (player.position && player.lastUpdate) {
-      const timeDelta = timestamp - player.lastUpdate;
-      const maxDistance = 1000; // Max pixels per second
-      const distance = Math.sqrt(
-        (position.x - player.position.x) ** 2 +
-          (position.y - player.position.y) ** 2
-      );
-
-      if (distance > (maxDistance * timeDelta) / 1000) {
-        return false; // Movement too fast
+        player.socket.emit('positionCorrection', {
+          position: finalPosition,
+          velocity: finalVelocity,
+          sequence: sequence || 0,
+          timestamp: currentTime,
+          reason: validationResult.reason,
+        });
       }
     }
 
-    // Basic bounds checking (should match client bounds)
-    const maxX = 2000;
-    const maxY = 1500;
-    if (
-      position.x < -maxX ||
-      position.x > maxX ||
-      position.y < -200 ||
-      position.y > maxY
-    ) {
-      return false;
-    }
-
-    // Velocity validation
-    const maxVelocity = 800;
-    if (
-      Math.abs(velocity.x) > maxVelocity ||
-      Math.abs(velocity.y) > maxVelocity
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private static sendPositionCorrection(player: GameRoomPlayer): void {
-    if (player.position && player.velocity) {
-      player.socket.emit('positionCorrection', {
-        position: player.position,
-        velocity: player.velocity,
-        sequence: player.lastSequence || 0,
-        timestamp: Date.now(),
-      });
-    }
+    this.updateActivity();
   }
 
   public handleGameEvent(event: GameEvent): void {
@@ -859,6 +856,141 @@ export class GameRoom {
       config: this.config,
       timestamp: Date.now(),
     };
+  }
+
+  // Physics integration methods
+  private initializeStagePhysics(stageName: string): void {
+    // Create stage data based on stage name
+    // This would normally come from a stage configuration file
+    const stageData: StageData = this.getStageConfiguration(stageName);
+    this.physicsSystem.setStageData(stageData);
+  }
+
+  private getStageConfiguration(stageName: string): StageData {
+    // Basic stage configurations - will be loaded from database later
+    const stageConfigurations: Record<string, StageData> = {
+      arena: {
+        platforms: [
+          { x: 0, y: 300, width: 1600, height: 50 }, // Main platform
+          { x: -600, y: 100, width: 300, height: 30 }, // Left platform
+          { x: 300, y: 100, width: 300, height: 30 }, // Right platform
+        ],
+        boundaries: {
+          left: -1000,
+          right: 1000,
+          top: -500,
+          bottom: 400,
+        },
+        hazards: [],
+      },
+      default: {
+        platforms: [
+          { x: 0, y: 200, width: 1000, height: 50 }, // Simple main platform
+        ],
+        boundaries: {
+          left: -600,
+          right: 600,
+          top: -200,
+          bottom: 300,
+        },
+        hazards: [],
+      },
+    };
+
+    return stageConfigurations[stageName] || stageConfigurations.default;
+  }
+
+  public async handleAttack(attackData: AttackData): Promise<void> {
+    if (this.gameState !== GameState.PLAYING) {
+      return;
+    }
+
+    // Validate attack using physics system
+    const validationResult =
+      await this.physicsSystem.validateAttack(attackData);
+
+    if (validationResult.valid) {
+      // Apply damage and knockback
+      const damageResult = this.physicsSystem.applyDamage(
+        attackData.targetId,
+        attackData.damage,
+        attackData.knockback,
+        attackData.timestamp
+      );
+
+      if (damageResult.success && damageResult.newState) {
+        // Broadcast attack event to all players
+        this.broadcastToRoom('attackHit', {
+          attackerId: attackData.attackerId,
+          targetId: attackData.targetId,
+          damage: attackData.damage,
+          knockback: attackData.knockback,
+          timestamp: attackData.timestamp,
+          newTargetState: {
+            health: damageResult.newState.health,
+            stocks: damageResult.newState.stocks,
+            position: damageResult.newState.position,
+            velocity: damageResult.newState.velocity,
+            isInvulnerable: damageResult.newState.isInvulnerable,
+          },
+        });
+
+        // Check for KO
+        if (damageResult.newState.stocks <= 0) {
+          this.handlePlayerKO({ playerId: attackData.targetId });
+        }
+      }
+    } else {
+      // Attack was invalid, notify attacker
+      const attacker = this.players.get(attackData.attackerId);
+      if (attacker) {
+        attacker.socket.emit('attackRejected', {
+          reason: validationResult.reason,
+          timestamp: attackData.timestamp,
+        });
+      }
+    }
+
+    this.updateActivity();
+  }
+
+  public startPhysicsUpdate(): void {
+    if (this.physicsUpdateInterval) {
+      clearInterval(this.physicsUpdateInterval);
+    }
+
+    // Update physics at 60 FPS
+    this.physicsUpdateInterval = setInterval(async () => {
+      if (this.gameState === GameState.PLAYING) {
+        const deltaTime = 1000 / 60; // 16.67ms
+        const updatedStates = await this.physicsSystem.updatePhysics(deltaTime);
+
+        // Broadcast physics updates to all players
+        const physicsUpdate = {
+          timestamp: Date.now(),
+          players: Array.from(updatedStates.entries()).map(
+            ([playerId, state]) => ({
+              playerId,
+              position: state.position,
+              velocity: state.velocity,
+              health: state.health,
+              stocks: state.stocks,
+              isInvulnerable: state.isInvulnerable,
+              isGrounded: state.isGrounded,
+            })
+          ),
+        };
+
+        this.broadcastToRoom('physicsUpdate', physicsUpdate);
+      }
+    }, 1000 / 60);
+  }
+
+  public stopPhysicsUpdate(): void {
+    if (this.physicsUpdateInterval) {
+      clearInterval(this.physicsUpdateInterval);
+      this.physicsUpdateInterval = null;
+    }
   }
 
   // Periodic state synchronization

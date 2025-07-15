@@ -19,25 +19,27 @@ export const GAME_CONFIG = {
   },
 
   PHYSICS: {
-    GRAVITY: 800,
-    JUMP_VELOCITY: -600,
-    MOVE_SPEED: 200,
-    FRICTION: 0.9,
+    GRAVITY: 0,
+    JUMP_VELOCITY: 0,
+    MOVE_SPEED: 0,
+    MAX_VELOCITY: 0,
+    FRICTION: 0,
     BOUNCE_FACTOR: 0.1,
     WALKING_THRESHOLD: 10,
     DOUBLE_JUMP_MULTIPLIER: 0.8,
-    WORLD_BOUNDS: { WIDTH: 2000, HEIGHT: 1200 },
+    WORLD_BOUNDS: { WIDTH: 0, HEIGHT: 0 },
   },
 
   DAMAGE: {
     FALL_DAMAGE: 25,
+    MAX_DAMAGE_PER_HIT: 0,
     CRITICAL_MULTIPLIER: 1.5,
     CRITICAL_CHANCE: 0.1,
   },
 
   TIMING: {
-    ATTACK_COOLDOWN: 400,
-    INVULNERABILITY_DURATION: 1000,
+    ATTACK_COOLDOWN: 0,
+    INVULNERABILITY_DURATION: 0,
     CRITICAL_INVULNERABILITY_DURATION: 1500,
     RESPAWN_INVULNERABILITY: 2000,
     FLASH_INTERVAL: 200,
@@ -120,9 +122,9 @@ export const GAME_CONFIG = {
   },
 
   GAME: {
-    MAX_STOCKS: 3,
-    MATCH_TIME: 180000, // 3 minutes in milliseconds
-    RESPAWN_TIME: 2000, // 2 seconds
+    MAX_STOCKS: 0,
+    MATCH_TIME: 0,
+    RESPAWN_TIME: 0,
   },
 
   UI: {
@@ -140,7 +142,56 @@ export const GAME_CONFIG = {
       SECONDARY: 'monospace',
     },
   },
-} as const;
+};
+
+/**
+ * Update GAME_CONFIG with server constants
+ */
+export function updateGameConfig(serverConstants: any): void {
+  if (serverConstants.physics) {
+    Object.assign(GAME_CONFIG.PHYSICS, {
+      GRAVITY: serverConstants.physics.gravity,
+      JUMP_VELOCITY: serverConstants.physics.jump_velocity,
+      MOVE_SPEED: serverConstants.physics.move_speed,
+      MAX_VELOCITY: serverConstants.physics.max_velocity,
+      FRICTION: serverConstants.physics.friction,
+    });
+
+    if (serverConstants.physics.world_bounds) {
+      GAME_CONFIG.PHYSICS.WORLD_BOUNDS = {
+        WIDTH: Math.abs(
+          serverConstants.physics.world_bounds.max_x -
+            serverConstants.physics.world_bounds.min_x
+        ),
+        HEIGHT: Math.abs(
+          serverConstants.physics.world_bounds.max_y -
+            serverConstants.physics.world_bounds.min_y
+        ),
+      };
+    }
+  }
+
+  if (serverConstants.combat) {
+    Object.assign(GAME_CONFIG.DAMAGE, {
+      MAX_DAMAGE_PER_HIT: serverConstants.combat.max_damage_per_hit,
+    });
+
+    Object.assign(GAME_CONFIG.TIMING, {
+      ATTACK_COOLDOWN: serverConstants.combat.attack_cooldown,
+      INVULNERABILITY_DURATION: serverConstants.combat.invulnerability_duration,
+    });
+  }
+
+  if (serverConstants.game) {
+    Object.assign(GAME_CONFIG.GAME, {
+      MAX_STOCKS: serverConstants.game.max_stocks,
+      MATCH_TIME: serverConstants.game.match_time,
+      RESPAWN_TIME: serverConstants.game.respawn_time,
+    });
+  }
+
+  console.log('✅ Game config updated with server constants');
+}
 
 export const ASSET_KEYS = {
   IMAGES: {
