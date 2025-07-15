@@ -26,6 +26,10 @@ export class GameScene extends Phaser.Scene {
 
   private player: Player | null = null;
 
+  private players: Player[] = [];
+
+  private activeHitboxes: Phaser.GameObjects.Rectangle[] = [];
+
   private cameraTarget: Phaser.GameObjects.GameObject | null = null;
 
   private uiContainer: Phaser.GameObjects.Container | null = null;
@@ -55,6 +59,7 @@ export class GameScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.createUI();
+    this.setupAttackSystem();
     this.startMatch();
   }
 
@@ -179,19 +184,35 @@ export class GameScene extends Phaser.Scene {
     const spawnX = this.physics.world.bounds.width / 2;
     const spawnY = this.physics.world.bounds.height - 200;
 
-    // Create player using the Player entity class
+    // Create main player
     this.player = new Player({
       scene: this,
-      x: spawnX,
+      x: spawnX - 100,
       y: spawnY,
       characterType: this.selectedCharacter,
       playerId: 'local_player',
       isLocalPlayer: true,
     });
 
-    // Set up collisions with platforms
+    // Add player to players array
+    this.players.push(this.player);
+
+    // Create a second player for testing combat (dummy AI)
+    const dummyPlayer = new Player({
+      scene: this,
+      x: spawnX + 100,
+      y: spawnY,
+      characterType: 'HEAVY_HITTER',
+      playerId: 'dummy_player',
+      isLocalPlayer: false,
+    });
+
+    this.players.push(dummyPlayer);
+
+    // Set up collisions with platforms for both players
     if (this.platforms) {
       this.physics.add.collider(this.player, this.platforms);
+      this.physics.add.collider(dummyPlayer, this.platforms);
     }
 
     // Set camera target
@@ -431,7 +452,12 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameStarted || !this.player) return;
 
     this.handlePlayerInput();
-    this.player.update();
+
+    // Update all players
+    this.players.forEach(player => {
+      player.update();
+    });
+
     this.updateUI();
     this.updateDebugInfo();
   }
@@ -530,5 +556,80 @@ export class GameScene extends Phaser.Scene {
         ].join('\n')
       );
     }
+  }
+
+  private setupAttackSystem(): void {
+    // Listen for attack hitbox creation
+    this.events.on(
+      'attackHitboxCreated',
+      (attackData: {
+        hitbox: Phaser.GameObjects.Rectangle;
+        attacker: Player;
+        damage: number;
+        knockback: { x: number; y: number };
+      }) => {
+        this.activeHitboxes.push(attackData.hitbox);
+        this.setupHitboxCollision(attackData);
+      }
+    );
+
+    // Listen for attack hitbox destruction
+    this.events.on(
+      'attackHitboxDestroyed',
+      (hitbox: Phaser.GameObjects.Rectangle) => {
+        const index = this.activeHitboxes.indexOf(hitbox);
+        if (index > -1) {
+          this.activeHitboxes.splice(index, 1);
+        }
+      }
+    );
+  }
+
+  private setupHitboxCollision(attackData: {
+    hitbox: Phaser.GameObjects.Rectangle;
+    attacker: Player;
+    damage: number;
+    knockback: { x: number; y: number };
+  }): void {
+    // Set up collision detection with all players except the attacker
+    this.players.forEach(player => {
+      if (player !== attackData.attacker && !player.isDefeated()) {
+        this.physics.add.overlap(
+          attackData.hitbox,
+          player,
+          () => {
+            this.handleAttackHit(
+              attackData.attacker,
+              player,
+              attackData.damage,
+              attackData.knockback
+            );
+          },
+          undefined,
+          this
+        );
+      }
+    });
+  }
+
+  private handleAttackHit(
+    attacker: Player,
+    victim: Player,
+    damage: number,
+    knockback: { x: number; y: number }
+  ): void {
+    // Apply damage and knockback to the victim
+    victim.takeDamage(damage, knockback);
+
+    // Visual feedback
+    this.cameras.main.shake(100, 0.02);
+
+    // Audio feedback (placeholder)
+    // this.sound.play('hit_sound');
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `${attacker.playerId} hit ${victim.playerId} for ${damage} damage`
+    );
   }
 }

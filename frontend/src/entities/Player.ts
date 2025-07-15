@@ -385,7 +385,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const hitboxHeight = 60;
 
     // Position hitbox in front of player
-    const hitboxX = this.flipX ? this.x - hitboxWidth : this.x + hitboxWidth;
+    const hitboxX = this.flipX
+      ? this.x - hitboxWidth / 2
+      : this.x + hitboxWidth / 2;
     const hitboxY = this.y - hitboxHeight / 2;
 
     // Create temporary hitbox for attack detection
@@ -401,13 +403,44 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Enable physics for hitbox
     this.scene.physics.add.existing(attackHitbox);
 
+    // Set hitbox as sensor (doesn't cause physical collision)
+    if (attackHitbox.body) {
+      (attackHitbox.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+    }
+
+    // Store attack data on hitbox
+    attackHitbox.setData('attacker', this);
+    attackHitbox.setData('damage', this.character.attackDamage);
+    attackHitbox.setData('knockback', this.calculateKnockback());
+
+    // Emit event for GameScene to handle collisions
+    this.scene.events.emit('attackHitboxCreated', {
+      hitbox: attackHitbox,
+      attacker: this,
+      damage: this.character.attackDamage,
+      knockback: this.calculateKnockback(),
+    });
+
     // Remove hitbox after brief duration
     this.scene.time.delayedCall(100, () => {
-      attackHitbox.destroy();
+      if (attackHitbox && attackHitbox.active) {
+        this.scene.events.emit('attackHitboxDestroyed', attackHitbox);
+        attackHitbox.destroy();
+      }
     });
 
     // Store reference for collision detection
     this.setData('attackHitbox', attackHitbox);
+  }
+
+  private calculateKnockback(): { x: number; y: number } {
+    const knockbackForce = 300;
+    const direction = this.flipX ? -1 : 1;
+
+    return {
+      x: direction * knockbackForce,
+      y: -150, // Slight upward knockback
+    };
   }
 
   public takeDamage(

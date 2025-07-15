@@ -12,7 +12,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `frontend/src/scenes/BootScene.ts` - Initial loading scene for assets ✓
 - `frontend/src/scenes/MenuScene.ts` - Main menu with play options ✓
 - `frontend/src/scenes/CharacterSelectScene.ts` - Character selection interface ✓
-- `frontend/src/scenes/GameScene.ts` - Core gameplay scene with physics and combat ✓
+- `frontend/src/scenes/GameScene.ts` - Core gameplay scene with physics, combat, and attack collision detection ✓
 - `frontend/src/entities/Player.ts` - Player entity with movement, combat, health, and animation system ✓
 - `frontend/src/entities/Stage.ts` - Stage platforms and boundaries
 - `frontend/src/utils/socket.ts` - Socket.io client setup for multiplayer
@@ -98,7 +98,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 4.1 Create Player entity class with Phaser physics body
   - [x] 4.2 Implement basic movement (left/right movement, jumping)
   - [x] 4.3 Add character sprites and basic animations (idle, walk, jump)
-  - [ ] 4.4 Implement basic attack system with hitboxes
+  - [x] 4.4 Implement basic attack system with hitboxes
   - [ ] 4.5 Create Stage entity with platforms and boundaries
   - [ ] 4.6 Add health system and damage calculation
   - [ ] 4.7 Implement knockback mechanics and stock system
