@@ -24,7 +24,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `frontend/src/__mocks__/fileMock.ts` - Asset file mocks ✓
 - `frontend/.eslintrc.js` - ESLint configuration for frontend with Airbnb + TypeScript ✓
 - `frontend/.prettierrc` - Prettier configuration for consistent code formatting ✓
-- `frontend/src/__tests__/entities/Player.test.ts` - Unit tests for Player entity
+- `frontend/src/__tests__/entities/Player.test.ts` - Unit tests for Player entity (Player creation tests complete, movement tests in progress) ✓
 - `frontend/src/__tests__/scenes/GameScene.test.ts` - Unit tests for GameScene
 - `backend/package.json` - Backend dependencies (Express, Socket.io, TypeScript, Prisma, PostgreSQL, Jest) ✓
 - `backend/tsconfig.json` - TypeScript configuration for backend ✓
