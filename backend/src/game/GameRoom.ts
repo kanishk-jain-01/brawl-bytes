@@ -23,6 +23,11 @@ export interface GameRoomPlayer {
   character?: string | undefined;
   joinedAt: Date;
   isHost: boolean;
+  // Server-side player state for validation
+  position?: { x: number; y: number };
+  velocity?: { x: number; y: number };
+  lastSequence?: number;
+  lastUpdate?: number;
 }
 
 export interface GameRoomConfig {
@@ -640,6 +645,114 @@ export class GameRoom {
 
     // Store for server-side validation if needed
     this.updateActivity();
+  }
+
+  public handlePlayerMove(
+    userId: string,
+    position: { x: number; y: number },
+    velocity: { x: number; y: number },
+    sequence?: number
+  ): void {
+    const player = this.players.get(userId);
+    if (
+      !player ||
+      player.state !== PlayerState.PLAYING ||
+      this.gameState !== GameState.PLAYING
+    ) {
+      return;
+    }
+
+    const currentTime = Date.now();
+
+    // Basic server-side validation
+    if (GameRoom.validatePlayerMove(player, position, velocity, currentTime)) {
+      // Update server state
+      // eslint-disable-next-line no-param-reassign
+      player.position = { ...position };
+      // eslint-disable-next-line no-param-reassign
+      player.velocity = { ...velocity };
+      // eslint-disable-next-line no-param-reassign
+      player.lastSequence = sequence || 0;
+      // eslint-disable-next-line no-param-reassign
+      player.lastUpdate = currentTime;
+
+      // Broadcast to other players
+      this.broadcastToOthers(userId, 'playerMove', {
+        playerId: userId,
+        position,
+        velocity,
+        sequence,
+        timestamp: currentTime,
+      });
+
+      // Send authoritative state back to client for reconciliation
+      player.socket.emit('serverState', {
+        position,
+        velocity,
+        sequence,
+        timestamp: currentTime,
+      });
+    } else {
+      // Send correction back to client
+      GameRoom.sendPositionCorrection(player);
+    }
+
+    this.updateActivity();
+  }
+
+  private static validatePlayerMove(
+    player: GameRoomPlayer,
+    position: { x: number; y: number },
+    velocity: { x: number; y: number },
+    timestamp: number
+  ): boolean {
+    // Basic validation - check for reasonable position changes
+    if (player.position && player.lastUpdate) {
+      const timeDelta = timestamp - player.lastUpdate;
+      const maxDistance = 1000; // Max pixels per second
+      const distance = Math.sqrt(
+        (position.x - player.position.x) ** 2 +
+          (position.y - player.position.y) ** 2
+      );
+
+      if (distance > (maxDistance * timeDelta) / 1000) {
+        return false; // Movement too fast
+      }
+    }
+
+    // Basic bounds checking (should match client bounds)
+    const maxX = 2000;
+    const maxY = 1500;
+    if (
+      position.x < -maxX ||
+      position.x > maxX ||
+      position.y < -200 ||
+      position.y > maxY
+    ) {
+      return false;
+    }
+
+    // Velocity validation
+    const maxVelocity = 800;
+    if (
+      Math.abs(velocity.x) > maxVelocity ||
+      Math.abs(velocity.y) > maxVelocity
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private static sendPositionCorrection(player: GameRoomPlayer): void {
+    if (player.position && player.velocity) {
+      player.socket.emit('positionCorrection', {
+        position: player.position,
+        velocity: player.velocity,
+        sequence: player.lastSequence || 0,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   public handleGameEvent(event: GameEvent): void {

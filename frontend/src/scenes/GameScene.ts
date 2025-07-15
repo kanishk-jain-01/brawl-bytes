@@ -15,6 +15,7 @@ import type { DamageInfo } from '@/types';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
+import { getSocketManager } from '../utils/socket';
 
 export class GameScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -32,6 +33,8 @@ export class GameScene extends Phaser.Scene {
   private player: Player | null = null;
 
   private players: Player[] = [];
+
+  private remotePlayers: Map<string, Player> = new Map();
 
   private activeHitboxes: Phaser.GameObjects.Rectangle[] = [];
 
@@ -65,6 +68,7 @@ export class GameScene extends Phaser.Scene {
     this.setupInput();
     this.createUI();
     this.setupAttackSystem();
+    this.setupNetworking();
     this.startMatch();
   }
 
@@ -890,5 +894,218 @@ export class GameScene extends Phaser.Scene {
     console.log(
       `${attacker.playerId} hit ${victim.playerId} for ${damage} damage${isCritical ? ' (CRITICAL!)' : ''}`
     );
+  }
+
+  private setupNetworking(): void {
+    const socketManager = getSocketManager();
+    if (!socketManager) return;
+
+    // Listen for player input events from other players
+    socketManager.on('playerInput', (data: any) => {
+      this.handleRemotePlayerInput(data);
+    });
+
+    // Listen for player move events
+    socketManager.on('playerMove', (data: any) => {
+      this.handleRemotePlayerMove(data);
+    });
+
+    // Listen for player attack events
+    socketManager.on('playerAttack', (data: any) => {
+      this.handleRemotePlayerAttack(data);
+    });
+
+    // Listen for players joining the game
+    socketManager.on('playerJoined', (data: any) => {
+      this.handlePlayerJoined(data);
+    });
+
+    // Listen for players leaving the game
+    socketManager.on('playerLeft', (data: any) => {
+      this.handlePlayerLeft(data);
+    });
+
+    // Listen for game events
+    socketManager.on('gameEvent', (data: any) => {
+      this.handleGameEvent(data);
+    });
+
+    // Listen for server state updates (for prediction reconciliation)
+    socketManager.on('serverState', (data: any) => {
+      this.handleServerState(data);
+    });
+
+    // Listen for position corrections
+    socketManager.on('positionCorrection', (data: any) => {
+      this.handlePositionCorrection(data);
+    });
+
+    // eslint-disable-next-line no-console
+    console.log('GameScene: Network event listeners set up');
+  }
+
+  private handleRemotePlayerInput(data: {
+    playerId: string;
+    inputType: string;
+    data: any;
+  }): void {
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (!remotePlayer) return;
+
+    switch (data.inputType) {
+      case 'jump':
+        remotePlayer.applyRemoteAction('jump');
+        break;
+      case 'special':
+        remotePlayer.applyRemoteAction('special');
+        break;
+      default:
+        // Unknown input type, ignore
+        break;
+    }
+  }
+
+  private handleRemotePlayerMove(data: {
+    playerId: string;
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+  }): void {
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (!remotePlayer) return;
+
+    remotePlayer.applyRemotePosition(data.position, data.velocity);
+  }
+
+  private handleRemotePlayerAttack(data: {
+    playerId: string;
+    attackType: string;
+    direction: number;
+    hitbox?: any;
+  }): void {
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (!remotePlayer) return;
+
+    remotePlayer.applyRemoteAttack(data.attackType, data.direction);
+  }
+
+  private handlePlayerJoined(data: {
+    playerId: string;
+    username: string;
+  }): void {
+    // Create a remote player if they don't exist
+    if (!this.remotePlayers.has(data.playerId)) {
+      this.createRemotePlayer(data.playerId, data.username);
+    }
+  }
+
+  private handlePlayerLeft(data: { playerId: string }): void {
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (remotePlayer) {
+      remotePlayer.destroy();
+      this.remotePlayers.delete(data.playerId);
+
+      // Remove from players array
+      const index = this.players.indexOf(remotePlayer);
+      if (index > -1) {
+        this.players.splice(index, 1);
+      }
+    }
+  }
+
+  private handleGameEvent(data: any): void {
+    switch (data.type) {
+      case 'player_hit':
+        this.handleRemotePlayerHit(data.data);
+        break;
+      case 'player_ko':
+        this.handleRemotePlayerKO(data.data);
+        break;
+      default:
+        // eslint-disable-next-line no-console
+        console.log('Unknown game event:', data);
+    }
+  }
+
+  private createRemotePlayer(playerId: string, username: string): void {
+    if (!this.stage) return;
+
+    // Create remote player at a spawn point
+    const spawnPoints = this.stage.getSpawnPoints();
+    const spawnPoint =
+      spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+    const remotePlayer = new Player({
+      scene: this,
+      x: spawnPoint.x,
+      y: spawnPoint.y,
+      characterType: 'BALANCED_ALLROUNDER', // Default, will be updated by character selection sync
+      playerId,
+      isLocalPlayer: false,
+    });
+
+    this.remotePlayers.set(playerId, remotePlayer);
+    this.players.push(remotePlayer);
+
+    // eslint-disable-next-line no-console
+    console.log(`Created remote player: ${username} (${playerId})`);
+  }
+
+  private handleRemotePlayerHit(data: {
+    targetPlayerId: string;
+    damage: number;
+    knockback: any;
+  }): void {
+    const targetPlayer = this.remotePlayers.get(data.targetPlayerId);
+    if (!targetPlayer) return;
+
+    // Apply damage and knockback effects
+    targetPlayer.takeDamage({
+      amount: data.damage,
+      type: DamageType.PHYSICAL,
+      source: 'remote_player',
+    });
+  }
+
+  private handleRemotePlayerKO(data: { targetPlayerId: string }): void {
+    const targetPlayer = this.remotePlayers.get(data.targetPlayerId);
+    if (!targetPlayer) return;
+
+    // Handle KO effects
+    targetPlayer.respawn();
+  }
+
+  private handleServerState(data: {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+    sequence: number;
+    timestamp: number;
+  }): void {
+    // Apply server state to local player for reconciliation
+    if (this.player) {
+      this.player.applyServerState(
+        data.position,
+        data.velocity,
+        data.sequence,
+        data.timestamp
+      );
+    }
+  }
+
+  private handlePositionCorrection(data: {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+    sequence: number;
+    timestamp: number;
+  }): void {
+    // Handle server correction (more aggressive than normal server state)
+    if (this.player) {
+      this.player.applyServerState(
+        data.position,
+        data.velocity,
+        data.sequence,
+        data.timestamp
+      );
+      // eslint-disable-next-line no-console
+      console.warn('Position corrected by server');
+    }
   }
 }

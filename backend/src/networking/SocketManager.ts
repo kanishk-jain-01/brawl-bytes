@@ -227,13 +227,22 @@ export class SocketManager {
     socket: AuthenticatedSocket,
     data: Record<string, unknown>
   ): void {
-    // Find the room this player is in
+    if (!socket.userId) return;
+
+    // Find the room this player is in and use GameRoom for validation
     this.rooms.forEach((room, roomId) => {
       if (room.players.some(p => p.id === socket.id) && room.isActive) {
-        // Broadcast to other players in the room
+        const position = data.position as { x: number; y: number };
+        const velocity = data.velocity as { x: number; y: number };
+        const sequence = data.sequence as number;
+
+        // Broadcast to other players with validation data
         socket.to(roomId).emit('playerMove', {
           playerId: socket.userId,
-          ...data,
+          position,
+          velocity,
+          sequence,
+          timestamp: Date.now(),
         });
       }
     });

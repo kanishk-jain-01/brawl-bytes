@@ -12,6 +12,7 @@ import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
 import { GAME_CONFIG, CharacterType } from '../utils/constants';
+import { getSocketManager } from '../utils/socket';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   public characterType: CharacterType;
@@ -72,6 +73,58 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     attack: false,
     special: false,
   };
+
+  // Network synchronization
+  private lastSyncPosition: { x: number; y: number } = { x: 0, y: 0 };
+
+  private lastSyncVelocity: { x: number; y: number } = { x: 0, y: 0 };
+
+  private lastSyncTime: number = 0;
+
+  private positionSyncRate: number = 60; // ms between position updates
+
+  private inputSequence: number = 0;
+
+  // Client-side prediction
+  private inputBuffer: Array<{
+    sequence: number;
+    input: {
+      left: boolean;
+      right: boolean;
+      up: boolean;
+      down: boolean;
+      attack: boolean;
+      special: boolean;
+    };
+    timestamp: number;
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+  }> = [];
+
+  private serverState: {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+    sequence: number;
+    timestamp: number;
+  } | null = null;
+
+  private maxInputBufferSize: number = 60; // Keep ~1 second of inputs at 60fps
+
+  private predictionEnabled: boolean = true;
+
+  private reconciliationThreshold: number = 5; // pixels
+
+  // Remote player interpolation (keeping only used variables)
+
+  private interpolationBuffer: Array<{
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+    timestamp: number;
+  }> = [];
+
+  private maxBufferSize: number = 10;
+
+  private interpolationDelay: number = 100; // ms
 
   constructor(config: PlayerConfig) {
     super(config.scene, config.x, config.y, 'player_placeholder');
@@ -149,10 +202,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (!this.isLocalPlayer) return;
 
     Object.assign(this.inputState, inputState);
+
+    // Store input for prediction if enabled
+    if (this.predictionEnabled) {
+      this.storeInputForPrediction();
+    }
   }
 
   public update(): void {
-    this.updateMovement();
+    if (this.isLocalPlayer) {
+      this.updateMovement();
+      this.updateNetworkSync();
+      this.performServerReconciliation();
+    } else {
+      this.updateRemotePlayerInterpolation();
+    }
+
     this.updateAttack();
     this.updateGroundedState();
     this.updateInvulnerability();
@@ -360,12 +425,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.isGrounded) {
       // Normal jump
       body.setVelocityY(this.character.jumpVelocity);
+      this.syncInputAction('jump', { jumpType: 'single' });
     } else if (this.canDoubleJump && !this.hasUsedDoubleJump) {
       // Double jump
       body.setVelocityY(
         this.character.jumpVelocity * GAME_CONFIG.PHYSICS.DOUBLE_JUMP_MULTIPLIER
       );
       this.hasUsedDoubleJump = true;
+      this.syncInputAction('jump', { jumpType: 'double' });
     }
   }
 
@@ -383,6 +450,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Create attack hitbox
     this.createAttackHitbox();
+
+    // Sync attack with other players
+    this.syncAttack('basic');
 
     // Visual feedback
     this.setTint(0xffffff);
@@ -623,7 +693,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  private respawn(): void {
+  public respawn(): void {
     // Get spawn point from scene event (if available)
     const spawnEvent = { x: 0, y: 0 };
     this.scene.events.emit('getSpawnPoint', spawnEvent);
@@ -739,6 +809,359 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   public getTimeSinceLastDamage(): number {
     return this.scene.time.now - this.lastDamageTime;
+  }
+
+  // Network synchronization methods
+  private updateNetworkSync(): void {
+    if (!this.isLocalPlayer) return;
+
+    const currentTime = this.scene.time.now;
+    if (currentTime - this.lastSyncTime < this.positionSyncRate) return;
+
+    const socketManager = getSocketManager();
+    if (!socketManager || !socketManager.isInRoom()) return;
+
+    // Only sync if position or velocity has changed significantly
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const positionChanged =
+      Math.abs(this.x - this.lastSyncPosition.x) > 1 ||
+      Math.abs(this.y - this.lastSyncPosition.y) > 1;
+
+    const velocityChanged =
+      Math.abs(body.velocity.x - this.lastSyncVelocity.x) > 5 ||
+      Math.abs(body.velocity.y - this.lastSyncVelocity.y) > 5;
+
+    if (positionChanged || velocityChanged) {
+      this.syncPosition();
+      this.lastSyncTime = currentTime;
+    }
+  }
+
+  private syncPosition(): void {
+    const socketManager = getSocketManager();
+    if (!socketManager || !this.body) return;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const position = { x: this.x, y: this.y };
+    const velocity = { x: body.velocity.x, y: body.velocity.y };
+
+    this.inputSequence += 1;
+
+    // Send position with sequence number for server reconciliation
+    socketManager.sendPlayerInput(
+      'move',
+      { position, velocity },
+      this.inputSequence
+    );
+
+    // Update last sync values
+    this.lastSyncPosition = { ...position };
+    this.lastSyncVelocity = { ...velocity };
+  }
+
+  public syncAttack(attackType: string): void {
+    if (!this.isLocalPlayer) return;
+
+    const socketManager = getSocketManager();
+    if (!socketManager) return;
+
+    const direction = this.flipX ? -1 : 1;
+    socketManager.sendPlayerAttack(attackType, direction);
+  }
+
+  public syncInputAction(inputType: 'jump' | 'special', data?: any): void {
+    if (!this.isLocalPlayer) return;
+
+    const socketManager = getSocketManager();
+    if (!socketManager) return;
+
+    this.inputSequence += 1;
+
+    if (inputType === 'jump') {
+      socketManager.sendPlayerJump(data?.jumpType || 'single');
+    } else if (inputType === 'special') {
+      socketManager.sendPlayerSpecial(data?.specialType || 'default', data);
+    }
+  }
+
+  // Methods to handle remote player updates
+  public applyRemotePosition(
+    position: { x: number; y: number },
+    velocity: { x: number; y: number }
+  ): void {
+    if (this.isLocalPlayer) return;
+
+    const currentTime = this.scene.time.now;
+
+    // Add to interpolation buffer
+    this.interpolationBuffer.push({
+      position: { ...position },
+      velocity: { ...velocity },
+      timestamp: currentTime,
+    });
+
+    // Keep buffer size manageable
+    if (this.interpolationBuffer.length > this.maxBufferSize) {
+      this.interpolationBuffer.shift();
+    }
+  }
+
+  public applyRemoteAttack(_attackType: string, direction: number): void {
+    if (this.isLocalPlayer) return;
+
+    // Apply remote player attack animation and effects
+    this.setFlipX(direction < 0);
+    this.performAttack(); // Use existing attack method
+  }
+
+  public applyRemoteAction(inputType: 'jump' | 'special'): void {
+    if (this.isLocalPlayer) return;
+
+    switch (inputType) {
+      case 'jump':
+        if (this.canJump()) {
+          this.jump();
+        }
+        break;
+      case 'special':
+        // Handle special move based on data.specialType
+        break;
+      default:
+        // No action needed for unknown input types
+        break;
+    }
+  }
+
+  private updateRemotePlayerInterpolation(): void {
+    if (this.isLocalPlayer || this.interpolationBuffer.length === 0) return;
+
+    const currentTime = this.scene.time.now;
+    const renderTime = currentTime - this.interpolationDelay;
+
+    // Find the two states to interpolate between
+    let fromState = null;
+    let toState = null;
+
+    for (let i = 0; i < this.interpolationBuffer.length - 1; i++) {
+      const current = this.interpolationBuffer[i];
+      const next = this.interpolationBuffer[i + 1];
+
+      if (current.timestamp <= renderTime && next.timestamp >= renderTime) {
+        fromState = current;
+        toState = next;
+        break;
+      }
+    }
+
+    // If no valid interpolation states, use the most recent
+    if (!fromState || !toState) {
+      const latest =
+        this.interpolationBuffer[this.interpolationBuffer.length - 1];
+      if (latest) {
+        this.setPosition(latest.position.x, latest.position.y);
+        if (this.body) {
+          const body = this.body as Phaser.Physics.Arcade.Body;
+          body.setVelocity(latest.velocity.x, latest.velocity.y);
+        }
+      }
+      return;
+    }
+
+    // Calculate interpolation factor
+    const timeDiff = toState.timestamp - fromState.timestamp;
+    const elapsed = renderTime - fromState.timestamp;
+    const t = timeDiff > 0 ? Math.min(1, elapsed / timeDiff) : 1;
+
+    // Interpolate position
+    const interpolatedX = Player.lerp(
+      fromState.position.x,
+      toState.position.x,
+      t
+    );
+    const interpolatedY = Player.lerp(
+      fromState.position.y,
+      toState.position.y,
+      t
+    );
+
+    // Interpolate velocity
+    const interpolatedVelX = Player.lerp(
+      fromState.velocity.x,
+      toState.velocity.x,
+      t
+    );
+    const interpolatedVelY = Player.lerp(
+      fromState.velocity.y,
+      toState.velocity.y,
+      t
+    );
+
+    // Apply interpolated values
+    this.setPosition(interpolatedX, interpolatedY);
+
+    if (this.body) {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(interpolatedVelX, interpolatedVelY);
+    }
+
+    // Clean up old states
+    this.cleanupInterpolationBuffer(renderTime);
+  }
+
+  private static lerp(start: number, end: number, t: number): number {
+    return start + (end - start) * t;
+  }
+
+  private cleanupInterpolationBuffer(renderTime: number): void {
+    // Remove states older than render time to keep buffer clean
+    while (
+      this.interpolationBuffer.length > 2 &&
+      this.interpolationBuffer[1].timestamp <
+        renderTime - this.interpolationDelay
+    ) {
+      this.interpolationBuffer.shift();
+    }
+  }
+
+  // Client-side prediction methods
+  private storeInputForPrediction(): void {
+    if (!this.body) return;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    this.inputSequence += 1;
+
+    const inputSnapshot = {
+      sequence: this.inputSequence,
+      input: { ...this.inputState },
+      timestamp: this.scene.time.now,
+      position: { x: this.x, y: this.y },
+      velocity: { x: body.velocity.x, y: body.velocity.y },
+    };
+
+    this.inputBuffer.push(inputSnapshot);
+
+    // Keep buffer size manageable
+    if (this.inputBuffer.length > this.maxInputBufferSize) {
+      this.inputBuffer.shift();
+    }
+  }
+
+  private performServerReconciliation(): void {
+    if (!this.serverState || !this.predictionEnabled) return;
+
+    // Find the input that corresponds to the server state
+    const serverSequence = this.serverState.sequence;
+    const inputIndex = this.inputBuffer.findIndex(
+      input => input.sequence === serverSequence
+    );
+
+    if (inputIndex === -1) {
+      // Server state is too old, ignore it
+      return;
+    }
+
+    const serverPosition = this.serverState.position;
+    const predictedInput = this.inputBuffer[inputIndex];
+
+    // Check if prediction differs significantly from server state
+    const positionError = Math.sqrt(
+      (predictedInput.position.x - serverPosition.x) ** 2 +
+        (predictedInput.position.y - serverPosition.y) ** 2
+    );
+
+    if (positionError > this.reconciliationThreshold) {
+      // Server correction needed - rollback and replay
+      this.rollbackAndReplay(
+        inputIndex,
+        serverPosition,
+        this.serverState.velocity
+      );
+    }
+
+    // Clean up acknowledged inputs
+    this.inputBuffer.splice(0, inputIndex + 1);
+  }
+
+  private rollbackAndReplay(
+    correctionIndex: number,
+    serverPosition: { x: number; y: number },
+    serverVelocity: { x: number; y: number }
+  ): void {
+    if (!this.body) return;
+
+    // Rollback to server state
+    this.setPosition(serverPosition.x, serverPosition.y);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(serverVelocity.x, serverVelocity.y);
+
+    // Replay inputs from the correction point
+    for (let i = correctionIndex + 1; i < this.inputBuffer.length; i++) {
+      const input = this.inputBuffer[i];
+      this.simulateInput(input.input);
+    }
+  }
+
+  private simulateInput(input: {
+    left: boolean;
+    right: boolean;
+    up: boolean;
+    down: boolean;
+    attack: boolean;
+    special: boolean;
+  }): void {
+    if (!this.body) return;
+
+    const originalInput = { ...this.inputState };
+
+    // Temporarily apply the input
+    this.inputState = { ...input };
+
+    // Simulate one frame of movement
+    this.updateMovement();
+
+    // Restore current input
+    this.inputState = originalInput;
+  }
+
+  public applyServerState(
+    position: { x: number; y: number },
+    velocity: { x: number; y: number },
+    sequence: number,
+    timestamp: number
+  ): void {
+    if (!this.isLocalPlayer) return;
+
+    this.serverState = {
+      position: { ...position },
+      velocity: { ...velocity },
+      sequence,
+      timestamp,
+    };
+  }
+
+  // Utility methods for prediction
+  public setPredictionEnabled(enabled: boolean): void {
+    this.predictionEnabled = enabled;
+    if (!enabled) {
+      this.inputBuffer = [];
+      this.serverState = null;
+    }
+  }
+
+  public getInputSequence(): number {
+    return this.inputSequence;
+  }
+
+  public getPredictionStats(): {
+    bufferSize: number;
+    lastServerSequence: number | null;
+    predictionEnabled: boolean;
+  } {
+    return {
+      bufferSize: this.inputBuffer.length,
+      lastServerSequence: this.serverState?.sequence || null,
+      predictionEnabled: this.predictionEnabled,
+    };
   }
 
   destroy(): void {

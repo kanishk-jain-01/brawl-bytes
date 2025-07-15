@@ -487,14 +487,6 @@ export class SocketManager {
       this.authToken = token;
 
       // Set up one-time listeners for authentication response
-      const onAuthenticated = (response: AuthResponse) => {
-        this.socket!.off('authenticated', onAuthenticated);
-        this.socket!.off('authenticationFailed', onAuthFailed);
-        resolve(response);
-      };
-
-      this.socket.on('authenticated', onAuthenticated);
-
       const onAuthFailed = (response: AuthResponse) => {
         this.socket!.off('authenticated', onAuthenticated);
         this.socket!.off('authenticationFailed', onAuthFailed);
@@ -502,6 +494,13 @@ export class SocketManager {
         reject(new Error(response.error || 'Authentication failed'));
       };
 
+      const onAuthenticated = (response: AuthResponse) => {
+        this.socket!.off('authenticated', onAuthenticated);
+        this.socket!.off('authenticationFailed', onAuthFailed);
+        resolve(response);
+      };
+
+      this.socket.on('authenticated', onAuthenticated);
       this.socket.on('authenticationFailed', onAuthFailed);
 
       // Send authentication request
@@ -609,6 +608,12 @@ export class SocketManager {
       }
 
       // Set up one-time listeners for room creation response
+      const onRoomError = (error: { message: string }) => {
+        this.socket!.off('roomCreated', onRoomCreated);
+        this.socket!.off('roomError', onRoomError);
+        reject(new Error(error.message));
+      };
+
       const onRoomCreated = (response: RoomResponse) => {
         this.socket!.off('roomCreated', onRoomCreated);
         this.socket!.off('roomError', onRoomError);
@@ -620,13 +625,6 @@ export class SocketManager {
       };
 
       this.socket.on('roomCreated', onRoomCreated);
-
-      const onRoomError = (error: { message: string }) => {
-        this.socket!.off('roomCreated', onRoomCreated);
-        this.socket!.off('roomError', onRoomError);
-        reject(new Error(error.message));
-      };
-
       this.socket.on('roomError', onRoomError);
 
       // Send room creation request
@@ -642,6 +640,12 @@ export class SocketManager {
       }
 
       // Set up one-time listeners for join response
+      const onRoomError = (error: { message: string }) => {
+        this.socket!.off('playerJoined', onPlayerJoined);
+        this.socket!.off('roomError', onRoomError);
+        reject(new Error(error.message));
+      };
+
       const onPlayerJoined = (data: PlayerJoinedData) => {
         this.socket!.off('playerJoined', onPlayerJoined);
         this.socket!.off('roomError', onRoomError);
@@ -656,13 +660,6 @@ export class SocketManager {
       };
 
       this.socket.on('playerJoined', onPlayerJoined);
-
-      const onRoomError = (error: { message: string }) => {
-        this.socket!.off('playerJoined', onPlayerJoined);
-        this.socket!.off('roomError', onRoomError);
-        reject(new Error(error.message));
-      };
-
       this.socket.on('roomError', onRoomError);
 
       // Send join request
