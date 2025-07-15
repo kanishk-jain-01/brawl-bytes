@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /**
  * Player Entity Unit Tests
  * ------------------------
@@ -22,8 +23,8 @@ jest.mock('phaser', () => {
 
     public flipX: boolean = false;
 
-    constructor(scene: any, x: number, y: number, texture: string) {
-      this.scene = scene;
+    constructor(scene: unknown, _x: number, _y: number, texture: string) {
+      this.scene = scene as any;
       this.texture = texture;
       // Don't set x, y as they're defined as getters in tests
     }
@@ -225,7 +226,8 @@ describe('Player Entity', () => {
     });
 
     it('should set up physics body correctly', () => {
-      new Player(basePlayerConfig);
+      const player = new Player(basePlayerConfig);
+      expect(player).toBeDefined();
 
       expect(mockPhysicsBody.setCollideWorldBounds).toHaveBeenCalledWith(false);
       expect(mockPhysicsBody.setBounce).toHaveBeenCalledWith(
@@ -631,7 +633,8 @@ describe('Player Entity', () => {
 
       // Manually set stocks to 1 and then cause final defeat
       // This simulates a player who has already lost 2 stocks
-      const setStocksMethod = ((player as any).currentStocks = 1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (player as any).currentStocks = 1;
 
       // Final damage to deplete last stock and defeat player
       player.takeDamage({
@@ -674,6 +677,7 @@ describe('Player Entity', () => {
 
     it('should scale knockback with accumulated damage', () => {
       // Manually set accumulated damage to test scaling
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (player as any).accumulatedDamage = 50; // 50% damage on a 100 health character
 
       const knockbackInfo: DamageInfo = {
@@ -745,6 +749,7 @@ describe('Player Entity', () => {
 
     it('should be defeated when all stocks are lost', () => {
       // Manually set stocks to 1 for the final defeat scenario
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (player as any).currentStocks = 1;
 
       // Set time to avoid initial timing issues

@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /*
  * Stage Entity Unit Tests
  * -----------------------
@@ -15,8 +16,8 @@ jest.mock('phaser', () => {
 
     public texture: string;
 
-    constructor(scene: any, x: number, y: number, texture: string) {
-      this.scene = scene;
+    constructor(scene: unknown, _x: number, _y: number, texture: string) {
+      this.scene = scene as any;
       this.texture = texture;
     }
 
@@ -167,12 +168,14 @@ describe('Stage Entity', () => {
 
     it('should initialize physics groups correctly', () => {
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       expect(mockScene.physics.add.staticGroup).toHaveBeenCalledTimes(3); // platforms, boundaries, hazards
     });
 
     it('should create background graphics', () => {
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       expect(mockScene.add.graphics).toHaveBeenCalled();
     });
@@ -185,7 +188,11 @@ describe('Stage Entity', () => {
       ] as const;
 
       stageTypes.forEach(stageType => {
-        const config = { ...stageConfig, stageType, scene: createMockScene() };
+        const config = {
+          ...stageConfig,
+          stageType,
+          scene: createMockScene() as any,
+        };
         const stage = new Stage(config);
 
         expect(stage.getStageData()).toEqual(GAME_CONFIG.STAGES[stageType]);
@@ -240,6 +247,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       expect(mockPlatform.setScale).toHaveBeenCalled();
       expect(mockPlatform.refreshBody).toHaveBeenCalled();
@@ -296,8 +304,13 @@ describe('Stage Entity', () => {
           .mockReturnValueOnce(boundaries)
           .mockReturnValueOnce(hazards);
 
-        const config = { ...stageConfig, stageType: type, scene: freshMockScene };
+        const config = {
+          ...stageConfig,
+          stageType: type,
+          scene: freshMockScene as any,
+        };
         const stage = new Stage(config);
+        expect(stage).toBeDefined();
 
         expect(mockPlatform.setTint).toHaveBeenCalledWith(expectedColor);
       });
@@ -340,6 +353,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       // Should create: bottom (death), left (side), right (side), top (ceiling)
       expect(boundaries.create).toHaveBeenCalledTimes(4);
@@ -382,6 +396,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       // Death boundary should be positioned at bottom with appropriate size
       expect(boundaries.create).toHaveBeenCalledWith(
@@ -436,6 +451,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       // Should create left and right side boundaries
       expect(boundaries.create).toHaveBeenCalledWith(
@@ -493,6 +509,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(stageConfig);
+      expect(stage).toBeDefined();
 
       expect(hazards.create).toHaveBeenCalledTimes(
         GAME_CONFIG.STAGES.BATTLE_ARENA.hazards.length
@@ -535,7 +552,10 @@ describe('Stage Entity', () => {
       };
 
       // Use VOLCANIC_CHAMBER which has actual hazards
-      const volcanicConfig = { ...stageConfig, stageType: 'VOLCANIC_CHAMBER' as const };
+      const volcanicConfig = {
+        ...stageConfig,
+        stageType: 'VOLCANIC_CHAMBER' as const,
+      };
 
       mockScene.physics.add.staticGroup = jest
         .fn()
@@ -544,6 +564,7 @@ describe('Stage Entity', () => {
         .mockReturnValueOnce(hazards);
 
       const stage = new Stage(volcanicConfig);
+      expect(stage).toBeDefined();
 
       expect(mockHazard.setSize).toHaveBeenCalled();
       expect(mockHazard.setData).toHaveBeenCalledWith(
@@ -760,6 +781,7 @@ describe('Stage Entity', () => {
     it('should add arena decorations for BATTLE_ARENA stage', () => {
       const config = { ...stageConfig, stageType: 'BATTLE_ARENA' as const };
       const stage = new Stage(config);
+      expect(stage).toBeDefined();
 
       // Should create clouds for arena
       expect(mockScene.add.circle).toHaveBeenCalled();
@@ -768,6 +790,7 @@ describe('Stage Entity', () => {
     it('should add floating island decorations for FLOATING_ISLANDS stage', () => {
       const config = { ...stageConfig, stageType: 'FLOATING_ISLANDS' as const };
       const stage = new Stage(config);
+      expect(stage).toBeDefined();
 
       // Should create debris rectangles
       expect(mockScene.add.rectangle).toHaveBeenCalled();
@@ -776,6 +799,7 @@ describe('Stage Entity', () => {
     it('should add volcanic decorations for VOLCANIC_CHAMBER stage', () => {
       const config = { ...stageConfig, stageType: 'VOLCANIC_CHAMBER' as const };
       const stage = new Stage(config);
+      expect(stage).toBeDefined();
 
       // Should create smoke circles
       expect(mockScene.add.circle).toHaveBeenCalled();

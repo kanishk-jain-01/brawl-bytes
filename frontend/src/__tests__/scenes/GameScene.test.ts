@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /*
  * GameScene Unit Tests
  * -------------------
@@ -19,8 +20,8 @@ jest.mock('phaser', () => {
 
     public texture: string;
 
-    constructor(scene: any, x: number, y: number, texture: string) {
-      this.scene = scene;
+    constructor(scene: unknown, _x: number, _y: number, texture: string) {
+      this.scene = scene as any;
       this.texture = texture;
     }
   }
@@ -144,10 +145,10 @@ describe('GameScene', () => {
       ]),
       setupPlayerCollisions: jest.fn(),
     };
-    (Stage as jest.Mock).mockImplementation(() => mockStage);
+    (Stage as unknown as jest.Mock).mockImplementation(() => mockStage);
 
     // Mock Player
-    const createMockPlayer = (config: any) => ({
+    const createMockPlayer = (config: Record<string, unknown>) => ({
       ...config,
       update: jest.fn(),
       updateInputState: jest.fn(),
@@ -161,7 +162,7 @@ describe('GameScene', () => {
         .mockReturnValue({ name: 'Test Character', health: 100 }),
       body: { velocity: { x: 0, y: 0 }, touching: { down: false } },
     });
-    (Player as jest.Mock).mockImplementation(createMockPlayer);
+    (Player as unknown as jest.Mock).mockImplementation(createMockPlayer);
 
     // Create scene and assign mocks
     scene = new GameScene();
@@ -306,7 +307,7 @@ describe('GameScene', () => {
 
       // Get the fall handler
       const fallHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'playerFellOffStage'
+        (call: any[]) => call[0] === 'playerFellOffStage'
       )[1];
 
       fallHandler(mockPlayer);
@@ -330,7 +331,7 @@ describe('GameScene', () => {
 
       // Get the hazard handler
       const hazardHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'playerHitHazard'
+        (call: any[]) => call[0] === 'playerHitHazard'
       )[1];
 
       hazardHandler(hazardData);
@@ -349,7 +350,7 @@ describe('GameScene', () => {
 
       // Get the spawn point handler
       const spawnHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'getSpawnPoint'
+        (call: any[]) => call[0] === 'getSpawnPoint'
       )[1];
 
       spawnHandler(spawnEvent);
@@ -372,6 +373,7 @@ describe('GameScene', () => {
 
     it('should update all players when game is started', () => {
       // Mock the player with all required methods
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (scene as any).player = {
         updateInputState: jest.fn(),
         getHealth: jest.fn().mockReturnValue(100),
@@ -381,25 +383,29 @@ describe('GameScene', () => {
 
       scene.update();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { players } = scene as any;
-      players.forEach((player: any) => {
+      players.forEach((player: Record<string, unknown>) => {
         expect(player.update).toHaveBeenCalled();
       });
     });
 
     it('should not update when game is not started', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (scene as any).gameStarted = false;
 
       scene.update();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { players } = scene as any;
-      players.forEach((player: any) => {
+      players.forEach((player: Record<string, unknown>) => {
         expect(player.update).not.toHaveBeenCalled();
       });
     });
 
     it('should handle player input correctly', () => {
       // Mock the player with all required methods
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (scene as any).player = {
         updateInputState: jest.fn(),
         getHealth: jest.fn().mockReturnValue(100),
@@ -558,7 +564,7 @@ describe('GameScene', () => {
       };
 
       const attackHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'attackHitboxCreated'
+        (call: any[]) => call[0] === 'attackHitboxCreated'
       )[1];
 
       attackHandler(attackData);
@@ -572,7 +578,7 @@ describe('GameScene', () => {
       (scene as any).activeHitboxes = [mockHitbox];
 
       const destroyHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'attackHitboxDestroyed'
+        (call: any[]) => call[0] === 'attackHitboxDestroyed'
       )[1];
 
       destroyHandler(mockHitbox);
@@ -599,7 +605,7 @@ describe('GameScene', () => {
       };
 
       const attackHandler = mockScene.events.on.mock.calls.find(
-        call => call[0] === 'attackHitboxCreated'
+        (call: any[]) => call[0] === 'attackHitboxCreated'
       )[1];
 
       attackHandler(attackData);
