@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import passport from './auth/passport';
 import authRoutes from './routes/auth';
+import { SocketManager } from './networking/SocketManager';
 
 // Load environment variables
 dotenv.config();
@@ -46,27 +47,8 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// Socket.io connection handling
-io.on('connection', socket => {
-  console.log(`Client connected: ${socket.id}`);
-
-  // Basic connection test
-  socket.emit('welcome', {
-    message: 'Connected to Brawl Bytes server',
-    socketId: socket.id,
-  });
-
-  socket.on('disconnect', reason => {
-    console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
-  });
-
-  // Placeholder for game events
-  socket.on('ping', callback => {
-    if (callback) {
-      callback({ pong: Date.now() });
-    }
-  });
-});
+// Initialize Socket Manager for game room handling
+const socketManager = new SocketManager(io);
 
 const PORT = process.env.PORT || 3001;
 
@@ -78,4 +60,4 @@ server.listen(PORT, () => {
   );
 });
 
-export { app, server, io };
+export { app, server, io, socketManager };

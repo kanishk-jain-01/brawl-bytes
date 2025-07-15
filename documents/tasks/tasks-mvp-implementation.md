@@ -49,7 +49,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `backend/src/game/GameRoom.ts` - Room management for multiplayer matches
 - `backend/src/game/GameState.ts` - Authoritative game state management
 - `backend/src/game/PhysicsSystem.ts` - Server-side physics validation
-- `backend/src/networking/SocketManager.ts` - Socket connection and message handling
+- `backend/src/networking/SocketManager.ts` - Socket connection and message handling with room management, authentication, and game events ✓
 - `backend/.env` - Environment variables for database connection
 - `backend/src/__tests__/game/GameRoom.test.ts` - Unit tests for GameRoom class
 - `backend/src/__tests__/database/UserRepository.test.ts` - Unit tests for UserRepository
@@ -106,7 +106,7 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 4.9 Write unit tests for Player entity and combat mechanics
 
 - [ ] 5.0 Multiplayer Networking Foundation
-  - [ ] 5.1 Set up Socket.io server in backend with room management
+  - [x] 5.1 Set up Socket.io server in backend with room management
   - [ ] 5.2 Create GameRoom class for match state and player management
   - [ ] 5.3 Implement client-side Socket.io connection and authentication
   - [ ] 5.4 Add real-time player position and input synchronization
