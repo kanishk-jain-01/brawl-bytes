@@ -110,9 +110,9 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - [ ] 4.10 Front-End Authentication
   - [x] 4.10.1 Auth API wrapper (login/register/refresh)
   - [x] 4.10.2 LoginScene with username & password (register toggle)
-  - [ ] 4.10.3 Token storage and auto-authentication on page load
-  - [ ] 4.10.4 Socket.io authenticate(token) hookup in main.ts
-  - [ ] 4.10.5 Logout flow (clear token & return to LoginScene)
+  - [x] 4.10.3 Token storage and auto-authentication on page load
+  - [x] 4.10.4 Socket.io authenticate(token) hookup in main.ts
+  - [x] 4.10.5 Logout flow (clear token & return to LoginScene)
   - [ ] 4.10.6 Frontend auth unit tests
 
 - [ ] 5.0 Multiplayer Networking Foundation

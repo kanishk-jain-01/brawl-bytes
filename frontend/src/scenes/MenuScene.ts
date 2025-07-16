@@ -9,6 +9,8 @@
 
 import Phaser from 'phaser';
 import { GAME_CONFIG, ASSET_KEYS, UI_COLORS } from '@/utils/constants';
+import { clearToken } from '@/api/auth';
+import { getSocketManager } from '@/utils/socket';
 
 export class MenuScene extends Phaser.Scene {
   private playButton!: Phaser.GameObjects.Image;
@@ -164,6 +166,30 @@ export class MenuScene extends Phaser.Scene {
     this.setupButtonInteractions(creditsButton, creditsText, () => {
       // eslint-disable-next-line no-console
       console.log('Credits - MVP by Brawl Bytes Team');
+    });
+
+    // Logout button
+    const logoutButton = this.add.image(
+      width / 2,
+      height / 2 + 290,
+      ASSET_KEYS.IMAGES.UI_BUTTON
+    );
+    logoutButton.setInteractive({ useHandCursor: true });
+    logoutButton.setScale(1.0);
+    logoutButton.setTint(0xe74c3c);
+
+    const logoutText = this.add.text(width / 2, height / 2 + 290, 'LOGOUT', {
+      fontSize: '24px',
+      color: GAME_CONFIG.UI.COLORS.TEXT,
+      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+    });
+    logoutText.setOrigin(0.5);
+
+    this.setupButtonInteractions(logoutButton, logoutText, () => {
+      clearToken();
+      const socketManager = getSocketManager();
+      socketManager?.disconnect();
+      this.scene.start('LOGIN_SCENE');
     });
   }
 
