@@ -445,6 +445,10 @@ export class SocketManager {
     // Broadcast updated lobby state
     this.broadcastLobbyState(targetRoom);
 
+    // If everyone is already ready, selecting a stage might be the last step
+    // needed before the match can start. Re-evaluate start conditions.
+    this.checkAndStartGame(targetRoom);
+
     console.log(`${socket.username} (host) selected stage: ${data.stage}`);
   }
 
@@ -495,6 +499,25 @@ export class SocketManager {
   }
 
   private checkAndStartGame(gameRoom: ActualGameRoom): void {
+    // Ensure we have the minimum required data before starting the match
+    const config = gameRoom.getConfig();
+
+    // 1. A stage must be selected (host should call selectStage before ready-up)
+    if (!config.stage) {
+      console.warn(
+        `Aborting game start for room ${gameRoom.getId()} – stage has not been selected.`
+      );
+
+      // Notify players so the UI can instruct the host to pick a stage
+      gameRoom.broadcastToRoom('missingStageSelection', {
+        message: 'The host must select a stage before the game can start.',
+        roomId: gameRoom.getId(),
+      });
+
+      return;
+    }
+
+    // 2. All players must be ready AND the room must be full
     if (gameRoom.areAllPlayersReady() && gameRoom.isFull()) {
       const players = gameRoom.getPlayers();
       const config = gameRoom.getConfig();

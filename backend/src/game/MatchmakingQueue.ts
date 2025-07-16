@@ -354,12 +354,17 @@ export class MatchmakingQueue {
     // Generate unique room ID
     const roomId = MatchmakingQueue.generateRoomId();
 
-    // Create game room configuration
+    // Derive initial game configuration. If the host supplied a preferred
+    // stage in their matchmaking preferences we store it here so that the
+    // lobby and GameRoom already know which arena to load.
+    const hostPreferredStage = players[0]?.preferences?.preferredStage;
+
     const config: Partial<GameRoomConfig> = {
       maxPlayers: this.matchSize,
       gameMode: 'versus',
       timeLimit: 300, // 5 minutes
       stockCount: 3,
+      stage: hostPreferredStage, // may be undefined – lobby can still change
     };
 
     // Create the game room

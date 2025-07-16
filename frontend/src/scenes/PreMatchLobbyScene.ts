@@ -13,7 +13,7 @@
 
 import Phaser from 'phaser';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
-import { updateState } from '../state/GameState';
+import { updateState, getState } from '../state/GameState';
 import { MatchPlayer } from '../types/GameState';
 import { getSocketManager, RoomStateData } from '../utils/socket';
 
@@ -200,9 +200,11 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Join matchmaking queue
     if (this.socketManager.getSocket()) {
+      const { selectedStage } = getState();
+
       this.socketManager.getSocket().emit('joinMatchmakingQueue', {
         gameMode: 'versus',
-        // TODO: Add selected character/stage as preferences
+        preferredStage: selectedStage,
       });
     } else {
       console.error('Socket not available for matchmaking');
