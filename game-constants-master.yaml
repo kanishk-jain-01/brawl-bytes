@@ -1,0 +1,376 @@
+# =============================================================================
+# BRAWL BYTES - MASTER GAME CONSTANTS
+# =============================================================================
+# Single source of truth for ALL game configuration
+# Run `npm run sync-constants` to push changes to database
+# 
+# Categories:
+# - physics: Core game physics and movement
+# - combat: Damage, timing, and attack mechanics  
+# - characters: All character stats and abilities
+# - stages: Stage layouts, platforms, and visual config
+# - scenes: Phaser scene identifiers
+# - assets: Asset keys and file paths
+# - game: Match rules and gameplay settings
+# - ui: Colors, fonts, and interface styling
+# - network: Multiplayer synchronization settings
+# - validation: Server-side validation tolerances
+# - player: Player entity configuration
+# - animation: Visual effect timings and scales
+# - server: Server configuration
+# =============================================================================
+
+# PHYSICS CONSTANTS
+# Core movement, gravity, and world boundaries
+physics:
+  gravity: 800
+  jump_velocity: -600
+  double_jump_velocity: -500
+  move_speed: 300
+  max_velocity: 1000
+  max_acceleration: 500
+  friction: 0.8
+  air_resistance: 0.95
+  bounce_factor: 0.3
+  walking_threshold: 50
+  double_jump_multiplier: 0.85
+  world_bounds:
+    width: 2000
+    height: 1200
+    min_x: 0
+    max_x: 2000
+    min_y: 0
+    max_y: 1200
+    death_zone_y: 1300
+
+# COMBAT SYSTEM
+# Damage calculations, attack timing, and combat mechanics
+combat:
+  fall_damage: 5
+  max_damage_per_hit: 50
+  min_damage_per_hit: 5
+  critical_multiplier: 1.5
+  critical_chance: 0.1
+  attack_cooldown: 500
+  invulnerability_duration: 1000
+  critical_invulnerability_duration: 1500
+  respawn_invulnerability: 3000
+  flash_interval: 100
+  max_combo_time: 2000
+  attack_range: 80
+  max_knockback_velocity: 800
+
+# CHARACTER ROSTER
+# All playable characters with complete stat definitions
+characters:
+  dash:
+    id: "dash"
+    name: "Dash"
+    description: "A lightning-fast fighter who relies on speed and agility"
+    type: "FAST_LIGHTWEIGHT"
+    stats:
+      health: 80
+      speed: 400
+      jump_velocity: -650
+      attack_damage: 15
+      weight: 70
+      defense: 60
+      special_attack_damage: 25
+    abilities:
+      - "Lightning Strike"
+      - "Speed Boost" 
+      - "Dash Attack"
+    unlock_requirements:
+      level: 1
+      wins: 0
+      cost: 0
+    
+  rex:
+    id: "rex"
+    name: "Rex"
+    description: "A well-balanced all-around fighter with solid stats"
+    type: "BALANCED_ALLROUNDER"
+    stats:
+      health: 100
+      speed: 300
+      jump_velocity: -600
+      attack_damage: 20
+      weight: 85
+      defense: 80
+      special_attack_damage: 30
+    abilities:
+      - "Power Strike"
+      - "Shield Block"
+      - "Combo Rush"
+    unlock_requirements:
+      level: 1
+      wins: 0
+      cost: 0
+      
+  titan:
+    id: "titan"
+    name: "Titan"
+    description: "A heavy-hitting tank with massive damage and health"
+    type: "HEAVY_HITTER"
+    stats:
+      health: 130
+      speed: 200
+      jump_velocity: -500
+      attack_damage: 30
+      weight: 120
+      defense: 100
+      special_attack_damage: 45
+    abilities:
+      - "Ground Pound"
+      - "Heavy Slam"
+      - "Rage Mode"
+    unlock_requirements:
+      level: 1
+      wins: 0
+      cost: 0
+
+  ninja:
+    id: "ninja"
+    name: "Ninja"
+    description: "A stealthy assassin with mobility and precision strikes"
+    type: "FAST_LIGHTWEIGHT"
+    stats:
+      health: 75
+      speed: 450
+      jump_velocity: -700
+      attack_damage: 18
+      weight: 65
+      defense: 50
+      special_attack_damage: 35
+    abilities:
+      - "Shadow Strike"
+      - "Teleport"
+      - "Smoke Bomb"
+    unlock_requirements:
+      level: 5
+      wins: 10
+      cost: 500
+
+# STAGE CONFIGURATIONS
+# All battle arenas with platforms, hazards, and visual settings
+stages:
+  battle_arena:
+    id: "battle_arena"
+    name: "Battle Arena"
+    description: "A classic fighting arena with multiple platforms"
+    difficulty: "Easy"
+    config:
+      platforms:
+        - { x: 1000, y: 1100, width: 10, height: 1 }  # Main platform
+        - { x: 400, y: 800, width: 4, height: 1 }     # Left platform  
+        - { x: 1600, y: 800, width: 4, height: 1 }    # Right platform
+        - { x: 1000, y: 600, width: 3, height: 1 }    # Center elevated
+        - { x: 600, y: 400, width: 2, height: 1 }     # Top left
+        - { x: 1400, y: 400, width: 2, height: 1 }    # Top right
+      hazards: []
+      background_colors:
+        top: 0x87ceeb
+        bottom: 0x98fb98
+      music: "battle_theme"
+    unlock_requirements:
+      level: 1
+      wins: 0
+      cost: 0
+      
+  floating_islands:
+    id: "floating_islands"
+    name: "Floating Islands"
+    description: "Scattered platforms floating in the sky"
+    difficulty: "Medium"
+    config:
+      platforms:
+        - { x: 1000, y: 1000, width: 6, height: 1 }   # Main platform
+        - { x: 300, y: 700, width: 2, height: 1 }     # Far left
+        - { x: 700, y: 500, width: 2, height: 1 }     # Mid left
+        - { x: 1300, y: 500, width: 2, height: 1 }    # Mid right
+        - { x: 1700, y: 700, width: 2, height: 1 }    # Far right
+        - { x: 1000, y: 300, width: 3, height: 1 }    # Top center
+      hazards: []
+      background_colors:
+        top: 0x4169e1
+        bottom: 0x87cefa
+      music: "sky_theme"
+    unlock_requirements:
+      level: 3
+      wins: 5
+      cost: 200
+      
+  volcanic_chamber:
+    id: "volcanic_chamber"
+    name: "Volcanic Chamber"
+    description: "A dangerous stage with lava hazards"
+    difficulty: "Hard"
+    config:
+      platforms:
+        - { x: 1000, y: 1000, width: 8, height: 1 }   # Main platform
+        - { x: 500, y: 700, width: 2, height: 1 }     # Left platform
+        - { x: 1500, y: 700, width: 2, height: 1 }    # Right platform
+        - { x: 1000, y: 400, width: 3, height: 1 }    # Center elevated
+      hazards:
+        - { type: "lava", x: 200, y: 1150, width: 200, height: 50 }
+        - { type: "lava", x: 1600, y: 1150, width: 200, height: 50 }
+      background_colors:
+        top: 0x8b0000
+        bottom: 0xff4500
+      music: "volcano_theme"
+    unlock_requirements:
+      level: 8
+      wins: 20
+      cost: 800
+
+# PHASER SCENE IDENTIFIERS
+# All scene keys used throughout the application
+scenes:
+  boot: "BootScene"
+  menu: "MenuScene"
+  character_select: "CharacterSelectScene"
+  stage_select: "StageSelectScene"
+  game: "GameScene"
+  result: "ResultScene"
+  lobby: "LobbyScene"
+
+# ASSET MANAGEMENT
+# All game assets organized by type
+assets:
+  images:
+    logo: "logo"
+    background_menu: "background_menu"
+    background_stage1: "background_stage1"
+    background_stage2: "background_stage2"
+    character_dash: "character_dash"
+    character_rex: "character_rex"
+    character_titan: "character_titan"
+    character_ninja: "character_ninja"
+    platform: "platform"
+    ui_button: "ui_button"
+    ui_button_hover: "ui_button_hover"
+    health_bar: "health_bar"
+    energy_bar: "energy_bar"
+  
+  audio:
+    menu_music: "menu_music"
+    game_music: "game_music"
+    battle_theme: "battle_theme"
+    sky_theme: "sky_theme"
+    volcano_theme: "volcano_theme"
+    sfx_jump: "sfx_jump"
+    sfx_attack: "sfx_attack"
+    sfx_hit: "sfx_hit"
+    sfx_button: "sfx_button"
+    sfx_victory: "sfx_victory"
+    sfx_defeat: "sfx_defeat"
+  
+  spritesheets:
+    dash_sprites: "dash_sprites"
+    rex_sprites: "rex_sprites"
+    titan_sprites: "titan_sprites"
+    ninja_sprites: "ninja_sprites"
+    effects: "effects_sprites"
+    ui_elements: "ui_sprites"
+
+# GAME RULES
+# Match settings and gameplay parameters
+game:
+  max_stocks: 3
+  match_time: 180000  # 3 minutes in milliseconds
+  respawn_time: 3000
+  max_players: 4
+  min_players: 2
+  sudden_death_time: 60000
+  victory_conditions:
+    - "last_player_standing"
+    - "most_stocks_remaining"
+    - "highest_damage_dealt"
+
+# USER INTERFACE
+# Colors, fonts, and styling configuration
+ui:
+  colors:
+    primary: "#3498db"
+    secondary: "#2c3e50"
+    success: "#27ae60"
+    danger: "#e74c3c"
+    warning: "#f39c12"
+    text: "#ffffff"
+    text_secondary: "#bdc3c7"
+    background: "#34495e"
+    accent: "#9b59b6"
+  
+  fonts:
+    primary: "Arial, sans-serif"
+    secondary: "monospace"
+    heading: "Georgia, serif"
+  
+  dimensions:
+    button_width: 200
+    button_height: 50
+    health_bar_width: 200
+    health_bar_height: 20
+    character_portrait_size: 80
+
+# NETWORKING
+# Multiplayer synchronization and communication settings
+network:
+  position_sync_rate: 60  # FPS
+  max_input_buffer_size: 120
+  interpolation_delay: 100
+  max_buffer_size: 1000
+  heartbeat_interval: 30000
+  connection_timeout: 10000
+  max_reconnect_attempts: 3
+
+# SERVER VALIDATION
+# Anti-cheat and movement validation tolerances
+validation:
+  position_tolerance: 5.0
+  velocity_tolerance: 50.0
+  max_position_change_per_ms: 2.0
+  max_velocity_change_per_ms: 10.0
+  damage_validation_window: 1000
+  input_validation_strictness: 0.8
+
+# PLAYER ENTITY
+# Player collision and display configuration
+player:
+  collision_box:
+    width: 32
+    height: 48
+  display_size:
+    width: 64
+    height: 96
+  radius: 16
+  hitbox_offset:
+    x: 0
+    y: -8
+
+# ANIMATION SYSTEM
+# Visual effects timing and scaling
+animation:
+  breathing_scale:
+    scale_y: 1.05
+    duration: 2000
+  hit_effect:
+    scale_y: 1.2
+    duration: 200
+  damage_effect:
+    scale_y: 0.8
+    duration: 300
+  victory_animation:
+    duration: 3000
+  defeat_animation:
+    duration: 2000
+
+# SERVER CONFIGURATION
+# Port settings and server behavior
+server:
+  port: 3001
+  frontend_port: 5173
+  max_rooms: 100
+  max_players_per_room: 4
+  room_timeout: 300000  # 5 minutes
+  cleanup_interval: 60000  # 1 minute

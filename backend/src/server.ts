@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import passport from './auth/passport';
 import authRoutes from './routes/auth';
 import gameConstantsRoutes from './routes/gameConstants';
+import charactersRoutes from './routes/characters';
+import stagesRoutes from './routes/stages';
 import { SocketManager } from './networking/SocketManager';
 
 // Load environment variables
@@ -39,6 +41,8 @@ app.use(passport.initialize());
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api/constants', gameConstantsRoutes);
+app.use('/api/characters', charactersRoutes);
+app.use('/api/stages', stagesRoutes);
 
 // Basic health check endpoint
 app.get('/health', (_req, res) => {

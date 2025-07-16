@@ -11,31 +11,31 @@ import { BootScene } from '@/scenes/BootScene';
 import { MenuScene } from '@/scenes/MenuScene';
 import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
 import { GameScene } from '@/scenes/GameScene';
-import { GAME_CONFIG, updateGameConfig } from '@/utils/constants';
+import { GAME_CONFIG, initializeConstants } from '@/utils/constants';
 
 /**
- * Load game constants from server (required for game to function)
+ * Load all game constants, characters, and stages from database
  */
 async function loadGameConstants(): Promise<void> {
-  const apiUrl =
-    (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001';
+  // Set API base URL for fetch requests
+  const apiUrl = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001';
+  
+  // Override fetch to use the API URL for relative paths
+  const originalFetch = window.fetch;
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === 'string' && input.startsWith('/api/')) {
+      input = `${apiUrl}${input}`;
+    }
+    return originalFetch(input, init);
+  };
 
-  const response = await fetch(`${apiUrl}/api/constants`);
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch constants: ${response.status} ${response.statusText}`
-    );
+  try {
+    await initializeConstants();
+    console.log('✅ All constants loaded from database');
+  } finally {
+    // Restore original fetch
+    window.fetch = originalFetch;
   }
-
-  const result = await response.json();
-
-  if (!result.success) {
-    throw new Error('API returned error response');
-  }
-
-  updateGameConfig(result.data);
-  console.log('✅ Loaded constants from server');
 }
 
 /**
@@ -46,10 +46,10 @@ async function initializeGame(): Promise<Phaser.Game> {
 
   // Show loading indicator
   // eslint-disable-next-line no-use-before-define
-  showLoadingIndicator('Fetching game configuration...');
+  showLoadingIndicator('Loading game configuration from database...');
 
   try {
-    // Load constants from server
+    // Load all constants, characters, and stages from database
     await loadGameConstants();
 
     // Update loading indicator

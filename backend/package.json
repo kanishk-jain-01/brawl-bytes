@@ -13,10 +13,12 @@
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint src --ext .ts,.js --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,js,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "sync-constants": "ts-node scripts/sync-constants.ts",
+    "sync-constants:force": "ts-node scripts/sync-constants.ts --force"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "npm run sync-constants:force"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,7 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.11.1",
+    "@types/yaml": "^1.9.6",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
@@ -33,7 +36,8 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "prisma": "^6.11.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

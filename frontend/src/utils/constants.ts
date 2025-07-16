@@ -1,195 +1,231 @@
 /*
- * Game Constants
- * --------------
- * Central configuration file containing all game constants and settings.
- * Defines scene keys, physics parameters, character stats, stage layouts, game rules, and UI styling.
- * Includes character balance data (speed, health, damage), stage platform configurations, and asset key mappings.
- * Provides type definitions for characters, stages, and scenes to ensure type safety throughout the application.
+ * Game Constants - Database Driven Configuration
+ * ===============================================
+ * This file now serves as a runtime container for constants loaded from the database.
+ * All actual values are fetched from the server's /api/constants endpoint on startup.
+ * 
+ * The GAME_CONFIG object starts empty and gets populated by updateGameConfig().
+ * If constants fail to load, the application will throw errors (fail-fast behavior).
+ * 
+ * To update game configuration:
+ * 1. Edit game-constants-master.yaml in the project root
+ * 2. Run `npm run sync-constants` in the backend
+ * 3. Restart the game - new constants will be loaded automatically
  */
 
 export const GAME_CONFIG = {
-  SCENE_KEYS: {
-    BOOT: 'BootScene',
-    MENU: 'MenuScene',
-    CHARACTER_SELECT: 'CharacterSelectScene',
-    STAGE_SELECT: 'StageSelectScene',
-    GAME: 'GameScene',
-    RESULT: 'ResultScene',
-    LOBBY: 'LobbyScene',
+  // Scene identifiers - loaded from database
+  SCENE_KEYS: {} as Record<string, string>,
+
+  // Physics constants - loaded from database  
+  PHYSICS: {} as {
+    GRAVITY: number;
+    JUMP_VELOCITY: number;
+    DOUBLE_JUMP_VELOCITY: number;
+    MOVE_SPEED: number;
+    MAX_VELOCITY: number;
+    MAX_ACCELERATION: number;
+    FRICTION: number;
+    AIR_RESISTANCE: number;
+    BOUNCE_FACTOR: number;
+    WALKING_THRESHOLD: number;
+    DOUBLE_JUMP_MULTIPLIER: number;
+    WORLD_BOUNDS: {
+      WIDTH: number;
+      HEIGHT: number;
+      MIN_X: number;
+      MAX_X: number;
+      MIN_Y: number;
+      MAX_Y: number;
+      DEATH_ZONE_Y: number;
+    };
   },
 
-  PHYSICS: {
-    GRAVITY: 0,
-    JUMP_VELOCITY: 0,
-    DOUBLE_JUMP_VELOCITY: 0,
-    MOVE_SPEED: 0,
-    MAX_VELOCITY: 0,
-    MAX_ACCELERATION: 0,
-    FRICTION: 0,
-    AIR_RESISTANCE: 0,
-    BOUNCE_FACTOR: 0,
-    WALKING_THRESHOLD: 0,
-    DOUBLE_JUMP_MULTIPLIER: 0,
-    WORLD_BOUNDS: { WIDTH: 0, HEIGHT: 0, MIN_X: 0, MAX_X: 0, MIN_Y: 0, MAX_Y: 0, DEATH_ZONE_Y: 0 },
+  // Combat mechanics - loaded from database
+  DAMAGE: {} as {
+    FALL_DAMAGE: number;
+    MAX_DAMAGE_PER_HIT: number;
+    MIN_DAMAGE_PER_HIT: number;
+    CRITICAL_MULTIPLIER: number;
+    CRITICAL_CHANCE: number;
   },
 
-  DAMAGE: {
-    FALL_DAMAGE: 0,
-    MAX_DAMAGE_PER_HIT: 0,
-    MIN_DAMAGE_PER_HIT: 0,
-    CRITICAL_MULTIPLIER: 0,
-    CRITICAL_CHANCE: 0,
+  // Timing constants - loaded from database
+  TIMING: {} as {
+    ATTACK_COOLDOWN: number;
+    INVULNERABILITY_DURATION: number;
+    CRITICAL_INVULNERABILITY_DURATION: number;
+    RESPAWN_INVULNERABILITY: number;
+    FLASH_INTERVAL: number;
+    MAX_COMBO_TIME: number;
   },
 
-  TIMING: {
-    ATTACK_COOLDOWN: 0,
-    INVULNERABILITY_DURATION: 0,
-    CRITICAL_INVULNERABILITY_DURATION: 0,
-    RESPAWN_INVULNERABILITY: 0,
-    FLASH_INTERVAL: 0,
-    MAX_COMBO_TIME: 0,
+  // Combat ranges - loaded from database
+  COMBAT: {} as {
+    ATTACK_RANGE: number;
+    MAX_KNOCKBACK_VELOCITY: number;
   },
 
-  COMBAT: {
-    ATTACK_RANGE: 0,
-    MAX_KNOCKBACK_VELOCITY: 0,
+  // Character definitions - loaded from database via Character API
+  CHARACTERS: {} as Record<string, {
+    name: string;
+    speed: number;
+    jumpVelocity: number;
+    health: number;
+    attackDamage: number;
+    weight: number;
+  }>,
+
+  // Stage configurations - loaded from database via Stage API
+  STAGES: {} as Record<string, {
+    name: string;
+    description: string;
+    difficulty: string;
+    platforms: Array<{ x: number; y: number; width: number; height: number }>;
+    hazards: Array<{ type: string; x: number; y: number; width: number; height: number }>;
+    backgroundColor: { top: number; bottom: number };
+  }>,
+
+  // Game rules - loaded from database
+  GAME: {} as {
+    MAX_STOCKS: number;
+    MATCH_TIME: number;
+    RESPAWN_TIME: number;
+    MAX_PLAYERS: number;
   },
 
-  CHARACTERS: {
-    DASH: {
-      name: 'Dash',
-      speed: 0,
-      jumpVelocity: 0,
-      health: 0,
-      attackDamage: 0,
-      weight: 0,
-    },
-    REX: {
-      name: 'Rex',
-      speed: 0,
-      jumpVelocity: 0,
-      health: 0,
-      attackDamage: 0,
-      weight: 0,
-    },
-    TITAN: {
-      name: 'Titan',
-      speed: 0,
-      jumpVelocity: 0,
-      health: 0,
-      attackDamage: 0,
-      weight: 0,
-    },
+  // Network settings - loaded from database
+  NETWORK: {} as {
+    POSITION_SYNC_RATE: number;
+    MAX_INPUT_BUFFER_SIZE: number;
+    INTERPOLATION_DELAY: number;
+    MAX_BUFFER_SIZE: number;
   },
 
-  STAGES: {
-    BATTLE_ARENA: {
-      name: 'Battle Arena',
-      description: 'A classic fighting arena with multiple platforms',
-      difficulty: 'Easy',
-      platforms: [
-        { x: 1000, y: 1100, width: 10, height: 1 }, // Main platform
-        { x: 400, y: 800, width: 4, height: 1 }, // Left platform
-        { x: 1600, y: 800, width: 4, height: 1 }, // Right platform
-        { x: 1000, y: 600, width: 3, height: 1 }, // Center elevated
-        { x: 600, y: 400, width: 2, height: 1 }, // Top left
-        { x: 1400, y: 400, width: 2, height: 1 }, // Top right
-      ],
-      hazards: [],
-      backgroundColor: { top: 0x87ceeb, bottom: 0x98fb98 },
-    },
-    FLOATING_ISLANDS: {
-      name: 'Floating Islands',
-      description: 'Scattered platforms floating in the sky',
-      difficulty: 'Medium',
-      platforms: [
-        { x: 1000, y: 1000, width: 6, height: 1 }, // Main platform
-        { x: 300, y: 700, width: 2, height: 1 }, // Far left
-        { x: 700, y: 500, width: 2, height: 1 }, // Mid left
-        { x: 1300, y: 500, width: 2, height: 1 }, // Mid right
-        { x: 1700, y: 700, width: 2, height: 1 }, // Far right
-        { x: 1000, y: 300, width: 3, height: 1 }, // Top center
-      ],
-      hazards: [],
-      backgroundColor: { top: 0x4169e1, bottom: 0x87cefa },
-    },
-    VOLCANIC_CHAMBER: {
-      name: 'Volcanic Chamber',
-      description: 'A dangerous stage with lava hazards',
-      difficulty: 'Hard',
-      platforms: [
-        { x: 1000, y: 1000, width: 8, height: 1 }, // Main platform
-        { x: 500, y: 700, width: 2, height: 1 }, // Left platform
-        { x: 1500, y: 700, width: 2, height: 1 }, // Right platform
-        { x: 1000, y: 400, width: 3, height: 1 }, // Center elevated
-      ],
-      hazards: [
-        { type: 'lava', x: 200, y: 1150, width: 200, height: 50 },
-        { type: 'lava', x: 1600, y: 1150, width: 200, height: 50 },
-      ],
-      backgroundColor: { top: 0x8b0000, bottom: 0xff4500 },
-    },
+  // Validation tolerances - loaded from database
+  VALIDATION: {} as {
+    POSITION_TOLERANCE: number;
+    VELOCITY_TOLERANCE: number;
+    MAX_POSITION_CHANGE_PER_MS: number;
+    MAX_VELOCITY_CHANGE_PER_MS: number;
   },
 
-  GAME: {
-    MAX_STOCKS: 0,
-    MATCH_TIME: 0,
-    RESPAWN_TIME: 0,
-    MAX_PLAYERS: 0,
+  // Player entity config - loaded from database
+  PLAYER: {} as {
+    COLLISION_BOX: { WIDTH: number; HEIGHT: number };
+    DISPLAY_SIZE: { WIDTH: number; HEIGHT: number };
+    RADIUS: number;
   },
 
-  NETWORK: {
-    POSITION_SYNC_RATE: 0,
-    MAX_INPUT_BUFFER_SIZE: 0,
-    INTERPOLATION_DELAY: 0,
-    MAX_BUFFER_SIZE: 0,
+  // Animation settings - loaded from database
+  ANIMATION: {} as {
+    BREATHING_SCALE: { SCALE_Y: number; DURATION: number };
+    HIT_EFFECT: { SCALE_Y: number; DURATION: number };
+    DAMAGE_EFFECT: { SCALE_Y: number; DURATION: number };
   },
 
-  VALIDATION: {
-    POSITION_TOLERANCE: 0,
-    VELOCITY_TOLERANCE: 0,
-    MAX_POSITION_CHANGE_PER_MS: 0,
-    MAX_VELOCITY_CHANGE_PER_MS: 0,
+  // Server configuration - loaded from database
+  SERVER: {} as {
+    PORT: number;
+    FRONTEND_PORT: number;
   },
 
-  PLAYER: {
-    COLLISION_BOX: { WIDTH: 0, HEIGHT: 0 },
-    DISPLAY_SIZE: { WIDTH: 0, HEIGHT: 0 },
-    RADIUS: 0,
-  },
-
-  ANIMATION: {
-    BREATHING_SCALE: { SCALE_Y: 0, DURATION: 0 },
-    HIT_EFFECT: { SCALE_Y: 0, DURATION: 0 },
-    DAMAGE_EFFECT: { SCALE_Y: 0, DURATION: 0 },
-  },
-
-  SERVER: {
-    PORT: 0,
-    FRONTEND_PORT: 0,
-  },
-
-  UI: {
+  // UI styling - loaded from database
+  UI: {} as {
     COLORS: {
-      PRIMARY: '#3498db',
-      SECONDARY: '#2c3e50',
-      SUCCESS: '#27ae60',
-      DANGER: '#e74c3c',
-      WARNING: '#f39c12',
-      TEXT: '#ffffff',
-      TEXT_SECONDARY: '#bdc3c7',
-    },
+      PRIMARY: string;
+      SECONDARY: string;
+      SUCCESS: string;
+      DANGER: string;
+      WARNING: string;
+      TEXT: string;
+      TEXT_SECONDARY: string;
+    };
     FONTS: {
-      PRIMARY: 'Arial, sans-serif',
-      SECONDARY: 'monospace',
-    },
+      PRIMARY: string;
+      SECONDARY: string;
+    };
   },
 };
 
 /**
- * Update GAME_CONFIG with server constants
+ * Asset keys - loaded from database
+ * All asset identifiers for images, audio, and spritesheets
+ */
+export const ASSET_KEYS = {
+  IMAGES: {} as Record<string, string>,
+  AUDIO: {} as Record<string, string>,
+  SPRITESHEETS: {} as Record<string, string>,
+};
+
+/**
+ * Update GAME_CONFIG with server constants from database
+ * This function is called during game initialization after fetching /api/constants
  */
 export function updateGameConfig(serverConstants: any): void {
+  console.log('🔄 Updating game config from database constants...');
+
+  // Scene Keys
+  if (serverConstants.scenes) {
+    GAME_CONFIG.SCENE_KEYS = {
+      BOOT: serverConstants.scenes.boot,
+      MENU: serverConstants.scenes.menu,
+      CHARACTER_SELECT: serverConstants.scenes.character_select,
+      STAGE_SELECT: serverConstants.scenes.stage_select,
+      GAME: serverConstants.scenes.game,
+      RESULT: serverConstants.scenes.result,
+      LOBBY: serverConstants.scenes.lobby,
+    };
+  }
+
+  // Asset Keys
+  if (serverConstants.assets) {
+    if (serverConstants.assets.images) {
+      ASSET_KEYS.IMAGES = {
+        LOGO: serverConstants.assets.images.logo,
+        BACKGROUND_MENU: serverConstants.assets.images.background_menu,
+        BACKGROUND_STAGE1: serverConstants.assets.images.background_stage1,
+        BACKGROUND_STAGE2: serverConstants.assets.images.background_stage2,
+        CHARACTER_DASH: serverConstants.assets.images.character_dash,
+        CHARACTER_REX: serverConstants.assets.images.character_rex,
+        CHARACTER_TITAN: serverConstants.assets.images.character_titan,
+        CHARACTER_NINJA: serverConstants.assets.images.character_ninja,
+        PLATFORM: serverConstants.assets.images.platform,
+        UI_BUTTON: serverConstants.assets.images.ui_button,
+        UI_BUTTON_HOVER: serverConstants.assets.images.ui_button_hover,
+        HEALTH_BAR: serverConstants.assets.images.health_bar,
+        ENERGY_BAR: serverConstants.assets.images.energy_bar,
+      };
+    }
+    
+    if (serverConstants.assets.audio) {
+      ASSET_KEYS.AUDIO = {
+        MENU_MUSIC: serverConstants.assets.audio.menu_music,
+        GAME_MUSIC: serverConstants.assets.audio.game_music,
+        BATTLE_THEME: serverConstants.assets.audio.battle_theme,
+        SKY_THEME: serverConstants.assets.audio.sky_theme,
+        VOLCANO_THEME: serverConstants.assets.audio.volcano_theme,
+        SFX_JUMP: serverConstants.assets.audio.sfx_jump,
+        SFX_ATTACK: serverConstants.assets.audio.sfx_attack,
+        SFX_HIT: serverConstants.assets.audio.sfx_hit,
+        SFX_BUTTON: serverConstants.assets.audio.sfx_button,
+        SFX_VICTORY: serverConstants.assets.audio.sfx_victory,
+        SFX_DEFEAT: serverConstants.assets.audio.sfx_defeat,
+      };
+    }
+    
+    if (serverConstants.assets.spritesheets) {
+      ASSET_KEYS.SPRITESHEETS = {
+        DASH_SPRITES: serverConstants.assets.spritesheets.dash_sprites,
+        REX_SPRITES: serverConstants.assets.spritesheets.rex_sprites,
+        TITAN_SPRITES: serverConstants.assets.spritesheets.titan_sprites,
+        NINJA_SPRITES: serverConstants.assets.spritesheets.ninja_sprites,
+        EFFECTS: serverConstants.assets.spritesheets.effects,
+        UI_ELEMENTS: serverConstants.assets.spritesheets.ui_elements,
+      };
+    }
+  }
+
   // Physics Constants
   if (serverConstants.physics) {
     Object.assign(GAME_CONFIG.PHYSICS, {
@@ -258,19 +294,6 @@ export function updateGameConfig(serverConstants: any): void {
       RESPAWN_TIME: serverConstants.game.respawn_time,
       MAX_PLAYERS: serverConstants.game.max_players,
     });
-  }
-
-  // Character Constants
-  if (serverConstants.characters) {
-    if (serverConstants.characters.dash) {
-      Object.assign(GAME_CONFIG.CHARACTERS.DASH, serverConstants.characters.dash);
-    }
-    if (serverConstants.characters.rex) {
-      Object.assign(GAME_CONFIG.CHARACTERS.REX, serverConstants.characters.rex);
-    }
-    if (serverConstants.characters.titan) {
-      Object.assign(GAME_CONFIG.CHARACTERS.TITAN, serverConstants.characters.titan);
-    }
   }
 
   // UI Constants
@@ -363,68 +386,87 @@ export function updateGameConfig(serverConstants: any): void {
     });
   }
 
-  console.log('✅ Game config updated with ALL server constants');
+  console.log('✅ Game config updated with ALL database constants');
   console.log('📊 Updated categories:', Object.keys(serverConstants));
 }
 
-export const ASSET_KEYS = {
-  IMAGES: {
-    LOGO: 'logo',
-    BACKGROUND_MENU: 'background_menu',
-    BACKGROUND_STAGE1: 'background_stage1',
-    BACKGROUND_STAGE2: 'background_stage2',
-    CHARACTER_DASH: 'character_dash',
-    CHARACTER_REX: 'character_rex',
-    CHARACTER_TITAN: 'character_titan',
-    PLATFORM: 'platform',
-    UI_BUTTON: 'ui_button',
-    UI_BUTTON_HOVER: 'ui_button_hover',
-  },
-  AUDIO: {
-    MENU_MUSIC: 'menu_music',
-    GAME_MUSIC: 'game_music',
-    SFX_JUMP: 'sfx_jump',
-    SFX_ATTACK: 'sfx_attack',
-    SFX_HIT: 'sfx_hit',
-    SFX_BUTTON: 'sfx_button',
-  },
-  SPRITESHEETS: {
-    DASH_SPRITES: 'dash_sprites',
-    REX_SPRITES: 'rex_sprites',
-    TITAN_SPRITES: 'titan_sprites',
-    EFFECTS: 'effects_sprites',
-  },
-} as const;
+/**
+ * Load characters from database API
+ */
+export async function loadCharacters(): Promise<void> {
+  try {
+    const response = await fetch('/api/characters');
+    if (!response.ok) {
+      throw new Error(`Failed to load characters: ${response.statusText}`);
+    }
+    
+    const characters = await response.json();
+    
+    // Convert database character format to GAME_CONFIG format
+    GAME_CONFIG.CHARACTERS = {};
+    characters.forEach((char: any) => {
+      GAME_CONFIG.CHARACTERS[char.id.toUpperCase()] = {
+        name: char.name,
+        speed: char.stats.speed,
+        jumpVelocity: char.stats.jump_velocity,
+        health: char.stats.health,
+        attackDamage: char.stats.attack_damage,
+        weight: char.stats.weight,
+      };
+    });
+    
+    console.log(`✅ Loaded ${characters.length} characters from database`);
+  } catch (error) {
+    throw new Error(`CRITICAL: Failed to load characters from database: ${error}`);
+  }
+}
+
+/**
+ * Load stages from database API
+ */
+export async function loadStages(): Promise<void> {
+  try {
+    const response = await fetch('/api/stages');
+    if (!response.ok) {
+      throw new Error(`Failed to load stages: ${response.statusText}`);
+    }
+    
+    const stages = await response.json();
+    
+    // Convert database stage format to GAME_CONFIG format
+    GAME_CONFIG.STAGES = {};
+    stages.forEach((stage: any) => {
+      GAME_CONFIG.STAGES[stage.id.toUpperCase()] = {
+        name: stage.name,
+        description: stage.description,
+        difficulty: stage.config.difficulty || 'Medium',
+        platforms: stage.config.platforms,
+        hazards: stage.config.hazards || [],
+        backgroundColor: stage.config.background_colors,
+      };
+    });
+    
+    console.log(`✅ Loaded ${stages.length} stages from database`);
+  } catch (error) {
+    throw new Error(`CRITICAL: Failed to load stages from database: ${error}`);
+  }
+}
 
 export type CharacterType = keyof typeof GAME_CONFIG.CHARACTERS;
 export type StageType = keyof typeof GAME_CONFIG.STAGES;
-export type SceneKey =
-  (typeof GAME_CONFIG.SCENE_KEYS)[keyof typeof GAME_CONFIG.SCENE_KEYS];
+export type SceneKey = string;
 
 // Helper functions to get character stats by type
 export function getCharacterStats(characterType: string) {
   const normalizedType = characterType.toUpperCase();
   
-  // Map old names to new names
+  // Map old names to new names for backward compatibility
   let mappedType = normalizedType;
   if (normalizedType === 'FAST_LIGHTWEIGHT') mappedType = 'DASH';
   if (normalizedType === 'BALANCED_ALLROUNDER') mappedType = 'REX';
   if (normalizedType === 'HEAVY_HITTER') mappedType = 'TITAN';
   
-  let character;
-  switch (mappedType) {
-    case 'DASH':
-      character = GAME_CONFIG.CHARACTERS.DASH;
-      break;
-    case 'REX':
-      character = GAME_CONFIG.CHARACTERS.REX;
-      break;
-    case 'TITAN':
-      character = GAME_CONFIG.CHARACTERS.TITAN;
-      break;
-    default:
-      throw new Error(`Unknown character type: ${characterType}`);
-  }
+  const character = GAME_CONFIG.CHARACTERS[mappedType];
   
   // Strict validation - no fallbacks allowed
   if (!character || !character.health || character.health === 0) {
@@ -432,4 +474,36 @@ export function getCharacterStats(characterType: string) {
   }
   
   return character;
+}
+
+/**
+ * Initialize all constants from database
+ * This function must be called before the game starts
+ */
+export async function initializeConstants(): Promise<void> {
+  console.log('🔄 Initializing all constants from database...');
+  
+  try {
+    // Load game constants
+    const response = await fetch('/api/constants');
+    if (!response.ok) {
+      throw new Error(`Failed to load constants: ${response.statusText}`);
+    }
+    
+    const constants = await response.json();
+    updateGameConfig(constants);
+    
+    // Load characters and stages
+    await Promise.all([
+      loadCharacters(),
+      loadStages()
+    ]);
+    
+    console.log('✅ All constants initialized successfully');
+    console.log('🎮 Game is ready to start with database-driven configuration');
+    
+  } catch (error) {
+    console.error('❌ CRITICAL ERROR: Failed to initialize constants:', error);
+    throw new Error(`Game cannot start without database constants: ${error}`);
+  }
 }
