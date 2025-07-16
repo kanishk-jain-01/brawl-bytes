@@ -463,13 +463,4 @@ export const useConnection = () => {
   };
 };
 
-/**
- * Helper functions for room-specific state
- */
-export const useRoom = () => {
-  const state = connectionStore.getState();
-  return {
-    currentRoomId: state.currentRoomId,
-    setRoomId: state.setRoomId,
-  };
-};
+

@@ -11,6 +11,7 @@
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
 import { getSocketManager } from '@/managers/SocketManager';
+import { getConnectionState } from '@/state/connectionStore';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
@@ -100,7 +101,11 @@ export class GameScene extends Phaser.Scene {
       throw new Error('GameScene: Server data missing players array.');
     }
 
-    if (!gameState.playerId) {
+    // Get local player ID from connectionStore
+    const connectionState = getConnectionState();
+    const localPlayerId = connectionState.userId;
+    
+    if (!localPlayerId) {
       throw new Error(
         'GameScene: Local player ID not found. Authentication required.'
       );
@@ -110,7 +115,6 @@ export class GameScene extends Phaser.Scene {
     this.selectedStage = serverData.stage;
 
     // Find local player from server data
-    const localPlayerId = gameState.playerId;
     const localPlayerData = serverData.players.find(
       (p: any) => p.userId === localPlayerId
     );
@@ -483,13 +487,7 @@ export class GameScene extends Phaser.Scene {
         }
       );
 
-      // Configure reconnection settings for game context
-      socketManager.setReconnectionConfig({
-        maxAttempts: 8, // More attempts during gameplay
-        baseDelay: 1000, // 1 second base delay
-        maxDelay: 15000, // Max 15 seconds between attempts
-        backoffFactor: 1.4, // Moderate exponential backoff
-      });
+      // Reconnection is now handled by connectionStore with built-in configuration
 
       console.log('Connection status display initialized for GameScene');
     }

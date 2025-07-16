@@ -12,8 +12,9 @@ import {
   ConnectionState,
   type AuthResponse,
 } from '@/state/connectionStore';
+import { lobbyStore } from '@/state/lobbyStore';
 import { SOCKET_EVENTS } from '@/types/Network';
-import { updateState } from '@/state/GameState';
+import type { RoomStateData } from '@/types/Network';
 
 /**
  * Socket configuration interface
@@ -67,10 +68,7 @@ export class SocketManager {
     const store = connectionStore.getState();
     const response = await store.authenticate(token);
 
-    // Store userId in global game state for backward compatibility
-    if (response.success && response.userId) {
-      updateState({ playerId: response.userId });
-    }
+    // User ID is now managed by connectionStore
 
     return response;
   }
@@ -108,45 +106,7 @@ export class SocketManager {
     return store.connectionState;
   }
 
-  /**
-   * Get authentication token
-   */
-  public getAuthToken(): string | null {
-    const store = connectionStore.getState();
-    return store.authToken;
-  }
 
-  /**
-   * Get current room ID
-   */
-  public getCurrentRoomId(): string | null {
-    const store = connectionStore.getState();
-    return store.currentRoomId;
-  }
-
-  /**
-   * Set current room ID
-   */
-  public setCurrentRoomId(roomId: string | null): void {
-    const store = connectionStore.getState();
-    store.setRoomId(roomId);
-  }
-
-  /**
-   * Check if currently in a room
-   */
-  public isInRoom(): boolean {
-    const store = connectionStore.getState();
-    return !!store.currentRoomId;
-  }
-
-  /**
-   * Get connection status
-   */
-  public getConnectionStatus() {
-    const store = connectionStore.getState();
-    return store.getConnectionStatus();
-  }
 
   /**
    * Emit an event to the server
@@ -230,7 +190,7 @@ export class SocketManager {
 
   public leaveRoom(): void {
     this.emit(SOCKET_EVENTS.LEAVE_ROOM);
-    this.setCurrentRoomId(null);
+    // Room state is now managed by connectionStore and lobbyStore
   }
 
   public selectCharacter(character: string): void {
@@ -277,12 +237,7 @@ export class SocketManager {
     });
   }
 
-  public setReconnectionConfig(_config: any): void {
-    // This was part of the old reconnection system - now handled by the store
-    console.warn(
-      'setReconnectionConfig is deprecated - reconnection is handled by the connection store'
-    );
-  }
+
 
   public getSocket(): Socket | null {
     const store = connectionStore.getState();
@@ -308,14 +263,16 @@ export class SocketManager {
     // Set up store integration handlers
     socket.on(SOCKET_EVENTS.AUTHENTICATED, (response: AuthResponse) => {
       if (response.success && response.userId) {
-        // Update global game state for backward compatibility
-        updateState({ playerId: response.userId });
+        // Update lobby store local player connection status
+        lobbyStore.getState().setLocalPlayerData({ isConnected: true });
       }
     });
 
     socket.on(SOCKET_EVENTS.ROOM_JOINED, (data: any) => {
       if (data.roomId) {
         store.setRoomId(data.roomId);
+        // Update lobby store room state
+        lobbyStore.getState().setRoomData({ roomId: data.roomId });
       }
     });
 
@@ -323,7 +280,94 @@ export class SocketManager {
       // Clear room if we left
       if (data.playerId === store.authToken) {
         store.setRoomId(null);
+        lobbyStore.getState().clearRoom();
+      } else {
+        // Remove other player from lobby
+        lobbyStore.getState().removePlayer(data.playerId);
       }
+    });
+
+    // Lobby-specific event handlers
+    socket.on(SOCKET_EVENTS.ROOM_STATE_SYNC, (data: RoomStateData) => {
+      console.log('SocketManager: Room state sync received:', data);
+      lobbyStore.getState().updateFromServerState(data);
+    });
+
+    socket.on(SOCKET_EVENTS.PLAYER_JOINED, (data: any) => {
+      console.log('SocketManager: Player joined:', data);
+      if (data.playerId && data.username) {
+        lobbyStore.getState().addPlayer({
+          id: data.playerId,
+          username: data.username,
+          isReady: false,
+          isHost: false,
+          connected: true,
+        });
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.CHARACTER_SELECTED, (data: any) => {
+      console.log('SocketManager: Character selected:', data);
+      if (data.playerId && data.character) {
+        lobbyStore.getState().updatePlayer(data.playerId, {
+          character: data.character,
+        });
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.STAGE_SELECTED, (data: any) => {
+      console.log('SocketManager: Stage selected:', data);
+      if (data.stage) {
+        lobbyStore.getState().selectStage(data.stage);
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.PLAYER_READY_CHANGED, (data: any) => {
+      console.log('SocketManager: Player ready changed:', data);
+      if (data.playerId !== undefined && data.ready !== undefined) {
+        lobbyStore.getState().updatePlayer(data.playerId, {
+          isReady: data.ready,
+        });
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.QUEUE_JOINED, (data: any) => {
+      console.log('SocketManager: Queue joined:', data);
+      lobbyStore.getState().setMatchmakingData({
+        inQueue: true,
+        queuePosition: data.position || 0,
+        estimatedWaitTime: data.estimatedWaitTime || 30,
+      });
+      lobbyStore.getState().setStatusMessage('Searching for opponent...');
+    });
+
+    socket.on(SOCKET_EVENTS.MATCH_FOUND, (data: any) => {
+      console.log('SocketManager: Match found:', data);
+      if (data.roomId) {
+        store.setRoomId(data.roomId);
+        lobbyStore.getState().setMatchmakingData({ inQueue: false });
+        lobbyStore.getState().setRoomData({ roomId: data.roomId });
+        lobbyStore.getState().setStatusMessage('Match found! Joining room...');
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.GAME_STARTING, (data: any) => {
+      console.log('SocketManager: Game starting:', data);
+      const countdown = data.countdown || 5;
+      lobbyStore.getState().startMatchCountdown(countdown);
+    });
+
+    socket.on(SOCKET_EVENTS.GAME_STARTED, (data: any) => {
+      console.log('SocketManager: Game started:', data);
+      lobbyStore.getState().stopMatchCountdown();
+      lobbyStore.getState().setStatusMessage('Game started!');
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', (reason: string) => {
+      console.log('SocketManager: Disconnected:', reason);
+      lobbyStore.getState().setLocalPlayerData({ isConnected: false });
+      lobbyStore.getState().setError(`Disconnected: ${reason}`);
     });
   }
 

@@ -2,6 +2,7 @@ import {
   ConnectionState,
   type ConnectionMetrics,
   subscribeToConnection,
+  getConnectionState,
 } from '@/state/connectionStore';
 
 // Legacy types for ConnectionStatusDisplay compatibility
@@ -385,7 +386,8 @@ export function createConnectionStatusDisplay(
 
   // Set up automatic status updates
   const updateDisplay = () => {
-    const status = socketManager.getConnectionStatus();
+    const connectionState = getConnectionState();
+    const status = connectionState.getConnectionStatus();
     display.updateStatus(status);
   };
 

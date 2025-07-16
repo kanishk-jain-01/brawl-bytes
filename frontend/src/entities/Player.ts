@@ -857,7 +857,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (currentTime - this.lastSyncTime < this.positionSyncRate) return;
 
     const socketManager = getSocketManager();
-    if (!socketManager || !socketManager.isInRoom()) return;
+    if (!socketManager || !socketManager.isConnected()) return;
 
     // Only sync if position or velocity has changed significantly
     const body = this.body as Phaser.Physics.Arcade.Body;

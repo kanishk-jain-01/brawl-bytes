@@ -1,7 +1,8 @@
 /*
- * Pre-Match Lobby Scene
- * ---------------------
- * Displays the lobby before a match starts, showing:
+ * Pre-Match Lobby Scene (Zustand Integration)
+ * ------------------------------------------
+ * Displays the lobby before a match starts, using centralized Zustand store
+ * for state management. Shows:
  * - All players in the room with their selected characters
  * - Ready status for each player
  * - Selected stage information
@@ -13,37 +14,20 @@
 
 import Phaser from 'phaser';
 import { getSocketManager } from '@/managers/SocketManager';
-import { RoomStateData } from '@/types/Network';
-import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
+import {
+  lobbyStore,
+  subscribeToLobby,
+  useRoom,
+  useLocalPlayer,
+  useLobbyUI,
+  type LobbyPlayer,
+} from '@/state/lobbyStore';
+import { getConnectionState } from '@/state/connectionStore';
+import { GAME_CONFIG } from '../utils/constants';
 import { updateState, getState } from '../state/GameState';
 import { MatchPlayer } from '../types/GameState';
 
-interface LobbyPlayer {
-  id: string;
-  username: string;
-  character?: CharacterType;
-  isReady: boolean;
-  isHost: boolean;
-  connected: boolean;
-}
-
-interface LobbyState {
-  players: LobbyPlayer[];
-  selectedStage?: StageType;
-  roomId?: string;
-  allPlayersReady: boolean;
-  countdownActive: boolean;
-  countdown: number;
-}
-
 export class PreMatchLobbyScene extends Phaser.Scene {
-  private lobbyState: LobbyState = {
-    players: [],
-    allPlayersReady: false,
-    countdownActive: false,
-    countdown: 0,
-  };
-
   private playerCards: Phaser.GameObjects.Container[] = [];
 
   private stageDisplay: Phaser.GameObjects.Container | null = null;
@@ -58,18 +42,37 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
   private socketManager = getSocketManager();
 
-  private isLocalPlayerReady = false;
-
-  private isLocalPlayerHost = false;
+  private unsubscribeLobby: (() => void) | null = null;
 
   constructor() {
     super({ key: GAME_CONFIG.SCENE_KEYS.LOBBY });
   }
 
   create(): void {
-    console.log('PreMatchLobbyScene: Starting pre-match lobby');
+    console.log(
+      'PreMatchLobbyScene: Starting pre-match lobby with Zustand store'
+    );
 
-    // Strict validation - fail if character data not loaded from database
+    // Strict validation - fail if required data not loaded from database
+    this.validateGameData();
+
+    // Subscribe to lobby store changes
+    this.setupStoreSubscription();
+
+    // Create UI
+    this.createBackground();
+    this.createTitle();
+    this.createPlayerArea();
+    this.createStageDisplay();
+    this.createControlButtons();
+    this.createStatusArea();
+    this.setupInputs();
+
+    // Initialize lobby state or start matchmaking
+    this.initializeLobby();
+  }
+
+  private validateGameData(): void {
     if (
       !GAME_CONFIG.CHARACTERS ||
       Object.keys(GAME_CONFIG.CHARACTERS).length === 0
@@ -79,137 +82,81 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       );
     }
 
-    // Strict validation - fail if stage data not loaded from database
     if (!GAME_CONFIG.STAGES || Object.keys(GAME_CONFIG.STAGES).length === 0) {
       throw new Error(
         'Stage data not loaded from database. Cannot display stage information.'
       );
     }
 
-    // Strict validation - fail if UI constants not loaded from database
     if (!GAME_CONFIG.UI.COLORS || !GAME_CONFIG.UI.FONTS) {
       throw new Error(
         'UI constants not loaded from database. Cannot create lobby interface.'
       );
     }
-
-    this.setupSocketListeners();
-    this.createBackground();
-    this.createTitle();
-    this.createPlayerArea();
-    this.createStageDisplay();
-    this.createControlButtons();
-    this.createStatusArea();
-    this.setupInputs();
-
-    // Start matchmaking process
-    this.startMatchmaking();
   }
 
-  private setupSocketListeners(): void {
-    if (!this.socketManager) {
-      console.error('PreMatchLobbyScene: Socket manager not available');
+  private setupStoreSubscription(): void {
+    // Subscribe to lobby store changes for reactive UI updates
+    this.unsubscribeLobby = subscribeToLobby(() => {
+      // Update UI when store state changes
+      this.updatePlayerCards();
+      this.updateStageDisplay();
+      this.updateControlButtons();
+      this.updateStatusText();
+      this.updateCountdownDisplay();
+    });
+
+    // Listen for game started event from socket
+    if (this.socketManager) {
+      this.socketManager.on('gameStarted', (data: any) => {
+        console.log('PreMatchLobbyScene: Received gameStarted event:', data);
+        this.transitionToGame(data);
+      });
+    }
+  }
+
+  private initializeLobby(): void {
+    if (!this.socketManager || !this.socketManager.isAuthenticated()) {
+      console.error('Cannot start lobby: not authenticated');
+      lobbyStore.getState().setError('Not authenticated');
       return;
     }
 
-    // Listen for room state updates
-    this.socketManager.on('roomStateSync', (data: RoomStateData) => {
-      this.updateLobbyState(data);
-    });
-
-    // Listen for lobby state updates
-    this.socketManager.on('lobbyState', (data: any) => {
-      console.log('Received lobby state:', data);
-      this.updateLobbyFromBackend(data);
-    });
-
-    // Listen for player join/leave events
-    this.socketManager.on('playerJoined', data => {
-      console.log('Player joined lobby:', data);
-      this.requestRoomState();
-    });
-
-    this.socketManager.on('playerLeft', data => {
-      console.log('Player left lobby:', data);
-      this.requestRoomState();
-    });
-
-    // Listen for character selection changes
-    this.socketManager.on('characterSelected', data => {
-      console.log('Character selected:', data);
-      this.requestRoomState();
-    });
-
-    // Listen for stage selection changes
-    this.socketManager.on('stageSelected', data => {
-      console.log('Stage selected:', data);
-      this.requestRoomState();
-    });
-
-    // Listen for ready status changes
-    this.socketManager.on('playerReady', data => {
-      console.log('Player ready status changed:', data);
-      this.requestRoomState();
-    });
-
-    // Listen for game starting
-    this.socketManager.on('gameStarting', data => {
-      console.log('Game starting:', data);
-      this.startMatchCountdown(data.countdown || 5);
-    });
-
-    // Listen for game started
-    this.socketManager.on('gameStarted', data => {
-      console.log('Game started:', data);
-      this.transitionToGame(data);
-    });
-
-    // Listen for matchmaking events
-    this.socketManager.on('queueJoined', data => {
-      console.log('Joined matchmaking queue:', data);
-    });
-
-    this.socketManager.on('matchFound', data => {
-      console.log('Match found:', data);
-
-      // Set the room ID in socket manager
-      if (data.roomId) {
-        this.socketManager?.setCurrentRoomId(data.roomId);
-      }
-
-      // Clear matchmaking UI and show lobby
-      this.children.removeAll();
-      this.setupSocketListeners();
-      this.createBackground();
-      this.createTitle();
-      this.createPlayerArea();
-      this.createStageDisplay();
-      this.createControlButtons();
-      this.createStatusArea();
-      this.setupInputs();
-      this.requestRoomState(); // Request room state
-    });
+    // Check if we're already in a room
+    const connectionState = getConnectionState();
+    if (connectionState.currentRoomId) {
+      console.log('Already in room, requesting room state...');
+      this.socketManager.requestRoomState();
+    } else {
+      // Start matchmaking process
+      this.startMatchmaking();
+    }
   }
 
   private startMatchmaking(): void {
-    if (!this.socketManager || !this.socketManager.isAuthenticated()) {
-      console.error('Cannot start matchmaking: not authenticated');
-      return;
-    }
-
     console.log('Starting matchmaking from lobby...');
 
-    // Join matchmaking queue
-    if (this.socketManager.getSocket()) {
-      const { selectedStage, selectedCharacter } = getState();
+    const { selectedStage, selectedCharacter } = getState();
 
-      this.socketManager?.getSocket()?.emit('joinMatchmakingQueue', {
+    // Join matchmaking queue using lobby store
+    const preferences = {
+      gameMode: 'versus' as const,
+      preferredCharacter: selectedCharacter || undefined,
+      preferredStage: selectedStage || undefined,
+    };
+
+    lobbyStore.getState().joinQueue(preferences);
+
+    // Emit to socket
+    if (this.socketManager?.getSocket()) {
+      this.socketManager.getSocket()?.emit('joinMatchmakingQueue', {
         gameMode: 'versus',
         preferredStage: selectedStage,
         preferredCharacter: selectedCharacter,
       });
     } else {
       console.error('Socket not available for matchmaking');
+      lobbyStore.getState().setError('Socket not available');
     }
 
     // Show matchmaking status
@@ -217,185 +164,58 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private showMatchmakingStatus(): void {
-    // Add matchmaking status text
-    const statusText = this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY,
-      'Searching for opponent...',
-      {
-        fontSize: '24px',
-        color: GAME_CONFIG.UI.COLORS.TEXT,
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-      }
-    );
-    statusText.setOrigin(0.5);
+    // The UI will be updated through store subscription
+    // Add visual feedback for matchmaking
+    if (this.statusText) {
+      this.statusText.setText('Searching for opponent...');
 
-    // Add animation
-    this.tweens.add({
-      targets: statusText,
-      alpha: 0.5,
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-    });
-  }
-
-  private requestRoomState(): void {
-    if (this.socketManager && this.socketManager.isInRoom()) {
-      console.log(
-        'Requesting room state for room:',
-        this.socketManager.getCurrentRoomId()
-      );
-      this.socketManager.requestRoomState();
-    } else {
-      console.log(
-        'Cannot request room state - not in room or socket manager not available'
-      );
+      // Add animation
+      this.tweens.add({
+        targets: this.statusText,
+        alpha: 0.5,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+      });
     }
-  }
-
-  private updateLobbyState(roomData: RoomStateData): void {
-    console.log('Updating lobby state:', roomData);
-
-    // Update lobby state from room data
-    this.lobbyState = {
-      ...this.lobbyState,
-      roomId: roomData.roomId,
-      selectedStage: roomData.config.stage as StageType,
-      players: roomData.players.map(player => ({
-        id: player.userId,
-        username: player.username,
-        character: player.character as CharacterType,
-        isReady: player.state === 'ready',
-        isHost: player.isHost,
-        connected: true, // Assume connected if in room data
-      })),
-    };
-
-    // Check if all players are ready
-    this.lobbyState.allPlayersReady =
-      this.lobbyState.players.length >= 2 &&
-      this.lobbyState.players.every(player => player.isReady);
-
-    // Update local player status
-    const localPlayerId = this.socketManager?.getAuthToken();
-    const localPlayer = this.lobbyState.players.find(
-      p => p.id === localPlayerId
-    );
-    if (localPlayer) {
-      this.isLocalPlayerReady = localPlayer.isReady;
-      this.isLocalPlayerHost = localPlayer.isHost;
-    }
-
-    // Update UI
-    this.updatePlayerCards();
-    this.updateStageDisplay();
-    this.updateControlButtons();
-    this.updateStatusText();
-  }
-
-  private updateLobbyFromBackend(lobbyData: any): void {
-    console.log('Updating lobby from backend:', lobbyData);
-
-    // Update lobby state from backend lobby data
-    this.lobbyState = {
-      ...this.lobbyState,
-      roomId: lobbyData.roomId,
-      players: lobbyData.players.map((player: any) => ({
-        id: player.userId,
-        username: player.username,
-        character: player.character as CharacterType,
-        isReady: player.ready,
-        isHost: player.isHost,
-        connected: player.connected,
-      })),
-      selectedStage: lobbyData.selectedStage as StageType,
-      allPlayersReady: lobbyData.allPlayersReady,
-    };
-
-    // Update local player status
-    const localPlayerId = this.socketManager?.getAuthToken();
-    const localPlayer = this.lobbyState.players.find(
-      p => p.id === localPlayerId
-    );
-    if (localPlayer) {
-      this.isLocalPlayerReady = localPlayer.isReady;
-      this.isLocalPlayerHost = localPlayer.isHost;
-    }
-
-    // Update UI
-    this.updatePlayerCards();
-    this.updateStageDisplay();
-    this.updateControlButtons();
-    this.updateStatusText();
   }
 
   private createBackground(): void {
-    // Create dark background
-    this.add.rectangle(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x1a1a2e
-    );
+    const { width, height } = this.cameras.main;
 
-    // Add animated background pattern
-    const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x27ae60, 0.1);
+    // Gradient background
+    this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
 
-    for (let x = 0; x < this.cameras.main.width; x += 50) {
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.cameras.main.height);
-    }
-
-    for (let y = 0; y < this.cameras.main.height; y += 50) {
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.cameras.main.width, y);
-    }
-
-    graphics.strokePath();
-
-    // Animate the pattern
-    this.tweens.add({
-      targets: graphics,
-      alpha: { from: 0.1, to: 0.3 },
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    // Add some visual elements
+    this.add
+      .rectangle(width / 2, 80, width - 40, 100, 0x16213e)
+      .setStrokeStyle(2, 0x0f3460);
   }
 
   private createTitle(): void {
-    const title = this.add
+    this.add
       .text(this.cameras.main.centerX, 80, 'PRE-MATCH LOBBY', {
-        fontSize: '42px',
+        fontSize: '32px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
-
-    // Add glow effect
-    title.setStroke('#27ae60', 4);
-    title.setShadow(2, 2, '#000000', 2, true, true);
-
-    // Animate title
-    this.tweens.add({
-      targets: title,
-      scaleX: { from: 1, to: 1.02 },
-      scaleY: { from: 1, to: 1.02 },
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
   }
 
   private createPlayerArea(): void {
-    // Create container for player cards
     const playerAreaY = 180;
+
+    // Player area background
+    this.add
+      .rectangle(
+        this.cameras.main.centerX,
+        playerAreaY + 90,
+        this.cameras.main.width - 40,
+        200,
+        0x2c3e50
+      )
+      .setStrokeStyle(2, 0x34495e);
 
     // Title for player area
     this.add
@@ -429,7 +249,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.stageDisplay.add(stageTitle);
 
-    // Placeholder text
+    // Placeholder text (will be updated by subscription)
     const placeholderText = this.add
       .text(0, 0, 'No stage selected', {
         fontSize: '16px',
@@ -475,7 +295,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       });
     });
     readyBg.on('pointerout', () => {
-      const color = this.isLocalPlayerReady ? 0x27ae60 : 0x7f8c8d;
+      const { localPlayer } = useLocalPlayer();
+      const color = localPlayer.isReady ? 0x27ae60 : 0x7f8c8d;
       readyBg.setFillStyle(color);
       this.tweens.add({
         targets: this.readyButton,
@@ -509,7 +330,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     startBg.setInteractive();
     startBg.on('pointerdown', () => this.startGame());
     startBg.on('pointerover', () => {
-      if (this.canStartGame()) {
+      const { canStartGame } = useRoom();
+      if (canStartGame) {
         startBg.setFillStyle(0x27ae60);
         this.tweens.add({
           targets: this.startButton,
@@ -520,7 +342,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       }
     });
     startBg.on('pointerout', () => {
-      const color = this.canStartGame() ? 0x27ae60 : 0x95a5a6;
+      const { canStartGame } = useRoom();
+      const color = canStartGame ? 0x27ae60 : 0x95a5a6;
       startBg.setFillStyle(color);
       this.tweens.add({
         targets: this.startButton,
@@ -560,15 +383,20 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.playerCards.forEach(card => card.destroy());
     this.playerCards = [];
 
+    const { currentRoom } = useRoom();
+    const { players } = currentRoom;
+
+    if (players.length === 0) return;
+
     const cardWidth = 250;
     const cardHeight = 180;
     const spacing = 30;
     const startX =
       this.cameras.main.centerX -
-      ((this.lobbyState.players.length - 1) * (cardWidth + spacing)) / 2;
+      ((players.length - 1) * (cardWidth + spacing)) / 2;
     const cardY = 280;
 
-    this.lobbyState.players.forEach((player, index) => {
+    players.forEach((player, index) => {
       const x = startX + index * (cardWidth + spacing);
       const card = this.createPlayerCard(
         player,
@@ -598,86 +426,66 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     } else if (player.isReady) {
       borderColor = 0x2ecc71;
     } else {
-      borderColor = 0x3498db;
+      borderColor = 0x7f8c8d;
     }
 
-    const background = this.add.rectangle(0, 0, width, height, bgColor);
-    background.setStrokeStyle(player.isHost ? 3 : 2, borderColor);
-    container.add(background);
+    const cardBg = this.add.rectangle(0, 0, width, height, bgColor);
+    cardBg.setStrokeStyle(3, borderColor);
+    container.add(cardBg);
 
-    // Host crown indicator
-    if (player.isHost) {
-      const crown = this.add.text(-width / 2 + 15, -height / 2 + 15, '👑', {
-        fontSize: '20px',
-      });
-      container.add(crown);
-    }
-
-    // Player username
-    const username = this.add
-      .text(0, -height / 2 + 40, player.username, {
-        fontSize: '20px',
+    // Player name
+    const nameText = this.add
+      .text(0, -60, player.username, {
+        fontSize: '18px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
         fontStyle: 'bold',
+        align: 'center',
       })
       .setOrigin(0.5);
-    container.add(username);
+    container.add(nameText);
+
+    // Host indicator
+    if (player.isHost) {
+      const hostIndicator = this.add
+        .text(0, -35, '👑 HOST', {
+          fontSize: '14px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: '#f39c12',
+          align: 'center',
+        })
+        .setOrigin(0.5);
+      container.add(hostIndicator);
+    }
 
     // Character display
     if (player.character && GAME_CONFIG.CHARACTERS[player.character]) {
-      const character = GAME_CONFIG.CHARACTERS[player.character];
+      const characterData = GAME_CONFIG.CHARACTERS[player.character];
 
-      // Character name
-      const charName = this.add
-        .text(0, -10, character.name, {
+      const characterName = this.add
+        .text(0, 0, characterData.name, {
           fontSize: '16px',
           fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
           color: GAME_CONFIG.UI.COLORS.TEXT,
+          align: 'center',
         })
         .setOrigin(0.5);
-      container.add(charName);
+      container.add(characterName);
 
-      // Character placeholder (colored rectangle) - use database-driven colors
-      let charColor: number;
-      if (player.character === 'DASH') {
-        charColor = parseInt(
-          GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x'),
-          16
-        );
-      } else if (player.character === 'REX') {
-        charColor = parseInt(
-          GAME_CONFIG.UI.COLORS.PRIMARY.replace('#', '0x'),
-          16
-        );
-      } else if (player.character === 'TITAN') {
-        charColor = parseInt(
-          GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x'),
-          16
-        );
-      } else {
-        // Strict validation - fail if unknown character type
-        throw new Error(
-          `Unknown character type: ${player.character}. Character data not loaded from database.`
-        );
-      }
-
-      // Strict validation - fail if UI colors not loaded from database
-      if (
-        !GAME_CONFIG.UI.COLORS.SUCCESS ||
-        !GAME_CONFIG.UI.COLORS.PRIMARY ||
-        !GAME_CONFIG.UI.COLORS.DANGER
-      ) {
-        throw new Error(
-          'UI colors not loaded from database constants. Cannot display character colors.'
-        );
-      }
-      const charRect = this.add.rectangle(0, 20, 60, 60, charColor);
-      charRect.setStrokeStyle(1, 0xffffff);
-      container.add(charRect);
+      // Character stats preview
+      const statsText = `ATK: ${characterData.attackDamage} | HP: ${characterData.health}`;
+      const statsDisplay = this.add
+        .text(0, 20, statsText, {
+          fontSize: '12px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          align: 'center',
+        })
+        .setOrigin(0.5);
+      container.add(statsDisplay);
     } else {
       const noCharText = this.add
-        .text(0, 10, 'No character\nselected', {
+        .text(0, 0, 'No character selected', {
           fontSize: '14px',
           fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
           color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
@@ -688,20 +496,29 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }
 
     // Ready status
-    const statusText = player.isReady ? 'READY' : 'NOT READY';
-    const statusColor = player.isReady
-      ? GAME_CONFIG.UI.COLORS.SUCCESS
-      : GAME_CONFIG.UI.COLORS.WARNING;
-
-    const status = this.add
-      .text(0, height / 2 - 20, statusText, {
+    const readyStatus = this.add
+      .text(0, 50, player.isReady ? '✓ READY' : '○ NOT READY', {
         fontSize: '14px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: statusColor,
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: player.isReady ? '#2ecc71' : '#e74c3c',
         fontStyle: 'bold',
+        align: 'center',
       })
       .setOrigin(0.5);
-    container.add(status);
+    container.add(readyStatus);
+
+    // Connection indicator
+    const connectionColor = player.connected ? '#2ecc71' : '#e74c3c';
+    const connectionText = player.connected ? '● Online' : '● Offline';
+    const connectionStatus = this.add
+      .text(0, 70, connectionText, {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: connectionColor,
+        align: 'center',
+      })
+      .setOrigin(0.5);
+    container.add(connectionStatus);
 
     return container;
   }
@@ -709,38 +526,41 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private updateStageDisplay(): void {
     if (!this.stageDisplay) return;
 
-    // Clear existing stage content (except background and title)
-    while (this.stageDisplay.list.length > 2) {
-      this.stageDisplay.list.pop()?.destroy();
-    }
+    const { currentRoom } = useRoom();
+    const { selectedStage } = currentRoom;
 
-    if (
-      this.lobbyState.selectedStage &&
-      GAME_CONFIG.STAGES[this.lobbyState.selectedStage]
-    ) {
-      const stage = GAME_CONFIG.STAGES[this.lobbyState.selectedStage];
+    // Clear existing content (except background and title)
+    const children = this.stageDisplay.list.slice(2); // Keep first 2 elements
+    children.forEach(child => child.destroy());
 
-      const stageText = this.add
-        .text(0, 0, stage.name, {
-          fontSize: '18px',
+    if (selectedStage && GAME_CONFIG.STAGES[selectedStage]) {
+      const stageData = GAME_CONFIG.STAGES[selectedStage];
+
+      // Stage name
+      const stageName = this.add
+        .text(0, 0, stageData.name, {
+          fontSize: '20px',
           fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
           color: GAME_CONFIG.UI.COLORS.TEXT,
           fontStyle: 'bold',
+          align: 'center',
         })
         .setOrigin(0.5);
-      this.stageDisplay.add(stageText);
+      this.stageDisplay.add(stageName);
 
-      const descText = this.add
-        .text(0, 25, stage.description, {
-          fontSize: '12px',
+      // Stage description
+      const stageDesc = this.add
+        .text(0, 25, stageData.description, {
+          fontSize: '14px',
           fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
           color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
           align: 'center',
           wordWrap: { width: 350 },
         })
         .setOrigin(0.5);
-      this.stageDisplay.add(descText);
+      this.stageDisplay.add(stageDesc);
     } else {
+      // No stage selected
       const placeholderText = this.add
         .text(0, 0, 'No stage selected', {
           fontSize: '16px',
@@ -754,86 +574,124 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private updateControlButtons(): void {
-    this.updateReadyButton();
-    this.updateStartButton();
-  }
+    if (!this.readyButton || !this.startButton) return;
 
-  private updateReadyButton(): void {
-    if (!this.readyButton) return;
+    const { currentRoom, canStartGame } = useRoom();
+    const { localPlayer } = useLocalPlayer();
+    const connectionState = getConnectionState();
 
-    const background = this.readyButton.list[0] as Phaser.GameObjects.Rectangle;
-    const text = this.readyButton.list[1] as Phaser.GameObjects.Text;
+    // Update ready button
+    const readyBg = this.readyButton.list[0] as Phaser.GameObjects.Rectangle;
+    const readyText = this.readyButton.list[1] as Phaser.GameObjects.Text;
 
-    if (this.isLocalPlayerReady) {
-      text.setText('NOT READY');
-      background.setFillStyle(0x27ae60);
-      background.setStrokeStyle(2, 0x2ecc71);
+    if (localPlayer.isReady) {
+      readyBg.setFillStyle(0x27ae60);
+      readyText.setText('NOT READY');
     } else {
-      text.setText('READY');
-      background.setFillStyle(0x7f8c8d);
-      background.setStrokeStyle(2, 0x95a5a6);
+      readyBg.setFillStyle(0x7f8c8d);
+      readyText.setText('READY');
     }
-  }
 
-  private updateStartButton(): void {
-    if (!this.startButton) return;
+    // Update start button
+    const startBg = this.startButton.list[0] as Phaser.GameObjects.Rectangle;
 
-    const background = this.startButton.list[0] as Phaser.GameObjects.Rectangle;
-    const canStart = this.canStartGame();
-
-    if (canStart && this.isLocalPlayerHost) {
+    if (canStartGame) {
       this.startButton.setAlpha(1);
-      background.setFillStyle(0x27ae60);
-      background.setStrokeStyle(2, 0x2ecc71);
+      startBg.setFillStyle(0x27ae60);
     } else {
-      this.startButton.setAlpha(this.isLocalPlayerHost ? 0.5 : 0);
-      background.setFillStyle(0x95a5a6);
-      background.setStrokeStyle(2, 0xbdc3c7);
+      this.startButton.setAlpha(0.5);
+      startBg.setFillStyle(0x95a5a6);
     }
+
+    // Show/hide start button based on host status
+    const localPlayerId = connectionState.userId;
+    const localPlayerInRoom = currentRoom.players.find(
+      p => p.id === localPlayerId
+    );
+    const isHost = localPlayerInRoom?.isHost || false;
+
+    this.startButton.setVisible(isHost);
   }
 
   private updateStatusText(): void {
     if (!this.statusText) return;
 
-    let message = '';
+    const { statusMessage } = useLobbyUI();
+    const { getRoomStatus } = useRoom();
+    const roomStatus = getRoomStatus;
 
-    if (this.lobbyState.players.length < 2) {
-      message = 'Waiting for more players...';
-    } else if (!this.lobbyState.allPlayersReady) {
-      const readyCount = this.lobbyState.players.filter(p => p.isReady).length;
-      message = `${readyCount}/${this.lobbyState.players.length} players ready`;
-    } else if (this.isLocalPlayerHost) {
-      message = 'All players ready! You can start the game.';
-    } else {
-      message = 'All players ready! Waiting for host to start...';
+    // Use lobby store status message or generate one
+    let message = statusMessage;
+
+    if (message === 'Waiting for players...' && roomStatus.playerCount > 0) {
+      if (roomStatus.playerCount < 2) {
+        message = 'Waiting for more players...';
+      } else if (roomStatus.readyCount < roomStatus.playerCount) {
+        message = `${roomStatus.readyCount}/${roomStatus.playerCount} players ready`;
+      } else {
+        const connectionState = getConnectionState();
+        const localPlayerId = connectionState.userId;
+        const { currentRoom } = useRoom();
+        const localPlayerInRoom = currentRoom.players.find(
+          p => p.id === localPlayerId
+        );
+        const isHost = localPlayerInRoom?.isHost || false;
+
+        if (isHost) {
+          message = 'All players ready! You can start the game.';
+        } else {
+          message = 'All players ready! Waiting for host to start...';
+        }
+      }
     }
 
     this.statusText.setText(message);
   }
 
-  private canStartGame(): boolean {
-    return (
-      this.lobbyState.players.length >= 2 &&
-      this.lobbyState.allPlayersReady &&
-      this.lobbyState.selectedStage !== undefined
-    );
+  private updateCountdownDisplay(): void {
+    if (!this.countdownText) return;
+
+    const { countdown } = useLobbyUI();
+
+    if (countdown.active) {
+      this.countdownText.setText(countdown.message);
+      this.countdownText.setVisible(true);
+    } else {
+      this.countdownText.setText('');
+      this.countdownText.setVisible(false);
+    }
   }
 
   private toggleReady(): void {
     if (!this.socketManager) return;
 
+    const { localPlayer, setPlayerReady } = useLocalPlayer();
+    const newReadyState = !localPlayer.isReady;
+
     console.log(
-      `Toggling ready state from ${this.isLocalPlayerReady} to ${!this.isLocalPlayerReady}`
+      `Toggling ready state from ${localPlayer.isReady} to ${newReadyState}`
     );
-    this.socketManager.setPlayerReady(!this.isLocalPlayerReady);
+
+    // Update local state immediately for responsive UI
+    setPlayerReady(newReadyState);
+
+    // Send to server
+    this.socketManager.setPlayerReady(newReadyState);
   }
 
   private startGame(): void {
-    if (
-      !this.socketManager ||
-      !this.canStartGame() ||
-      !this.isLocalPlayerHost
-    ) {
+    if (!this.socketManager) return;
+
+    const { canStartGame } = useRoom();
+    const connectionState = getConnectionState();
+    const { currentRoom } = useRoom();
+    const localPlayerId = connectionState.userId;
+    const localPlayerInRoom = currentRoom.players.find(
+      p => p.id === localPlayerId
+    );
+    const isHost = localPlayerInRoom?.isHost || false;
+
+    if (!canStartGame || !isHost) {
       return;
     }
 
@@ -841,28 +699,32 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.socketManager.startGame();
   }
 
-  private startMatchCountdown(seconds: number): void {
-    this.lobbyState.countdownActive = true;
-    this.lobbyState.countdown = seconds;
+  private setupInputs(): void {
+    // ESC key to leave lobby
+    this.input.keyboard?.addKey('ESC').on('down', () => {
+      this.leaveLobby();
+    });
 
-    if (this.countdownText) {
-      this.countdownText.setText(`Game starting in ${seconds}...`);
-    }
+    // Space key to toggle ready
+    this.input.keyboard?.addKey('SPACE').on('down', () => {
+      this.toggleReady();
+    });
 
-    const countdownTimer = setInterval(() => {
-      this.lobbyState.countdown -= 1;
+    // Enter key to start game (if host and all ready)
+    this.input.keyboard?.addKey('ENTER').on('down', () => {
+      const { canStartGame } = useRoom();
+      const connectionState = getConnectionState();
+      const { currentRoom } = useRoom();
+      const localPlayerId = connectionState.userId;
+      const localPlayerInRoom = currentRoom.players.find(
+        p => p.id === localPlayerId
+      );
+      const isHost = localPlayerInRoom?.isHost || false;
 
-      if (this.countdownText) {
-        if (this.lobbyState.countdown > 0) {
-          this.countdownText.setText(
-            `Game starting in ${this.lobbyState.countdown}...`
-          );
-        } else {
-          this.countdownText.setText('Starting now!');
-          clearInterval(countdownTimer);
-        }
+      if (canStartGame && isHost) {
+        this.startGame();
       }
-    }, 1000);
+    });
   }
 
   private transitionToGame(gameStartData?: any): void {
@@ -940,31 +802,15 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     });
   }
 
-  private setupInputs(): void {
-    // ESC key to leave lobby
-    this.input.keyboard?.addKey('ESC').on('down', () => {
-      this.leaveLobby();
-    });
-
-    // Space key to toggle ready
-    this.input.keyboard?.addKey('SPACE').on('down', () => {
-      this.toggleReady();
-    });
-
-    // Enter key to start game (if host and all ready)
-    this.input.keyboard?.addKey('ENTER').on('down', () => {
-      if (this.canStartGame() && this.isLocalPlayerHost) {
-        this.startGame();
-      }
-    });
-  }
-
   private leaveLobby(): void {
     console.log('PreMatchLobbyScene: Leaving lobby');
 
     if (this.socketManager) {
       this.socketManager.leaveRoom();
     }
+
+    // Clear lobby state
+    lobbyStore.getState().clearRoom();
 
     // Return to menu
     this.cameras.main.fadeOut(300, 0, 0, 0);
@@ -974,16 +820,17 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   shutdown(): void {
-    // Clean up socket listeners
+    // Unsubscribe from store changes
+    if (this.unsubscribeLobby) {
+      this.unsubscribeLobby();
+    }
+
+    // Clean up the gameStarted event listener
     if (this.socketManager) {
-      this.socketManager.off('roomStateSync');
-      this.socketManager.off('playerJoined');
-      this.socketManager.off('playerLeft');
-      this.socketManager.off('characterSelected');
-      this.socketManager.off('stageSelected');
-      this.socketManager.off('playerReady');
-      this.socketManager.off('gameStarting');
       this.socketManager.off('gameStarted');
     }
+
+    // The other socket event listeners are now managed by SocketManager
+    // so we don't need to manually remove them here
   }
 }
