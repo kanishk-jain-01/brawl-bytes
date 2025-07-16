@@ -58,6 +58,8 @@ export interface GameState {
   playerId?: string;
   /** Current match state */
   matchState?: MatchState;
+  /** Authoritative game start data from server */
+  gameStartData?: any;
 }
 
 export interface SessionData {

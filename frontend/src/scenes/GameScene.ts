@@ -42,6 +42,13 @@ export class GameScene extends Phaser.Scene {
 
   private cameraTarget: Phaser.GameObjects.GameObject | null = null;
 
+  // Game initialization data from server
+  private gameData: {
+    serverData: any;
+    localPlayerId: string | undefined;
+    remotePlayers: any[];
+  } | null = null;
+
   // Managers
   private inputManager: InputManager | null = null;
 
@@ -60,11 +67,8 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     console.log('GameScene: Starting game');
 
-    // Retrieve selected character from global state, fallback to default
-    const rawCharacter = getState().selectedCharacter || 'BALANCED_ALLROUNDER';
-    // Map old character names to new ones
-    this.selectedCharacter = this.mapCharacterName(rawCharacter);
-    console.log(`GameScene: Selected character - ${this.selectedCharacter}`);
+    // Initialize from server's authoritative game start data
+    this.initializeFromServerData();
 
     this.setupPhysics();
     this.createStage();
@@ -72,6 +76,114 @@ export class GameScene extends Phaser.Scene {
     this.initializeManagers();
     this.initializeConnectionStatusDisplay();
     this.startMatch();
+  }
+
+  private initializeFromServerData(): void {
+    const gameState = getState();
+    const serverData = gameState.gameStartData;
+
+    // Fail fast: Multiplayer game requires server data
+    if (!serverData) {
+      throw new Error('GameScene: Cannot initialize game without server data. This is a multiplayer game that requires active server connection.');
+    }
+
+    console.log('GameScene: Initializing from server data:', serverData);
+    
+    // Strict validation of server data
+    if (!serverData.stage) {
+      throw new Error('GameScene: Server data missing stage selection.');
+    }
+
+    if (!serverData.players || !Array.isArray(serverData.players)) {
+      throw new Error('GameScene: Server data missing players array.');
+    }
+
+    if (!gameState.playerId) {
+      throw new Error('GameScene: Local player ID not found. Authentication required.');
+    }
+    
+    // Use server's authoritative stage selection
+    this.selectedStage = serverData.stage;
+    
+    // Find local player from server data
+    const localPlayerId = gameState.playerId;
+    const localPlayerData = serverData.players.find((p: any) => p.userId === localPlayerId);
+    
+    if (!localPlayerData) {
+      throw new Error(`GameScene: Local player (${localPlayerId}) not found in server player data. Server/client desync detected.`);
+    }
+
+    if (!localPlayerData.character) {
+      throw new Error('GameScene: Local player missing character assignment from server.');
+    }
+
+    this.selectedCharacter = this.mapCharacterName(localPlayerData.character);
+    console.log(`GameScene: Local player character from server - ${this.selectedCharacter}`);
+
+    // Store remote players data for NetworkManager
+    this.gameData = {
+      serverData,
+      localPlayerId,
+      remotePlayers: serverData.players.filter((p: any) => p.userId !== localPlayerId),
+    };
+
+    console.log(`GameScene: Initialized from server - Character: ${this.selectedCharacter}, Stage: ${this.selectedStage}, Remote Players: ${this.gameData.remotePlayers.length}`);
+  }
+
+  private initializeRemotePlayers(): void {
+    // Fail fast: All required components must be available
+    if (!this.gameData) {
+      throw new Error('GameScene: Cannot initialize remote players without game data.');
+    }
+
+    if (!this.stage) {
+      throw new Error('GameScene: Cannot initialize remote players without stage.');
+    }
+
+    if (!this.networkManager) {
+      throw new Error('GameScene: Cannot initialize remote players without network manager.');
+    }
+
+    const spawnPoints = this.stage.getSpawnPoints();
+    let spawnIndex = 1; // Start from index 1, assuming local player uses index 0
+
+    this.gameData.remotePlayers.forEach((playerData: any) => {
+      // Strict validation of remote player data
+      if (!playerData.userId) {
+        throw new Error('GameScene: Remote player missing userId.');
+      }
+
+      if (!playerData.username) {
+        throw new Error('GameScene: Remote player missing username.');
+      }
+
+      if (!playerData.character) {
+        throw new Error(`GameScene: Remote player ${playerData.username} missing character assignment from server.`);
+      }
+
+      const spawnPoint = spawnPoints[spawnIndex % spawnPoints.length];
+      const characterType = this.mapCharacterName(playerData.character);
+      
+      // Create remote player with server-provided character type
+      const remotePlayer = this.networkManager!.createRemotePlayerWithCharacter(
+        playerData.userId,
+        playerData.username,
+        spawnPoint,
+        characterType
+      );
+
+      if (!remotePlayer) {
+        throw new Error(`GameScene: Failed to create remote player ${playerData.username}.`);
+      }
+
+      this.players.push(remotePlayer);
+      this.stage!.setupPlayerCollisions(remotePlayer);
+      
+      console.log(`GameScene: Created remote player ${playerData.username} with character ${characterType}`);
+      spawnIndex++;
+    });
+
+    console.log(`GameScene: Initialized ${this.gameData.remotePlayers.length} remote players from server data`);
   }
 
   private setupPhysics(): void {
@@ -284,6 +396,9 @@ export class GameScene extends Phaser.Scene {
       onPlayerReconnected: data => this.handlePlayerReconnected(data),
     };
     this.networkManager = new NetworkManager(this, networkHandlers);
+
+    // Initialize remote players from server data if available
+    this.initializeRemotePlayers();
 
     // Set up event listeners for manager coordination
     this.setupManagerEvents();

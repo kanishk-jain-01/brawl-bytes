@@ -128,11 +128,11 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [ ] 5.8 Lobby & Selection Synchronization
     - [x] 5.8.1 Create StageSelectScene (frontend UI for host to choose stage)
     - [x] 5.8.2 Implement PreMatchLobby flow (show players, ready status, selected characters & stage)
-    - [ ] 5.8.3 Emit `selectCharacter`, `selectStage`, and `setPlayerReady` events from frontend via SocketManager
-    - [ ] 5.8.4 Add backend lobby events (`charSelected`, `stageSelected`, `playerReady`, `lobby:state`, `lobby:start`)
-    - [ ] 5.8.5 Extend GameRoom to store selections, validate inputs, and start match once all players ready
-    - [ ] 5.8.6 Broadcast `lobby:state` updates and `game:start` payload including chosen stage & character assignments
-    - [ ] 5.8.7 Update NetworkManager/GameScene to initialize players and stage from `game:start` data
+    - [x] 5.8.3 Emit `selectCharacter`, `selectStage`, and `setPlayerReady` events from frontend via SocketManager
+    - [x] 5.8.4 Add backend lobby events (`charSelected`, `stageSelected`, `playerReady`, `lobby:state`, `lobby:start`)
+    - [x] 5.8.5 Extend GameRoom to store selections, validate inputs, and start match once all players ready
+    - [x] 5.8.6 Broadcast `lobby:state` updates and `game:start` payload including chosen stage & character assignments
+    - [x] 5.8.7 Update NetworkManager/GameScene to initialize players and stage from `game:start` data
     - [ ] 5.8.8 Add unit tests for lobby flow and selection validation (backend)
     - [ ] 5.8.9 Emit authoritative state snapshots (`game:state`) from backend at 60 Hz and deltas on key events
     - [ ] 5.8.10 Consume `game:state` / `positionCorrection` on frontend, reconcile predicted vs authoritative state for all players

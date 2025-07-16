@@ -9,6 +9,93 @@ import type { CharacterType, StageType } from '@/utils/constants';
 import type { PlayerInputState, PlayerStats } from './Player';
 import type { MatchState } from './GameState';
 
+/**
+ * Socket.io Event Names
+ * ---------------------
+ * Centralised catalogue of every Socket.io event used by the frontend. Refer to
+ * these keys instead of hard-coding string literals to avoid "magic strings".
+ */
+export const SOCKET_EVENTS = {
+  // Client → Server events
+  AUTHENTICATE: 'authenticate',
+  JOIN_QUEUE: 'joinQueue',
+  LEAVE_QUEUE: 'leaveQueue',
+  JOIN_ROOM: 'joinRoom',
+  LEAVE_ROOM: 'leaveRoom',
+  SELECT_CHARACTER: 'selectCharacter',
+  SELECT_STAGE: 'selectStage',
+  PLAYER_READY: 'playerReady',
+  PLAYER_INPUT: 'playerInput',
+  PLAYER_POSITION: 'playerPosition',
+  CHAT_MESSAGE: 'chatMessage',
+  REQUEST_GAME_STATE_SYNC: 'requestGameStateSync',
+
+  // Server → Client events
+  AUTHENTICATED: 'authenticated',
+  AUTHENTICATION_FAILED: 'authenticationFailed',
+  QUEUE_JOINED: 'queueJoined',
+  MATCH_FOUND: 'matchFound',
+  ROOM_JOINED: 'roomJoined',
+  PLAYER_JOINED: 'playerJoined',
+  PLAYER_LEFT: 'playerLeft',
+  CHARACTER_SELECTED: 'characterSelected',
+  STAGE_SELECTED: 'stageSelected',
+  PLAYER_READY_CHANGED: 'playerReadyChanged',
+  GAME_STARTED: 'gameStarted',
+  GAME_STATE_UPDATE: 'gameStateUpdate',
+  PLAYER_UPDATE: 'playerUpdate',
+  MATCH_ENDED: 'matchEnded',
+  ERROR: 'error',
+
+  // Real-time gameplay events (bidirectional)
+  PLAYER_MOVE: 'playerMove',
+  PLAYER_ATTACK: 'playerAttack',
+  GAME_EVENT: 'gameEvent',
+  SERVER_STATE: 'serverState',
+  POSITION_CORRECTION: 'positionCorrection',
+  GAME_PAUSED: 'gamePaused',
+  GAME_RESUMED: 'gameResumed',
+  PLAYER_DISCONNECTED: 'playerDisconnected',
+  PLAYER_RECONNECTED: 'playerReconnected',
+
+  // Connection maintenance
+  PING: 'ping',
+  PONG: 'pong',
+
+  // Additional room/game lifecycle events
+  WELCOME: 'welcome',
+  ROOM_CREATED: 'roomCreated',
+  ROOM_ERROR: 'roomError',
+  GAME_READY: 'gameReady',
+  ROOM_STATE_SYNC: 'roomStateSync',
+  GAME_STARTING: 'gameStarting',
+  GAME_STATE_SYNC: 'gameStateSync',
+
+  // Detailed combat/gameplay events
+  PLAYER_HIT: 'playerHit',
+  PLAYER_KO: 'playerKO',
+  PLAYER_RESPAWN: 'playerRespawn',
+  STAGE_HAZARD: 'stageHazard',
+  POWERUP_SPAWN: 'powerupSpawn',
+  POWERUP_COLLECTED: 'powerupCollected',
+
+  // Match state events
+  MATCH_PAUSED: 'matchPaused',
+  MATCH_RESUMED: 'matchResumed',
+  MATCH_TIMEOUT: 'matchTimeout',
+  GAME_STARTING_CLIENT: 'gameStarting',
+
+  // Room management (client → server)
+  CREATE_ROOM: 'createRoom',
+  REQUEST_ROOM_STATE: 'requestRoomState',
+  START_GAME: 'startGame',
+} as const;
+
+/**
+ * Helper type representing any valid Socket.io event name.
+ */
+export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
+
 // Base message interface
 export interface BaseMessage {
   timestamp: number;

@@ -154,7 +154,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     // Listen for game started
     this.socketManager.on('gameStarted', data => {
       console.log('Game started:', data);
-      this.transitionToGame();
+      this.transitionToGame(data);
     });
   }
 
@@ -724,26 +724,62 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }, 1000);
   }
 
-  private transitionToGame(): void {
+  private transitionToGame(gameStartData?: any): void {
     console.log('PreMatchLobbyScene: Transitioning to game');
 
-    // Store lobby selections in global state
+    // Fail fast: Require server's authoritative game start data
+    if (!gameStartData) {
+      throw new Error('Cannot start game: No server data received. Game requires active server connection.');
+    }
+
+    const serverData = gameStartData;
+    
+    // Strict validation - all required fields must be present
+    if (!serverData.stage) {
+      throw new Error('Cannot start game: Server did not provide stage selection.');
+    }
+    
+    if (!serverData.players || !Array.isArray(serverData.players) || serverData.players.length === 0) {
+      throw new Error('Cannot start game: Server did not provide player data.');
+    }
+
+    if (!serverData.roomId) {
+      throw new Error('Cannot start game: Server did not provide room ID.');
+    }
+
+    if (!serverData.gameConfig) {
+      throw new Error('Cannot start game: Server did not provide game configuration.');
+    }
+
+    // Store authoritative game data in global state
     updateState({
-      selectedStage: this.lobbyState.selectedStage,
-      roomId: this.lobbyState.roomId,
+      selectedStage: serverData.stage,
+      roomId: serverData.roomId,
+      gameStartData: serverData, // Store the complete server data for GameScene
       matchState: {
         phase: 'loading',
-        timeRemaining: 300, // 5 minutes default
-        maxDuration: 300,
-        players: this.lobbyState.players.map(p => ({
-          id: p.id,
+        timeRemaining: serverData.gameConfig.timeLimit,
+        maxDuration: serverData.gameConfig.timeLimit,
+        players: serverData.players.map((p: any) => ({
+          id: p.userId,
           name: p.username,
-          character: p.character || null,
-          stats: { health: 100, stocks: 3, damage: 0 } as MatchPlayer['stats'],
-          connected: p.connected,
-          ready: p.isReady,
+          character: p.character,
+          stats: { 
+            health: 100, 
+            stocks: serverData.gameConfig.stockCount, 
+            damage: 0 
+          } as MatchPlayer['stats'],
+          connected: true, // Server only sends connected players
+          ready: true, // Server only starts when all ready
+          isHost: p.isHost,
         })),
       },
+    });
+
+    console.log('Transitioning with validated server data:', {
+      stage: serverData.stage,
+      players: serverData.players.length,
+      gameConfig: serverData.gameConfig,
     });
 
     // Transition to game scene

@@ -1,6 +1,7 @@
-import { DamageType } from '@/types';
+import { SOCKET_EVENTS } from '@/types/Network';
 import { Player } from '../entities/Player';
 import { getSocketManager } from '../utils/socket';
+import { DamageType } from '@/types';
 
 export interface NetworkEventHandlers {
   onPlayerJoined: (data: { playerId: string; username: string }) => void;
@@ -44,60 +45,60 @@ export class NetworkManager {
     if (!socketManager) return;
 
     // Listen for player input events from other players
-    socketManager.on('playerInput', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_INPUT, (data: any) => {
       this.handleRemotePlayerInput(data);
     });
 
     // Listen for player move events
-    socketManager.on('playerMove', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_MOVE, (data: any) => {
       this.handleRemotePlayerMove(data);
     });
 
     // Listen for player attack events
-    socketManager.on('playerAttack', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_ATTACK, (data: any) => {
       this.handleRemotePlayerAttack(data);
     });
 
     // Listen for players joining the game
-    socketManager.on('playerJoined', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_JOINED, (data: any) => {
       this.handlers.onPlayerJoined(data);
     });
 
     // Listen for players leaving the game
-    socketManager.on('playerLeft', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_LEFT, (data: any) => {
       this.handlers.onPlayerLeft(data);
     });
 
     // Listen for game events
-    socketManager.on('gameEvent', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.GAME_EVENT, (data: any) => {
       this.handlers.onGameEvent(data);
     });
 
     // Listen for server state updates (for prediction reconciliation)
-    socketManager.on('serverState', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.SERVER_STATE, (data: any) => {
       this.handleServerState(data);
     });
 
     // Listen for position corrections
-    socketManager.on('positionCorrection', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.POSITION_CORRECTION, (data: any) => {
       this.handlePositionCorrection(data);
     });
 
     // Listen for game pause/resume events
-    socketManager.on('gamePaused', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.GAME_PAUSED, (data: any) => {
       this.handlers.onGamePaused(data);
     });
 
-    socketManager.on('gameResumed', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.GAME_RESUMED, (data: any) => {
       this.handlers.onGameResumed(data);
     });
 
     // Listen for player disconnect/reconnect events
-    socketManager.on('playerDisconnected', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_DISCONNECTED, (data: any) => {
       this.handlers.onPlayerDisconnected(data);
     });
 
-    socketManager.on('playerReconnected', (data: any) => {
+    socketManager.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data: any) => {
       this.handlers.onPlayerReconnected(data);
     });
 
@@ -191,6 +192,27 @@ export class NetworkManager {
     return remotePlayer;
   }
 
+  public createRemotePlayerWithCharacter(
+    playerId: string,
+    username: string,
+    spawnPoint: { x: number; y: number },
+    characterType: string
+  ): Player {
+    const remotePlayer = new Player({
+      scene: this.scene,
+      x: spawnPoint.x,
+      y: spawnPoint.y,
+      characterType: characterType as any,
+      playerId,
+      isLocalPlayer: false,
+    });
+
+    this.remotePlayers.set(playerId, remotePlayer);
+    console.log(`Created remote player: ${username} (${playerId}) with character ${characterType}`);
+
+    return remotePlayer;
+  }
+
   public removeRemotePlayer(playerId: string): Player | null {
     const remotePlayer = this.remotePlayers.get(playerId);
     if (remotePlayer) {
@@ -265,18 +287,18 @@ export class NetworkManager {
     // Remove event listeners
     const socketManager = getSocketManager();
     if (socketManager) {
-      socketManager.off('playerInput');
-      socketManager.off('playerMove');
-      socketManager.off('playerAttack');
-      socketManager.off('playerJoined');
-      socketManager.off('playerLeft');
-      socketManager.off('gameEvent');
-      socketManager.off('serverState');
-      socketManager.off('positionCorrection');
-      socketManager.off('gamePaused');
-      socketManager.off('gameResumed');
-      socketManager.off('playerDisconnected');
-      socketManager.off('playerReconnected');
+      socketManager.off(SOCKET_EVENTS.PLAYER_INPUT);
+      socketManager.off(SOCKET_EVENTS.PLAYER_MOVE);
+      socketManager.off(SOCKET_EVENTS.PLAYER_ATTACK);
+      socketManager.off(SOCKET_EVENTS.PLAYER_JOINED);
+      socketManager.off(SOCKET_EVENTS.PLAYER_LEFT);
+      socketManager.off(SOCKET_EVENTS.GAME_EVENT);
+      socketManager.off(SOCKET_EVENTS.SERVER_STATE);
+      socketManager.off(SOCKET_EVENTS.POSITION_CORRECTION);
+      socketManager.off(SOCKET_EVENTS.GAME_PAUSED);
+      socketManager.off(SOCKET_EVENTS.GAME_RESUMED);
+      socketManager.off(SOCKET_EVENTS.PLAYER_DISCONNECTED);
+      socketManager.off(SOCKET_EVENTS.PLAYER_RECONNECTED);
     }
   }
 }

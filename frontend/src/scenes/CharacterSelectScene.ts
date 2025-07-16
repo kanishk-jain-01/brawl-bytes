@@ -10,7 +10,8 @@
 
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
-import { GAME_CONFIG, CharacterType } from '../utils/constants';
+import { GAME_CONFIG, CharacterType, UI_COLORS } from '../utils/constants';
+import { getSocketManager } from '../utils/socket';
 
 export class CharacterSelectScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -92,7 +93,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Add glow effect
-    title.setStroke('#3498db', 4);
+    title.setStroke(UI_COLORS.PRIMARY_HEX(), 4);
     title.setShadow(2, 2, '#000000', 2, true, true);
 
     // Animate title
@@ -142,15 +143,15 @@ export class CharacterSelectScene extends Phaser.Scene {
     const container = this.add.container(x, y);
 
     // Card background
-    const background = this.add.rectangle(0, 0, width, height, 0x2c3e50);
-    background.setStrokeStyle(2, 0x3498db);
+    const background = this.add.rectangle(0, 0, width, height, UI_COLORS.SECONDARY());
+    background.setStrokeStyle(2, UI_COLORS.PRIMARY());
     container.add(background);
 
     // Character placeholder image (using colored rectangle for now)
-    const characterColors = {
-      FAST_LIGHTWEIGHT: 0x27ae60,
-      BALANCED_ALLROUNDER: 0x3498db,
-      HEAVY_HITTER: 0xe74c3c,
+    const characterColors: Record<CharacterType, number> = {
+      FAST_LIGHTWEIGHT: UI_COLORS.SUCCESS(),
+      BALANCED_ALLROUNDER: UI_COLORS.PRIMARY(),
+      HEAVY_HITTER: UI_COLORS.DANGER(),
     };
 
     const characterImage = this.add.rectangle(
@@ -160,7 +161,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       120,
       characterColors[characterKey]
     );
-    characterImage.setStrokeStyle(2, 0xffffff);
+    characterImage.setStrokeStyle(2, UI_COLORS.PRIMARY());
     container.add(characterImage);
 
     // Character name
@@ -254,11 +255,11 @@ export class CharacterSelectScene extends Phaser.Scene {
       const characterKey = characters[index] as CharacterType;
 
       if (characterKey === selectedKey) {
-        background.setFillStyle(0x27ae60);
-        background.setStrokeStyle(3, 0x2ecc71);
+        background.setFillStyle(UI_COLORS.SUCCESS());
+        background.setStrokeStyle(3, UI_COLORS.SUCCESS());
       } else {
-        background.setFillStyle(0x2c3e50);
-        background.setStrokeStyle(2, 0x3498db);
+        background.setFillStyle(UI_COLORS.SECONDARY());
+        background.setStrokeStyle(2, UI_COLORS.PRIMARY());
       }
     });
   }
@@ -332,14 +333,14 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.previewContainer.add(statsText);
 
     // Character description
-    const descriptions = {
+    const descriptions: Record<CharacterType, string> = {
       FAST_LIGHTWEIGHT: 'Quick and agile fighter with high mobility',
       BALANCED_ALLROUNDER: 'Well-rounded fighter with balanced stats',
       HEAVY_HITTER: 'Powerful fighter with high damage output',
     };
 
     const descText = this.add
-      .text(0, 40, descriptions[this.selectedCharacter], {
+      .text(0, 40, this.selectedCharacter ? descriptions[this.selectedCharacter] : '', {
         fontSize: '12px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
@@ -504,6 +505,13 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     // Persist selected character to global state for the GameScene
     updateState({ selectedCharacter: this.selectedCharacter });
+
+    // Emit character selection to server for multiplayer synchronization
+    const socketManager = getSocketManager();
+    if (socketManager && socketManager.isAuthenticated()) {
+      socketManager.selectCharacter(this.selectedCharacter);
+      console.log(`Emitted character selection to server: ${this.selectedCharacter}`);
+    }
 
     // Transition to StageSelectScene
     this.cameras.main.fadeOut(300, 0, 0, 0);

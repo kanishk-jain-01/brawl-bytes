@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { MatchmakingQueue, MatchPreferences } from '../game/MatchmakingQueue';
-import { GameRoom as ActualGameRoom } from '../game/GameRoom';
+import { GameRoom as ActualGameRoom, PlayerState } from '../game/GameRoom';
 
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -95,6 +95,19 @@ export class SocketManager {
 
       socket.on('getQueueStatus', () => {
         this.getQueueStatus(socket);
+      });
+
+      // Handle lobby events
+      socket.on('selectCharacter', data => {
+        this.handleSelectCharacter(socket, data);
+      });
+
+      socket.on('selectStage', data => {
+        this.handleSelectStage(socket, data);
+      });
+
+      socket.on('playerReady', data => {
+        this.handlePlayerReady(socket, data);
       });
 
       // Handle game events (placeholder for now)
@@ -333,6 +346,201 @@ export class SocketManager {
         });
       }
     });
+  }
+
+  private handleSelectCharacter(
+    socket: AuthenticatedSocket,
+    data: { character: string }
+  ): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    // Find the GameRoom this player is in
+    let targetRoom: ActualGameRoom | null = null;
+    for (const gameRoom of this.gameRooms.values()) {
+      if (gameRoom.hasPlayer(socket.userId)) {
+        targetRoom = gameRoom;
+        break;
+      }
+    }
+
+    if (!targetRoom) {
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    // Set character in the game room
+    const result = targetRoom.setPlayerCharacter(socket.userId, data.character);
+    if (!result.success) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+
+    // Broadcast character selection to all players in the room
+    targetRoom.broadcastToRoom('characterSelected', {
+      playerId: socket.userId,
+      character: data.character,
+    });
+
+    // Broadcast updated lobby state
+    this.broadcastLobbyState(targetRoom);
+
+    console.log(`${socket.username} selected character: ${data.character}`);
+  }
+
+  private handleSelectStage(
+    socket: AuthenticatedSocket,
+    data: { stage: string }
+  ): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    // Find the GameRoom this player is in
+    let targetRoom: ActualGameRoom | null = null;
+    for (const gameRoom of this.gameRooms.values()) {
+      if (gameRoom.hasPlayer(socket.userId)) {
+        targetRoom = gameRoom;
+        break;
+      }
+    }
+
+    if (!targetRoom) {
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    // Check if player is host (only host can select stage)
+    const player = targetRoom.getPlayer(socket.userId);
+    if (!player || !player.isHost) {
+      socket.emit('error', { message: 'Only host can select stage' });
+      return;
+    }
+
+    // Set stage in the game room
+    const result = targetRoom.setStage(data.stage);
+    if (!result.success) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+
+    // Broadcast stage selection to all players in the room
+    targetRoom.broadcastToRoom('stageSelected', {
+      stage: data.stage,
+    });
+
+    // Broadcast updated lobby state
+    this.broadcastLobbyState(targetRoom);
+
+    console.log(`${socket.username} (host) selected stage: ${data.stage}`);
+  }
+
+  private handlePlayerReady(
+    socket: AuthenticatedSocket,
+    data: { ready: boolean }
+  ): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    // Find the GameRoom this player is in
+    let targetRoom: ActualGameRoom | null = null;
+    for (const gameRoom of this.gameRooms.values()) {
+      if (gameRoom.hasPlayer(socket.userId)) {
+        targetRoom = gameRoom;
+        break;
+      }
+    }
+
+    if (!targetRoom) {
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    // Set ready state in the game room
+    const result = targetRoom.setPlayerReady(socket.userId, data.ready);
+    if (!result.success) {
+      socket.emit('error', { message: result.error });
+      return;
+    }
+
+    // Broadcast ready state change to all players in the room
+    targetRoom.broadcastToRoom('playerReadyChanged', {
+      playerId: socket.userId,
+      ready: data.ready,
+    });
+
+    // Broadcast updated lobby state
+    this.broadcastLobbyState(targetRoom);
+
+    // Check if all players are ready and start the game
+    this.checkAndStartGame(targetRoom);
+
+    console.log(`${socket.username} is ${data.ready ? 'ready' : 'not ready'}`);
+  }
+
+  private checkAndStartGame(gameRoom: ActualGameRoom): void {
+    if (gameRoom.areAllPlayersReady() && gameRoom.isFull()) {
+      const players = gameRoom.getPlayers();
+      const config = gameRoom.getConfig();
+
+      // Prepare game start data with player assignments and stage
+      const gameStartData = {
+        message: 'All players are ready! Starting game...',
+        timestamp: Date.now(),
+        roomId: gameRoom.getId(),
+        stage: config.stage,
+        players: players.map(player => ({
+          userId: player.userId,
+          username: player.username,
+          character: player.character,
+          isHost: player.isHost,
+        })),
+        gameConfig: {
+          maxPlayers: config.maxPlayers,
+          gameMode: config.gameMode,
+          timeLimit: config.timeLimit,
+          stockCount: config.stockCount,
+        },
+      };
+
+      // Broadcast comprehensive game start event  
+      gameRoom.broadcastToRoom('gameStarted', gameStartData);
+
+      // Also broadcast lobby:start for any clients that might be listening for this specific event
+      gameRoom.broadcastToRoom('lobbyStart', gameStartData);
+
+      // Start the game
+      gameRoom.startGame();
+      console.log(`Game started in room ${gameRoom.getId()} with stage: ${config.stage}`);
+    }
+  }
+
+  private broadcastLobbyState(gameRoom: ActualGameRoom): void {
+    const players = gameRoom.getPlayers();
+    const config = gameRoom.getConfig();
+
+    const lobbyState = {
+      roomId: gameRoom.getId(),
+      players: players.map(player => ({
+        userId: player.userId,
+        username: player.username,
+        character: player.character || null,
+        ready: player.state === PlayerState.READY,
+        connected: player.state !== PlayerState.DISCONNECTED,
+        isHost: player.isHost,
+      })),
+      selectedStage: config.stage || null,
+      maxPlayers: config.maxPlayers,
+      allPlayersReady: gameRoom.areAllPlayersReady(),
+      canStartGame: gameRoom.areAllPlayersReady() && gameRoom.isFull(),
+    };
+
+    gameRoom.broadcastToRoom('lobbyState', lobbyState);
   }
 
   private joinMatchmakingQueue(

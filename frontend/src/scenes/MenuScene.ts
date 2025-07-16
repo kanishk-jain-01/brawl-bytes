@@ -8,7 +8,7 @@
  */
 
 import Phaser from 'phaser';
-import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
+import { GAME_CONFIG, ASSET_KEYS, UI_COLORS } from '@/utils/constants';
 
 export class MenuScene extends Phaser.Scene {
   private playButton!: Phaser.GameObjects.Image;
@@ -80,7 +80,7 @@ export class MenuScene extends Phaser.Scene {
       color: GAME_CONFIG.UI.COLORS.TEXT,
       fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
       fontStyle: 'bold',
-      stroke: '#2c3e50',
+      stroke: UI_COLORS.SECONDARY_HEX(),
       strokeThickness: 4,
     });
     this.title.setOrigin(0.5);
@@ -173,8 +173,8 @@ export class MenuScene extends Phaser.Scene {
     callback: () => void
   ): void {
     button.on('pointerover', () => {
-      button.setTint(0x52c4ff);
-      text.setColor('#52c4ff');
+              button.setTint(UI_COLORS.PRIMARY());
+      text.setColor(UI_COLORS.PRIMARY_HEX());
       this.tweens.add({
         targets: [button, text],
         scaleX: button.scaleX * 1.05,

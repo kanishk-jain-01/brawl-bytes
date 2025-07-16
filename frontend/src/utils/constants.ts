@@ -500,3 +500,65 @@ export async function initializeConstants(): Promise<void> {
     throw new Error(`Game cannot start without database constants: ${error}`);
   }
 }
+
+/**
+ * UI Color Utility Functions
+ * --------------------------
+ * Helper functions for accessing database-driven UI colors with fail-fast validation
+ */
+
+/**
+ * Convert hex color string to numeric value for Phaser
+ * @param hexColor - Color string like "#ff0000" 
+ * @returns Numeric color value like 0xff0000
+ */
+function hexToNumber(hexColor: string): number {
+  return parseInt(hexColor.replace('#', '0x'));
+}
+
+/**
+ * Get numeric UI color with fail-fast validation
+ * @param colorKey - Key from GAME_CONFIG.UI.COLORS
+ * @returns Numeric color value for Phaser
+ */
+function getUIColor(colorKey: keyof typeof GAME_CONFIG.UI.COLORS): number {
+  if (!GAME_CONFIG.UI.COLORS || !GAME_CONFIG.UI.COLORS[colorKey]) {
+    throw new Error(`UI color '${colorKey}' not loaded from database. Check server connection and constants loading.`);
+  }
+  return hexToNumber(GAME_CONFIG.UI.COLORS[colorKey]);
+}
+
+/**
+ * Get hex UI color string with fail-fast validation
+ * @param colorKey - Key from GAME_CONFIG.UI.COLORS
+ * @returns Hex color string like "#ff0000"
+ */
+function getUIColorHex(colorKey: keyof typeof GAME_CONFIG.UI.COLORS): string {
+  if (!GAME_CONFIG.UI.COLORS || !GAME_CONFIG.UI.COLORS[colorKey]) {
+    throw new Error(`UI color '${colorKey}' not loaded from database. Check server connection and constants loading.`);
+  }
+  return GAME_CONFIG.UI.COLORS[colorKey];
+}
+
+/**
+ * UI Colors proxy for easy access to database-driven colors
+ */
+export const UI_COLORS = {
+  // Numeric colors for Phaser methods
+  PRIMARY: () => getUIColor('PRIMARY'),
+  SECONDARY: () => getUIColor('SECONDARY'), 
+  SUCCESS: () => getUIColor('SUCCESS'),
+  DANGER: () => getUIColor('DANGER'),
+  WARNING: () => getUIColor('WARNING'),
+  TEXT: () => getUIColor('TEXT'),
+  TEXT_SECONDARY: () => getUIColor('TEXT_SECONDARY'),
+  
+  // Hex colors for CSS and text styling
+  PRIMARY_HEX: () => getUIColorHex('PRIMARY'),
+  SECONDARY_HEX: () => getUIColorHex('SECONDARY'),
+  SUCCESS_HEX: () => getUIColorHex('SUCCESS'), 
+  DANGER_HEX: () => getUIColorHex('DANGER'),
+  WARNING_HEX: () => getUIColorHex('WARNING'),
+  TEXT_HEX: () => getUIColorHex('TEXT'),
+  TEXT_SECONDARY_HEX: () => getUIColorHex('TEXT_SECONDARY'),
+};

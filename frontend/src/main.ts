@@ -13,7 +13,7 @@ import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
 import { StageSelectScene } from '@/scenes/StageSelectScene';
 import { PreMatchLobbyScene } from '@/scenes/PreMatchLobbyScene';
 import { GameScene } from '@/scenes/GameScene';
-import { GAME_CONFIG, initializeConstants } from '@/utils/constants';
+import { GAME_CONFIG, initializeConstants, UI_COLORS } from '@/utils/constants';
 
 /**
  * Load all game constants, characters, and stages from database
@@ -55,6 +55,10 @@ async function initializeGame(): Promise<Phaser.Game> {
     // Load all constants, characters, and stages from database
     await loadGameConstants();
 
+    // Update loading indicator with database colors now that constants are loaded
+    // eslint-disable-next-line no-use-before-define
+    updateLoaderColors();
+    
     // Update loading indicator
     // eslint-disable-next-line no-use-before-define
     showLoadingIndicator('Starting game engine...');
@@ -65,7 +69,7 @@ async function initializeGame(): Promise<Phaser.Game> {
       width: 1280,
       height: 720,
       parent: 'game-container',
-      backgroundColor: '#2c3e50',
+      backgroundColor: UI_COLORS.SECONDARY_HEX(),
       physics: {
         default: 'arcade',
         arcade: {
@@ -146,6 +150,55 @@ async function initializeGame(): Promise<Phaser.Game> {
 }
 
 /**
+ * Fallback colors for loader (before database constants are loaded)
+ */
+const LOADER_FALLBACK_COLORS = {
+  BACKGROUND: '#2c3e50',
+  PRIMARY: '#3498db', 
+  DANGER: '#e74c3c',
+  TEXT_SECONDARY: '#bdc3c7',
+  WHITE: '#f3f3f3',
+};
+
+/**
+ * Get color for loader - uses fallback if constants not loaded yet
+ */
+function getLoaderColor(type: keyof typeof LOADER_FALLBACK_COLORS): string {
+  try {
+    // Try to use database colors if loaded
+    switch (type) {
+      case 'BACKGROUND': return UI_COLORS.SECONDARY_HEX();
+      case 'PRIMARY': return UI_COLORS.PRIMARY_HEX(); 
+      case 'DANGER': return UI_COLORS.DANGER_HEX();
+      case 'TEXT_SECONDARY': return UI_COLORS.TEXT_SECONDARY_HEX();
+      case 'WHITE': return UI_COLORS.PRIMARY_HEX();
+      default: return LOADER_FALLBACK_COLORS[type];
+    }
+  } catch {
+    // Fallback if constants not loaded yet
+    return LOADER_FALLBACK_COLORS[type];
+  }
+}
+
+/**
+ * Update loader colors after constants are loaded
+ */
+function updateLoaderColors(): void {
+  const loader = document.getElementById('game-loader');
+  if (loader) {
+    // Update the background color
+    loader.style.background = getLoaderColor('BACKGROUND');
+    
+    // Find and update spinner colors if it exists
+    const spinner = loader.querySelector('div[style*="border"]');
+    if (spinner instanceof HTMLElement) {
+      spinner.style.border = `3px solid ${getLoaderColor('WHITE')}`;
+      spinner.style.borderTop = `3px solid ${getLoaderColor('PRIMARY')}`;
+    }
+  }
+}
+
+/**
  * Show loading indicator
  */
 function showLoadingIndicator(message: string): void {
@@ -159,7 +212,7 @@ function showLoadingIndicator(message: string): void {
       left: 0;
       width: 100%;
       height: 100%;
-      background: #2c3e50;
+      background: ${getLoaderColor('BACKGROUND')};
       color: white;
       display: flex;
       flex-direction: column;
@@ -175,7 +228,7 @@ function showLoadingIndicator(message: string): void {
     <div style="text-align: center;">
       <h2 style="margin-bottom: 20px;">🥊 Brawl Bytes</h2>
       <div style="margin-bottom: 20px;">
-        <div style="border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <div style="border: 3px solid ${getLoaderColor('WHITE')}; border-top: 3px solid ${getLoaderColor('PRIMARY')}; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
       </div>
       <p>${message}</p>
     </div>
@@ -205,17 +258,17 @@ function showErrorMessage(message: string): void {
   const loader = document.getElementById('game-loader');
   if (loader) {
     loader.innerHTML = `
-      <div style="text-align: center; color: #e74c3c;">
+      <div style="text-align: center; color: ${getLoaderColor('DANGER')};">
         <h2 style="margin-bottom: 20px;">🥊 Brawl Bytes</h2>
-        <h3 style="margin-bottom: 20px; color: #e74c3c;">❌ Connection Error</h3>
+        <h3 style="margin-bottom: 20px; color: ${getLoaderColor('DANGER')};">❌ Connection Error</h3>
         <p style="margin-bottom: 30px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">${message}</p>
         <div style="margin-bottom: 20px;">
-          <p style="font-size: 14px; color: #bdc3c7;">Make sure the backend server is running on port 3001</p>
+          <p style="font-size: 14px; color: ${getLoaderColor('TEXT_SECONDARY')};">Make sure the backend server is running on port 3001</p>
         </div>
         <button onclick="window.location.reload()" style="
           margin-top: 20px;
           padding: 12px 24px;
-          background: #3498db;
+          background: ${getLoaderColor('PRIMARY')};
           color: white;
           border: none;
           border-radius: 8px;

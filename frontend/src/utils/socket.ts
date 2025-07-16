@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_EVENTS } from '@/types/Network';
 
 export enum ConnectionState {
   DISCONNECTED = 'disconnected',
@@ -215,7 +216,7 @@ export class SocketManager {
 
   // Connection management
   public connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       if (this.socket?.connected) {
         resolve();
         return;
@@ -236,21 +237,14 @@ export class SocketManager {
       // Connection success
       this.socket.on('connect', () => {
         this.setConnectionState(ConnectionState.CONNECTED);
-        this.reconnectAttempts = 0;
-        this.startConnectionMonitoring();
+        this.emit('connected', {});
         resolve();
       });
 
       // Connection error
       this.socket.on('connect_error', error => {
         this.setConnectionState(ConnectionState.ERROR);
-        this.logError(
-          'connection',
-          `Connection failed: ${error.message}`,
-          'CONNECT_ERROR',
-          true
-        );
-        reject(new Error(`Connection failed: ${error.message}`));
+        this.emit('connection_error', { error });
       });
 
       // Disconnection
@@ -260,7 +254,6 @@ export class SocketManager {
         this.setConnectionState(ConnectionState.DISCONNECTED);
         this.emit('disconnected', {
           reason,
-          timestamp: this.lastDisconnectTime,
         });
 
         // Attempt to reconnect for most disconnect reasons
@@ -384,129 +377,150 @@ export class SocketManager {
     if (!this.socket) return;
 
     // Welcome message
-    this.socket.on('welcome', data => {
-      this.emit('welcome', data);
+    this.socket.on(SOCKET_EVENTS.WELCOME, data => {
+      this.emit(SOCKET_EVENTS.WELCOME, data);
     });
 
     // Authentication response
-    this.socket.on('authenticated', (response: AuthResponse) => {
+    this.socket.on(SOCKET_EVENTS.AUTHENTICATED, (response: AuthResponse) => {
       if (response.success) {
         this.setConnectionState(ConnectionState.AUTHENTICATED);
-        this.emit('authenticated', response);
+        
+        // Fail fast: Server must provide userId for multiplayer functionality
+        if (!response.userId) {
+          throw new Error('Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.');
+        }
+
+        // Store playerId in global state for game initialization
+        import('@/state/GameState').then(({ updateState }) => {
+          updateState({ playerId: response.userId });
+        });
+        
+        this.emit(SOCKET_EVENTS.AUTHENTICATED, response);
       } else {
-        this.emit('authenticationFailed', response);
+        this.emit(SOCKET_EVENTS.AUTHENTICATION_FAILED, response);
       }
     });
 
     // Room events
-    this.socket.on('roomCreated', data => {
-      this.emit('roomCreated', data);
+    this.socket.on(SOCKET_EVENTS.ROOM_CREATED, data => {
+      this.emit(SOCKET_EVENTS.ROOM_CREATED, data);
     });
 
-    this.socket.on('playerJoined', (data: PlayerJoinedData) => {
-      this.emit('playerJoined', data);
-    });
-
-    this.socket.on('playerLeft', (data: PlayerLeftData) => {
-      this.emit('playerLeft', data);
+    const onPlayerJoined = (data: PlayerJoinedData) => {
+      this.emit(SOCKET_EVENTS.PLAYER_JOINED, data);
 
       // Clear current room if we left
       if (data.playerId === this.authToken) {
         this.currentRoomId = null;
       }
+    };
+    this.socket.on(SOCKET_EVENTS.PLAYER_JOINED, onPlayerJoined);
+
+    this.socket.on(SOCKET_EVENTS.GAME_READY, (data: GameReadyData) => {
+      this.emit(SOCKET_EVENTS.GAME_READY, data);
     });
 
-    this.socket.on('gameReady', (data: GameReadyData) => {
-      this.emit('gameReady', data);
+    this.socket.on(SOCKET_EVENTS.ROOM_STATE_SYNC, (data: RoomStateData) => {
+      this.emit(SOCKET_EVENTS.ROOM_STATE_SYNC, data);
     });
 
-    this.socket.on('roomStateSync', (data: RoomStateData) => {
-      this.emit('roomStateSync', data);
-    });
-
-    this.socket.on('roomError', error => {
-      this.emit('roomError', error);
+    this.socket.on(SOCKET_EVENTS.ROOM_ERROR, error => {
+      this.emit(SOCKET_EVENTS.ROOM_ERROR, error);
     });
 
     // Player state events
-    this.socket.on('playerReady', data => {
-      this.emit('playerReady', data);
+    this.socket.on(SOCKET_EVENTS.PLAYER_READY_CHANGED, data => {
+      this.emit(SOCKET_EVENTS.PLAYER_READY_CHANGED, data);
     });
 
-    this.socket.on('characterSelected', data => {
-      this.emit('characterSelected', data);
+    this.socket.on(SOCKET_EVENTS.CHARACTER_SELECTED, data => {
+      this.emit(SOCKET_EVENTS.CHARACTER_SELECTED, data);
     });
 
-    this.socket.on('stageSelected', data => {
-      this.emit('stageSelected', data);
+    this.socket.on(SOCKET_EVENTS.SELECT_STAGE, data => {
+      this.emit(SOCKET_EVENTS.SELECT_STAGE, data);
     });
 
-    this.socket.on('gameStarting', data => {
-      this.emit('gameStarting', data);
+    this.socket.on(SOCKET_EVENTS.GAME_STARTING, data => {
+      this.emit(SOCKET_EVENTS.GAME_STARTING, data);
     });
 
-    this.socket.on('gameStarted', data => {
-      this.emit('gameStarted', data);
+    this.socket.on(SOCKET_EVENTS.GAME_STARTED, data => {
+      this.emit(SOCKET_EVENTS.GAME_STARTED, data);
     });
 
     // Game events
-    this.socket.on('playerInput', (data: PlayerInputData) => {
-      this.emit('playerInput', data);
+    this.socket.on(SOCKET_EVENTS.PLAYER_INPUT, (data: PlayerInputData) => {
+      this.emit(SOCKET_EVENTS.PLAYER_INPUT, data);
     });
 
-    this.socket.on('gameEvent', (data: GameEventData) => {
-      this.emit('gameEvent', data);
+    this.socket.on(SOCKET_EVENTS.GAME_EVENT, (data: GameEventData) => {
+      this.emit(SOCKET_EVENTS.GAME_EVENT, data);
     });
 
-    this.socket.on('gameStateSync', (data: GameStateSync) => {
-      this.emit('gameStateSync', data);
+    this.socket.on(SOCKET_EVENTS.GAME_STATE_SYNC, (data: GameStateSync) => {
+      this.emit(SOCKET_EVENTS.GAME_STATE_SYNC, data);
     });
 
-    this.socket.on('matchEnd', (data: MatchEndData) => {
-      this.emit('matchEnd', data);
+    this.socket.on(SOCKET_EVENTS.MATCH_ENDED, (data: MatchEndData) => {
+      this.emit(SOCKET_EVENTS.MATCH_ENDED, data);
     });
 
     // Specific game event handlers
-    this.socket.on('playerHit', data => {
-      this.emit('playerHit', data);
+    this.socket.on(SOCKET_EVENTS.PLAYER_HIT, data => {
+      this.emit(SOCKET_EVENTS.PLAYER_HIT, data);
     });
 
-    this.socket.on('playerKO', data => {
-      this.emit('playerKO', data);
+    this.socket.on(SOCKET_EVENTS.PLAYER_KO, data => {
+      this.emit(SOCKET_EVENTS.PLAYER_KO, data);
     });
 
-    this.socket.on('playerRespawn', data => {
-      this.emit('playerRespawn', data);
+    this.socket.on(SOCKET_EVENTS.PLAYER_RESPAWN, data => {
+      this.emit(SOCKET_EVENTS.PLAYER_RESPAWN, data);
     });
 
-    this.socket.on('stageHazard', data => {
-      this.emit('stageHazard', data);
+    this.socket.on(SOCKET_EVENTS.STAGE_HAZARD, data => {
+      this.emit(SOCKET_EVENTS.STAGE_HAZARD, data);
     });
 
-    this.socket.on('powerupSpawn', data => {
-      this.emit('powerupSpawn', data);
+    this.socket.on(SOCKET_EVENTS.POWERUP_SPAWN, data => {
+      this.emit(SOCKET_EVENTS.POWERUP_SPAWN, data);
     });
 
-    this.socket.on('powerupCollected', data => {
-      this.emit('powerupCollected', data);
+    this.socket.on(SOCKET_EVENTS.POWERUP_COLLECTED, data => {
+      this.emit(SOCKET_EVENTS.POWERUP_COLLECTED, data);
     });
 
     // Match state events
-    this.socket.on('matchPaused', data => {
-      this.emit('matchPaused', data);
+    this.socket.on(SOCKET_EVENTS.MATCH_PAUSED, data => {
+      this.emit(SOCKET_EVENTS.MATCH_PAUSED, data);
     });
 
-    this.socket.on('matchResumed', data => {
-      this.emit('matchResumed', data);
+    this.socket.on(SOCKET_EVENTS.MATCH_RESUMED, data => {
+      this.emit(SOCKET_EVENTS.MATCH_RESUMED, data);
     });
 
-    this.socket.on('matchTimeout', data => {
-      this.emit('matchTimeout', data);
+    this.socket.on(SOCKET_EVENTS.MATCH_TIMEOUT, data => {
+      this.emit(SOCKET_EVENTS.MATCH_TIMEOUT, data);
     });
 
     // Error handling
     this.socket.on('error', error => {
       this.emit('error', { error });
+    });
+
+    const onPlayerLeft = (data: PlayerLeftData) => {
+      this.emit(SOCKET_EVENTS.PLAYER_LEFT, data);
+    };
+    this.socket.on(SOCKET_EVENTS.PLAYER_LEFT, onPlayerLeft);
+
+    this.socket.on(SOCKET_EVENTS.QUEUE_JOINED, () => {
+      this.emit(SOCKET_EVENTS.QUEUE_JOINED, {});
+    });
+
+    this.socket.on(SOCKET_EVENTS.MATCH_FOUND, roomId => {
+      this.emit(SOCKET_EVENTS.MATCH_FOUND, roomId);
     });
   }
 
@@ -739,24 +753,37 @@ export class SocketManager {
 
       // Set up one-time listeners for authentication response
       const onAuthenticated = (response: AuthResponse) => {
-        this.socket!.off('authenticated', onAuthenticated);
+        this.socket!.off(SOCKET_EVENTS.AUTHENTICATED, onAuthenticated);
         // eslint-disable-next-line no-use-before-define
-        this.socket!.off('authenticationFailed', onAuthFailed);
+        this.socket!.off(SOCKET_EVENTS.AUTHENTICATION_FAILED, onAuthFailed);
+        
+        // Fail fast: Server must provide userId for multiplayer functionality
+        if (response.success && !response.userId) {
+          throw new Error('Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.');
+        }
+
+        // Store playerId in global state for game initialization
+        if (response.success) {
+          import('@/state/GameState').then(({ updateState }) => {
+            updateState({ playerId: response.userId });
+          });
+        }
+        
         resolve(response);
       };
 
       const onAuthFailed = (response: AuthResponse) => {
-        this.socket!.off('authenticated', onAuthenticated);
-        this.socket!.off('authenticationFailed', onAuthFailed);
+        this.socket!.off(SOCKET_EVENTS.AUTHENTICATED, onAuthenticated);
+        this.socket!.off(SOCKET_EVENTS.AUTHENTICATION_FAILED, onAuthFailed);
         this.authToken = null;
         reject(new Error(response.error || 'Authentication failed'));
       };
 
-      this.socket.on('authenticated', onAuthenticated);
-      this.socket.on('authenticationFailed', onAuthFailed);
+      this.socket.on(SOCKET_EVENTS.AUTHENTICATED, onAuthenticated);
+      this.socket.on(SOCKET_EVENTS.AUTHENTICATION_FAILED, onAuthFailed);
 
       // Send authentication request
-      this.socket.emit('authenticate', token);
+      this.socket.emit(SOCKET_EVENTS.AUTHENTICATE, token);
     });
   }
 
@@ -881,7 +908,7 @@ export class SocketManager {
       this.socket.on('roomError', onRoomError);
 
       // Send room creation request
-      this.socket.emit('createRoom');
+      this.socket.emit(SOCKET_EVENTS.CREATE_ROOM);
     });
   }
 
@@ -894,7 +921,7 @@ export class SocketManager {
 
       // Set up one-time listeners for join response
       const onPlayerJoined = (data: PlayerJoinedData) => {
-        this.socket!.off('playerJoined', onPlayerJoined);
+        this.socket!.off(SOCKET_EVENTS.PLAYER_JOINED, onPlayerJoined);
         // eslint-disable-next-line no-use-before-define
         this.socket!.off('roomError', onRoomError);
 
@@ -908,16 +935,16 @@ export class SocketManager {
       };
 
       const onRoomError = (error: { message: string }) => {
-        this.socket!.off('playerJoined', onPlayerJoined);
+        this.socket!.off(SOCKET_EVENTS.PLAYER_JOINED, onPlayerJoined);
         this.socket!.off('roomError', onRoomError);
         reject(new Error(error.message));
       };
 
-      this.socket.on('playerJoined', onPlayerJoined);
+      this.socket.on(SOCKET_EVENTS.PLAYER_JOINED, onPlayerJoined);
       this.socket.on('roomError', onRoomError);
 
       // Send join request
-      this.socket.emit('joinRoom', roomId);
+      this.socket.emit(SOCKET_EVENTS.JOIN_ROOM, roomId);
     });
   }
 
@@ -930,19 +957,19 @@ export class SocketManager {
 
       // Set up one-time listener for leave confirmation
       const onPlayerLeft = () => {
-        this.socket!.off('playerLeft', onPlayerLeft);
+        this.socket!.off(SOCKET_EVENTS.PLAYER_LEFT, onPlayerLeft);
         this.currentRoomId = null;
         resolve();
       };
 
-      this.socket.on('playerLeft', onPlayerLeft);
+      this.socket.on(SOCKET_EVENTS.PLAYER_LEFT, onPlayerLeft);
 
       // Send leave request
-      this.socket.emit('leaveRoom');
+      this.socket.emit(SOCKET_EVENTS.LEAVE_ROOM);
 
       // Fallback timeout in case server doesn't respond
       setTimeout(() => {
-        this.socket!.off('playerLeft', onPlayerLeft);
+        this.socket!.off(SOCKET_EVENTS.PLAYER_LEFT, onPlayerLeft);
         this.currentRoomId = null;
         resolve();
       }, 5000);
@@ -957,7 +984,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('playerReady', { ready });
+    this.socket.emit(SOCKET_EVENTS.PLAYER_READY_CHANGED, { ready });
   }
 
   public selectCharacter(character: string): void {
@@ -967,7 +994,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('selectCharacter', { character });
+    this.socket.emit(SOCKET_EVENTS.SELECT_CHARACTER, { character });
   }
 
   public selectStage(stage: string): void {
@@ -977,7 +1004,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('selectStage', { stage });
+    this.socket.emit(SOCKET_EVENTS.SELECT_STAGE, { stage });
   }
 
   public startGame(): void {
@@ -987,7 +1014,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('startGame');
+    this.socket.emit(SOCKET_EVENTS.START_GAME);
   }
 
   // Room information methods
@@ -996,7 +1023,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('requestRoomState');
+    this.socket.emit(SOCKET_EVENTS.REQUEST_ROOM_STATE);
   }
 
   public isInRoom(): boolean {
@@ -1025,7 +1052,7 @@ export class SocketManager {
       timestamp: Date.now(),
     };
 
-    this.socket.emit('playerInput', inputData);
+    this.socket.emit(SOCKET_EVENTS.PLAYER_INPUT, inputData);
   }
 
   public sendGameEvent(eventType: string, eventData: any): void {
@@ -1041,7 +1068,7 @@ export class SocketManager {
       timestamp: Date.now(),
     };
 
-    this.socket.emit('gameEvent', gameEvent);
+    this.socket.emit(SOCKET_EVENTS.GAME_EVENT, gameEvent);
   }
 
   public requestGameStateSync(): void {
@@ -1049,7 +1076,7 @@ export class SocketManager {
       return;
     }
 
-    this.socket.emit('requestGameStateSync');
+    this.socket.emit(SOCKET_EVENTS.REQUEST_GAME_STATE_SYNC);
   }
 
   // Convenience methods for common game events

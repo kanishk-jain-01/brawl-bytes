@@ -11,6 +11,7 @@
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
 import { GAME_CONFIG, StageType } from '../utils/constants';
+import { getSocketManager } from '../utils/socket';
 
 export class StageSelectScene extends Phaser.Scene {
   private selectedStage: StageType | null = null;
@@ -589,8 +590,12 @@ export class StageSelectScene extends Phaser.Scene {
     // Persist selected stage to global state
     updateState({ selectedStage: this.selectedStage });
 
-    // TODO: Emit stage selection event via socket
-    // socket.emit('selectStage', { stageId: this.selectedStage });
+    // Emit stage selection to server for multiplayer synchronization
+    const socketManager = getSocketManager();
+    if (socketManager && socketManager.isAuthenticated()) {
+      socketManager.selectStage(this.selectedStage);
+      console.log(`Emitted stage selection to server: ${this.selectedStage}`);
+    }
 
     // Transition to PreMatchLobby
     this.cameras.main.fadeOut(300, 0, 0, 0);
