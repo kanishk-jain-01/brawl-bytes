@@ -7,6 +7,7 @@ import { GameRoom, GameRoomConfig } from './GameRoom';
 export interface MatchPreferences {
   gameMode?: string;
   preferredStage?: string;
+  preferredCharacter?: string;
   maxLatency?: number;
 }
 
@@ -379,6 +380,13 @@ export class MatchmakingQueue {
     players.forEach(player => {
       const result = gameRoom.addPlayer(player.socket);
       if (result.success) {
+        // Apply preferred character if provided
+        if (player.preferences?.preferredCharacter) {
+          gameRoom.setPlayerCharacter(
+            player.userId,
+            player.preferences.preferredCharacter
+          );
+        }
         addedPlayers.push(player);
       } else {
         console.error(

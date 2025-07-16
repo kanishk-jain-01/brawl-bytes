@@ -271,6 +271,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateAttack(): void {
+    // Ensure scene time plugin is ready before accessing it
+    if (!this.scene || !this.scene.time) return;
+
     const currentTime = this.scene.time.now;
 
     // Update attack cooldown
@@ -843,6 +846,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // Network synchronization methods
   private updateNetworkSync(): void {
     if (!this.isLocalPlayer) return;
+
+    // Defensive: ensure scene and its time plugin are available
+    if (!this.scene || !this.scene.time) {
+      // Scene not fully initialised yet; skip this frame
+      return;
+    }
 
     const currentTime = this.scene.time.now;
     if (currentTime - this.lastSyncTime < this.positionSyncRate) return;

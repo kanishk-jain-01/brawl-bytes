@@ -200,11 +200,12 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Join matchmaking queue
     if (this.socketManager.getSocket()) {
-      const { selectedStage } = getState();
+      const { selectedStage, selectedCharacter } = getState();
 
       this.socketManager.getSocket().emit('joinMatchmakingQueue', {
         gameMode: 'versus',
         preferredStage: selectedStage,
+        preferredCharacter: selectedCharacter,
       });
     } else {
       console.error('Socket not available for matchmaking');
