@@ -1,21 +1,21 @@
 /*
- * Character Select Scene
- * ----------------------
- * Allows players to choose their fighter from available characters.
- * Displays character cards with stats, visual previews, and descriptions.
- * Features animated grid pattern background, character hover effects, and detailed character information.
+ * Stage Select Scene
+ * ------------------
+ * Allows the host player to choose the stage for the upcoming match.
+ * Displays stage cards with previews, descriptions, and difficulty indicators.
+ * Features animated background, stage hover effects, and detailed stage information.
  * Supports both mouse/touch input and keyboard shortcuts (1,2,3 for quick selection).
- * Saves selected character to global state and transitions to GameScene.
+ * Saves selected stage to lobby state and proceeds to pre-match lobby.
  */
 
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
-import { GAME_CONFIG, CharacterType } from '../utils/constants';
+import { GAME_CONFIG, StageType } from '../utils/constants';
 
-export class CharacterSelectScene extends Phaser.Scene {
-  private selectedCharacter: CharacterType | null = null;
+export class StageSelectScene extends Phaser.Scene {
+  private selectedStage: StageType | null = null;
 
-  private characterCards: Phaser.GameObjects.Container[] = [];
+  private stageCards: Phaser.GameObjects.Container[] = [];
 
   private previewContainer: Phaser.GameObjects.Container | null = null;
 
@@ -24,16 +24,29 @@ export class CharacterSelectScene extends Phaser.Scene {
   private backButton: Phaser.GameObjects.Container | null = null;
 
   constructor() {
-    super({ key: GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT });
+    super({ key: GAME_CONFIG.SCENE_KEYS.STAGE_SELECT });
   }
 
   create(): void {
-    // eslint-disable-next-line no-console
-    console.log('CharacterSelectScene: Starting character selection');
+    console.log('StageSelectScene: Starting stage selection');
+
+    // Strict validation - fail if stage data not loaded from database
+    if (!GAME_CONFIG.STAGES || Object.keys(GAME_CONFIG.STAGES).length === 0) {
+      throw new Error(
+        'Stage data not loaded from database. Cannot display stage selection.'
+      );
+    }
+
+    // Strict validation - fail if UI constants not loaded from database
+    if (!GAME_CONFIG.UI.COLORS || !GAME_CONFIG.UI.FONTS) {
+      throw new Error(
+        'UI constants not loaded from database. Cannot create stage selection interface.'
+      );
+    }
 
     this.createBackground();
     this.createTitle();
-    this.createCharacterGrid();
+    this.createStageGrid();
     this.createPreviewArea();
     this.createNavigationButtons();
     this.setupInputs();
@@ -49,15 +62,15 @@ export class CharacterSelectScene extends Phaser.Scene {
       0x1a1a2e
     );
 
-    // Add subtle animated background pattern
+    // Add animated background pattern
     this.createBackgroundPattern();
   }
 
   private createBackgroundPattern(): void {
     const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x3498db, 0.1);
+    graphics.lineStyle(1, 0xe74c3c, 0.1);
 
-    // Create grid pattern
+    // Create grid pattern with different color for stage selection
     for (let x = 0; x < this.cameras.main.width; x += 50) {
       graphics.moveTo(x, 0);
       graphics.lineTo(x, this.cameras.main.height);
@@ -83,7 +96,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   private createTitle(): void {
     const title = this.add
-      .text(this.cameras.main.centerX, 80, 'SELECT YOUR FIGHTER', {
+      .text(this.cameras.main.centerX, 80, 'SELECT BATTLE STAGE', {
         fontSize: '42px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
@@ -91,8 +104,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Add glow effect
-    title.setStroke('#3498db', 4);
+    // Add glow effect with stage theme color
+    title.setStroke('#e74c3c', 4);
     title.setShadow(2, 2, '#000000', 2, true, true);
 
     // Animate title
@@ -107,33 +120,33 @@ export class CharacterSelectScene extends Phaser.Scene {
     });
   }
 
-  private createCharacterGrid(): void {
-    const characters = Object.entries(GAME_CONFIG.CHARACTERS);
-    const cardWidth = 200;
-    const cardHeight = 280;
-    const spacing = 50;
+  private createStageGrid(): void {
+    const stages = Object.entries(GAME_CONFIG.STAGES);
+    const cardWidth = 240;
+    const cardHeight = 320;
+    const spacing = 40;
     const startX =
       this.cameras.main.centerX -
-      ((characters.length - 1) * (cardWidth + spacing)) / 2;
+      ((stages.length - 1) * (cardWidth + spacing)) / 2;
     const startY = 250;
 
-    characters.forEach(([key, character], index) => {
+    stages.forEach(([key, stage], index) => {
       const x = startX + index * (cardWidth + spacing);
-      const card = this.createCharacterCard(
-        key as CharacterType,
-        character,
+      const card = this.createStageCard(
+        key as StageType,
+        stage,
         x,
         startY,
         cardWidth,
         cardHeight
       );
-      this.characterCards.push(card);
+      this.stageCards.push(card);
     });
   }
 
-  private createCharacterCard(
-    characterKey: CharacterType,
-    character: (typeof GAME_CONFIG.CHARACTERS)[CharacterType],
+  private createStageCard(
+    stageKey: StageType,
+    stage: (typeof GAME_CONFIG.STAGES)[StageType],
     x: number,
     y: number,
     width: number,
@@ -143,29 +156,66 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     // Card background
     const background = this.add.rectangle(0, 0, width, height, 0x2c3e50);
-    background.setStrokeStyle(2, 0x3498db);
+    background.setStrokeStyle(2, 0xe74c3c);
     container.add(background);
 
-    // Character placeholder image (using colored rectangle for now)
-    const characterColors = {
-      FAST_LIGHTWEIGHT: 0x27ae60,
-      BALANCED_ALLROUNDER: 0x3498db,
-      HEAVY_HITTER: 0xe74c3c,
-    };
+    // Stage preview area (using colored rectangle and basic platform preview)
+    const previewBg = this.add.rectangle(0, -80, width - 20, 120, 0x34495e);
+    previewBg.setStrokeStyle(1, 0xbdc3c7);
+    container.add(previewBg);
 
-    const characterImage = this.add.rectangle(
-      0,
-      -50,
-      120,
-      120,
-      characterColors[characterKey]
+    // Draw basic platform preview
+    this.drawPlatformPreview(container, stage, width - 20, 120);
+
+    // Difficulty indicator - use database-driven UI colors based on difficulty
+    let difficultyColor: number;
+    if (stage.difficulty === 'Easy') {
+      difficultyColor = parseInt(
+        GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x')
+      );
+    } else if (stage.difficulty === 'Hard') {
+      difficultyColor = parseInt(
+        GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x')
+      );
+    } else {
+      difficultyColor = parseInt(
+        GAME_CONFIG.UI.COLORS.WARNING.replace('#', '0x')
+      );
+    }
+
+    // Strict validation - fail if UI colors not loaded from database
+    if (
+      !GAME_CONFIG.UI.COLORS.SUCCESS ||
+      !GAME_CONFIG.UI.COLORS.DANGER ||
+      !GAME_CONFIG.UI.COLORS.WARNING
+    ) {
+      throw new Error(
+        'UI colors not loaded from database constants. Cannot display stage difficulty.'
+      );
+    }
+    const difficultyBadge = this.add.rectangle(
+      width / 2 - 30,
+      -height / 2 + 20,
+      60,
+      20,
+      difficultyColor
     );
-    characterImage.setStrokeStyle(2, 0xffffff);
-    container.add(characterImage);
+    difficultyBadge.setStrokeStyle(1, 0xffffff);
+    container.add(difficultyBadge);
 
-    // Character name
+    const difficultyText = this.add
+      .text(width / 2 - 30, -height / 2 + 20, stage.difficulty, {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(difficultyText);
+
+    // Stage name
     const nameText = this.add
-      .text(0, 20, character.name, {
+      .text(0, 10, stage.name, {
         fontSize: '24px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
@@ -174,25 +224,39 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
     container.add(nameText);
 
-    // Character stats preview
+    // Stage description (truncated)
+    const truncatedDesc =
+      stage.description.length > 60
+        ? `${stage.description.substring(0, 60)}...`
+        : stage.description;
+
+    const descText = this.add
+      .text(0, 50, truncatedDesc, {
+        fontSize: '14px',
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        align: 'center',
+        wordWrap: { width: width - 20 },
+      })
+      .setOrigin(0.5);
+    container.add(descText);
+
+    // Stage stats
+    const platformCount = stage.platforms ? stage.platforms.length : 0;
+    const hazardCount = stage.hazards ? stage.hazards.length : 0;
     const statsText = this.add
-      .text(
-        0,
-        60,
-        `Speed: ${character.speed}\nHealth: ${character.health}\nAttack: ${character.attackDamage}`,
-        {
-          fontSize: '14px',
-          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-          align: 'center',
-        }
-      )
+      .text(0, 90, `Platforms: ${platformCount}\nHazards: ${hazardCount}`, {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        align: 'center',
+      })
       .setOrigin(0.5);
     container.add(statsText);
 
     // Make card interactive
     background.setInteractive();
-    background.on('pointerdown', () => this.selectCharacter(characterKey));
+    background.on('pointerdown', () => this.selectStage(stageKey));
     background.on('pointerover', () => this.onCardHover(container, background));
     background.on('pointerout', () =>
       this.onCardHoverOut(container, background)
@@ -201,12 +265,42 @@ export class CharacterSelectScene extends Phaser.Scene {
     return container;
   }
 
+  private drawPlatformPreview(
+    container: Phaser.GameObjects.Container,
+    stage: (typeof GAME_CONFIG.STAGES)[StageType],
+    previewWidth: number,
+    previewHeight: number
+  ): void {
+    if (!stage.platforms || stage.platforms.length === 0) return;
+
+    // Scale platforms to fit preview area
+    const scaleX = previewWidth / 800; // Assuming 800px stage width
+    const scaleY = previewHeight / 600; // Assuming 600px stage height
+
+    stage.platforms.forEach(platform => {
+      const scaledX = platform.x * scaleX - previewWidth / 2;
+      const scaledY = platform.y * scaleY - previewHeight / 2;
+      const scaledWidth = platform.width * scaleX;
+      const scaledHeight = platform.height * scaleY;
+
+      const platformRect = this.add.rectangle(
+        scaledX,
+        scaledY - 80, // Offset for preview position
+        scaledWidth,
+        scaledHeight,
+        0x95a5a6
+      );
+      platformRect.setStrokeStyle(1, 0xffffff);
+      container.add(platformRect);
+    });
+  }
+
   private onCardHover(
     container: Phaser.GameObjects.Container,
     background: Phaser.GameObjects.Rectangle
   ): void {
     background.setFillStyle(0x34495e);
-    background.setStrokeStyle(2, 0x5dade2);
+    background.setStrokeStyle(2, 0xf39c12);
 
     this.tweens.add({
       targets: container,
@@ -221,9 +315,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     container: Phaser.GameObjects.Container,
     background: Phaser.GameObjects.Rectangle
   ): void {
-    if (this.getCharacterFromContainer(container) !== this.selectedCharacter) {
+    if (this.getStageFromContainer(container) !== this.selectedStage) {
       background.setFillStyle(0x2c3e50);
-      background.setStrokeStyle(2, 0x3498db);
+      background.setStrokeStyle(2, 0xe74c3c);
     }
 
     this.tweens.add({
@@ -235,51 +329,50 @@ export class CharacterSelectScene extends Phaser.Scene {
     });
   }
 
-  private selectCharacter(characterKey: CharacterType): void {
-    // eslint-disable-next-line no-console
-    console.log(`CharacterSelectScene: Character selected - ${characterKey}`);
+  private selectStage(stageKey: StageType): void {
+    console.log(`StageSelectScene: Stage selected - ${stageKey}`);
 
     // Update visual selection
-    this.updateCardSelection(characterKey);
-    this.selectedCharacter = characterKey;
+    this.updateCardSelection(stageKey);
+    this.selectedStage = stageKey;
     this.updatePreview();
     this.updateConfirmButton();
   }
 
-  private updateCardSelection(selectedKey: CharacterType): void {
-    const characters = Object.keys(GAME_CONFIG.CHARACTERS);
+  private updateCardSelection(selectedKey: StageType): void {
+    const stages = Object.keys(GAME_CONFIG.STAGES);
 
-    this.characterCards.forEach((card, index) => {
+    this.stageCards.forEach((card, index) => {
       const background = card.list[0] as Phaser.GameObjects.Rectangle;
-      const characterKey = characters[index] as CharacterType;
+      const stageKey = stages[index] as StageType;
 
-      if (characterKey === selectedKey) {
+      if (stageKey === selectedKey) {
         background.setFillStyle(0x27ae60);
         background.setStrokeStyle(3, 0x2ecc71);
       } else {
         background.setFillStyle(0x2c3e50);
-        background.setStrokeStyle(2, 0x3498db);
+        background.setStrokeStyle(2, 0xe74c3c);
       }
     });
   }
 
-  private getCharacterFromContainer(
+  private getStageFromContainer(
     container: Phaser.GameObjects.Container
-  ): CharacterType | null {
-    const index = this.characterCards.indexOf(container);
+  ): StageType | null {
+    const index = this.stageCards.indexOf(container);
     if (index === -1) return null;
-    return Object.keys(GAME_CONFIG.CHARACTERS)[index] as CharacterType;
+    return Object.keys(GAME_CONFIG.STAGES)[index] as StageType;
   }
 
   private createPreviewArea(): void {
     this.previewContainer = this.add.container(this.cameras.main.centerX, 450);
 
-    const previewBg = this.add.rectangle(0, 0, 400, 150, 0x34495e);
-    previewBg.setStrokeStyle(2, 0x3498db);
+    const previewBg = this.add.rectangle(0, 0, 500, 180, 0x34495e);
+    previewBg.setStrokeStyle(2, 0xe74c3c);
     this.previewContainer.add(previewBg);
 
     const previewTitle = this.add
-      .text(0, -50, 'Character Preview', {
+      .text(0, -70, 'Stage Preview', {
         fontSize: '20px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
@@ -289,7 +382,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.previewContainer.add(previewTitle);
 
     const instructionText = this.add
-      .text(0, 0, 'Select a character to view details', {
+      .text(0, 0, 'Select a stage to view details', {
         fontSize: '16px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
@@ -302,25 +395,24 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private updatePreview(): void {
-    if (!this.previewContainer || !this.selectedCharacter) return;
+    if (!this.previewContainer || !this.selectedStage) return;
 
     // Clear existing preview content (except background and title)
     while (this.previewContainer.list.length > 2) {
       this.previewContainer.list.pop()?.destroy();
     }
 
-    const character = GAME_CONFIG.CHARACTERS[this.selectedCharacter];
+    const stage = GAME_CONFIG.STAGES[this.selectedStage];
 
-    // Character stats display
-    const statsText = this.add
+    // Stage details display
+    const detailsText = this.add
       .text(
         0,
-        -10,
-        `${character.name}\n\n` +
-          `Speed: ${character.speed}\n` +
-          `Health: ${character.health}\n` +
-          `Attack Damage: ${character.attackDamage}\n` +
-          `Weight: ${character.weight}`,
+        -20,
+        `${stage.name}\n\n` +
+          `Difficulty: ${stage.difficulty}\n` +
+          `Platforms: ${stage.platforms ? stage.platforms.length : 0}\n` +
+          `Hazards: ${stage.hazards ? stage.hazards.length : 0}`,
         {
           fontSize: '14px',
           fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
@@ -329,22 +421,16 @@ export class CharacterSelectScene extends Phaser.Scene {
         }
       )
       .setOrigin(0.5);
-    this.previewContainer.add(statsText);
+    this.previewContainer.add(detailsText);
 
-    // Character description
-    const descriptions = {
-      FAST_LIGHTWEIGHT: 'Quick and agile fighter with high mobility',
-      BALANCED_ALLROUNDER: 'Well-rounded fighter with balanced stats',
-      HEAVY_HITTER: 'Powerful fighter with high damage output',
-    };
-
+    // Stage description
     const descText = this.add
-      .text(0, 40, descriptions[this.selectedCharacter], {
+      .text(0, 50, stage.description, {
         fontSize: '12px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
         align: 'center',
-        wordWrap: { width: 350 },
+        wordWrap: { width: 450 },
       })
       .setOrigin(0.5);
     this.previewContainer.add(descText);
@@ -373,7 +459,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.backButton.add(backText);
 
     backBg.setInteractive();
-    backBg.on('pointerdown', () => this.goBackToMenu());
+    backBg.on('pointerdown', () => this.goBackToCharacterSelect());
     backBg.on('pointerover', () => {
       backBg.setFillStyle(0x95a5a6);
       this.tweens.add({
@@ -417,7 +503,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     confirmBg.setInteractive();
     confirmBg.on('pointerdown', () => this.confirmSelection());
     confirmBg.on('pointerover', () => {
-      if (this.selectedCharacter) {
+      if (this.selectedStage) {
         confirmBg.setFillStyle(0x27ae60);
         this.tweens.add({
           targets: this.confirmButton,
@@ -428,7 +514,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       }
     });
     confirmBg.on('pointerout', () => {
-      const color = this.selectedCharacter ? 0x27ae60 : 0x95a5a6;
+      const color = this.selectedStage ? 0x27ae60 : 0x95a5a6;
       confirmBg.setFillStyle(color);
       this.tweens.add({
         targets: this.confirmButton,
@@ -448,7 +534,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     const background = this.confirmButton
       .list[0] as Phaser.GameObjects.Rectangle;
 
-    if (this.selectedCharacter) {
+    if (this.selectedStage) {
       this.confirmButton.setAlpha(1);
       background.setFillStyle(0x27ae60);
       background.setStrokeStyle(2, 0x2ecc71);
@@ -462,12 +548,12 @@ export class CharacterSelectScene extends Phaser.Scene {
   private setupInputs(): void {
     // ESC key to go back
     this.input.keyboard?.addKey('ESC').on('down', () => {
-      this.goBackToMenu();
+      this.goBackToCharacterSelect();
     });
 
     // Enter key to confirm
     this.input.keyboard?.addKey('ENTER').on('down', () => {
-      if (this.selectedCharacter) {
+      if (this.selectedStage) {
         this.confirmSelection();
       }
     });
@@ -475,40 +561,41 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Number keys for quick selection
     [1, 2, 3].forEach((num, index) => {
       this.input.keyboard?.addKey(`DIGIT${num}`).on('down', () => {
-        const characters = Object.keys(GAME_CONFIG.CHARACTERS);
-        if (index < characters.length) {
-          this.selectCharacter(characters[index] as CharacterType);
+        const stages = Object.keys(GAME_CONFIG.STAGES);
+        if (index < stages.length) {
+          this.selectStage(stages[index] as StageType);
         }
       });
     });
   }
 
-  private goBackToMenu(): void {
-    // eslint-disable-next-line no-console
-    console.log('CharacterSelectScene: Returning to menu');
+  private goBackToCharacterSelect(): void {
+    console.log('StageSelectScene: Returning to character selection');
 
     // Transition animation
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT);
     });
   }
 
   private confirmSelection(): void {
-    if (!this.selectedCharacter) return;
+    if (!this.selectedStage) return;
 
-    // eslint-disable-next-line no-console
     console.log(
-      `CharacterSelectScene: Confirming selection - ${this.selectedCharacter}`
+      `StageSelectScene: Confirming stage selection - ${this.selectedStage}`
     );
 
-    // Persist selected character to global state for the GameScene
-    updateState({ selectedCharacter: this.selectedCharacter });
+    // Persist selected stage to global state
+    updateState({ selectedStage: this.selectedStage });
 
-    // Transition to StageSelectScene
+    // TODO: Emit stage selection event via socket
+    // socket.emit('selectStage', { stageId: this.selectedStage });
+
+    // Transition to PreMatchLobby
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start(GAME_CONFIG.SCENE_KEYS.STAGE_SELECT);
+      this.scene.start(GAME_CONFIG.SCENE_KEYS.LOBBY);
     });
   }
 }

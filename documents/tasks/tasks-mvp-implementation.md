@@ -12,6 +12,8 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
 - `frontend/src/scenes/BootScene.ts` - Initial loading scene for assets ✓
 - `frontend/src/scenes/MenuScene.ts` - Main menu with play options ✓
 - `frontend/src/scenes/CharacterSelectScene.ts` - Character selection interface ✓
+- `frontend/src/scenes/StageSelectScene.ts` - Stage selection interface for host ✓
+- `frontend/src/scenes/PreMatchLobbyScene.ts` - Pre-match lobby showing players, selections, and ready status ✓
 - `frontend/src/scenes/GameScene.ts` - Core gameplay scene with physics, combat, and attack collision detection ✓
 - `frontend/src/entities/Player.ts` - Player entity with movement, combat, advanced health/damage system, and animation system ✓
 - `frontend/src/entities/Stage.ts` - Stage entity with platforms, boundaries, hazards, and collision detection ✓
@@ -123,8 +125,22 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
     - [x] 5.7.4 Implement automatic game pause/resume on player disconnect/reconnect
     - [x] 5.7.5 Add configurable reconnection timeout with room cleanup
     - [x] 5.7.6 Test various disconnect scenarios and edge cases
-  - [ ] 5.8 Sync character selection and stage selection between players
-  - [ ] 5.9 Write integration tests for GameRoom and Socket.io functionality
+  - [ ] 5.8 Lobby & Selection Synchronization
+    - [x] 5.8.1 Create StageSelectScene (frontend UI for host to choose stage)
+    - [x] 5.8.2 Implement PreMatchLobby flow (show players, ready status, selected characters & stage)
+    - [ ] 5.8.3 Emit `selectCharacter`, `selectStage`, and `setPlayerReady` events from frontend via SocketManager
+    - [ ] 5.8.4 Add backend lobby events (`charSelected`, `stageSelected`, `playerReady`, `lobby:state`, `lobby:start`)
+    - [ ] 5.8.5 Extend GameRoom to store selections, validate inputs, and start match once all players ready
+    - [ ] 5.8.6 Broadcast `lobby:state` updates and `game:start` payload including chosen stage & character assignments
+    - [ ] 5.8.7 Update NetworkManager/GameScene to initialize players and stage from `game:start` data
+    - [ ] 5.8.8 Add unit tests for lobby flow and selection validation (backend)
+    - [ ] 5.8.9 Emit authoritative state snapshots (`game:state`) from backend at 60 Hz and deltas on key events
+    - [ ] 5.8.10 Consume `game:state` / `positionCorrection` on frontend, reconcile predicted vs authoritative state for all players
+  - [ ] 5.9 Multiplayer Integration & End-to-End Tests
+    - [ ] 5.9.1 Backend integration test: simulate two socket.io clients through lobby → game flow
+    - [ ] 5.9.2 Frontend integration test: verify CharacterSelectScene emits correct events and GameScene spawns correct entities
+    - [ ] 5.9.3 Disconnect/reconnect integration test: ensure pause/resume works end-to-end
+    - [ ] 5.9.4 Performance test: sustain 60 FPS game loop with multiple clients for 30 seconds without desync
 
 - [ ] 6.0 MVP Polish & Testing
   - [ ] 6.1 Add basic UI elements (health bars, stock counters, timer)

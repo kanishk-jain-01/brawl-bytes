@@ -10,6 +10,8 @@ import Phaser from 'phaser';
 import { BootScene } from '@/scenes/BootScene';
 import { MenuScene } from '@/scenes/MenuScene';
 import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
+import { StageSelectScene } from '@/scenes/StageSelectScene';
+import { PreMatchLobbyScene } from '@/scenes/PreMatchLobbyScene';
 import { GameScene } from '@/scenes/GameScene';
 import { GAME_CONFIG, initializeConstants } from '@/utils/constants';
 
@@ -72,7 +74,14 @@ async function initializeGame(): Promise<Phaser.Game> {
           fps: 60,
         },
       },
-      scene: [BootScene, MenuScene, CharacterSelectScene, GameScene],
+      scene: [
+        BootScene,
+        MenuScene,
+        CharacterSelectScene,
+        StageSelectScene,
+        PreMatchLobbyScene,
+        GameScene,
+      ],
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
