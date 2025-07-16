@@ -325,7 +325,10 @@ export class PhysicsSystem {
     );
 
     // Basic range check (could be expanded based on attack type)
-    const maxAttackRange = 150;
+    const maxAttackRange = constants.COMBAT.ATTACK_RANGE;
+    if (!maxAttackRange) {
+      throw new Error('Attack range not loaded from database constants');
+    }
     if (distance > maxAttackRange) {
       return { valid: false, reason: 'Target out of attack range' };
     }
@@ -499,7 +502,10 @@ export class PhysicsSystem {
     }
 
     // Check collision with platforms
-    const playerRadius = 25; // Simplified player collision box
+    const playerRadius = (await this.getConstants()).VALIDATION.PLAYER_RADIUS;
+    if (!playerRadius) {
+      throw new Error('Player radius not loaded from database constants');
+    }
     // eslint-disable-next-line no-restricted-syntax
     for (const platform of this.stageData.platforms) {
       if (

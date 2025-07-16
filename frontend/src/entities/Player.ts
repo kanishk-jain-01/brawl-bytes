@@ -11,7 +11,7 @@
 import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
-import { GAME_CONFIG, CharacterType } from '../utils/constants';
+import { GAME_CONFIG, CharacterType, getCharacterStats } from '../utils/constants';
 import { getSocketManager } from '../utils/socket';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -81,7 +81,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private lastSyncTime: number = 0;
 
-  private positionSyncRate: number = 60; // ms between position updates
+  private positionSyncRate: number = GAME_CONFIG.NETWORK.POSITION_SYNC_RATE; // ms between position updates
 
   private inputSequence: number = 0;
 
@@ -108,7 +108,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     timestamp: number;
   } | null = null;
 
-  private maxInputBufferSize: number = 60; // Keep ~1 second of inputs at 60fps
+  private maxInputBufferSize: number = GAME_CONFIG.NETWORK.MAX_INPUT_BUFFER_SIZE; // Keep ~1 second of inputs at 60fps
 
   private predictionEnabled: boolean = true;
 
@@ -122,9 +122,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     timestamp: number;
   }> = [];
 
-  private maxBufferSize: number = 10;
+  private maxBufferSize: number = GAME_CONFIG.NETWORK.MAX_BUFFER_SIZE;
 
-  private interpolationDelay: number = 100; // ms
+  private interpolationDelay: number = GAME_CONFIG.NETWORK.INTERPOLATION_DELAY; // ms
 
   constructor(config: PlayerConfig) {
     super(config.scene, config.x, config.y, 'player_placeholder');
@@ -133,7 +133,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.playerId = config.playerId;
     this.isLocalPlayer = config.isLocalPlayer;
 
-    this.character = GAME_CONFIG.CHARACTERS[this.characterType];
+    this.character = getCharacterStats(this.characterType as string);
+    console.log('🎮 Character loaded:', this.characterType, this.character);
+    
+    // Strict validation - database constants must be loaded
+    if (!GAME_CONFIG.GAME.MAX_STOCKS) {
+      throw new Error('Game constants not loaded from database. Cannot create player.');
+    }
+    
     this.maxHealth = this.character.health;
     this.currentHealth = this.maxHealth;
     this.currentStocks = GAME_CONFIG.GAME.MAX_STOCKS;
@@ -156,16 +163,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(false); // Boundaries handled by Stage entity
     body.setBounce(GAME_CONFIG.PHYSICS.BOUNCE_FACTOR);
     body.setDragX(GAME_CONFIG.PHYSICS.FRICTION * 1000);
-    body.setMaxVelocity(this.character.speed * 2, 1000);
+    body.setMaxVelocity(GAME_CONFIG.PHYSICS.MAX_VELOCITY, GAME_CONFIG.PHYSICS.MAX_VELOCITY);
 
     // Set hitbox size
-    body.setSize(50, 70);
+    body.setSize(GAME_CONFIG.PLAYER.COLLISION_BOX.WIDTH, GAME_CONFIG.PLAYER.COLLISION_BOX.HEIGHT);
     body.setOffset(5, 5);
   }
 
   private setupVisuals(): void {
     // Set display size and color based on character
-    this.setDisplaySize(60, 80);
+    this.setDisplaySize(GAME_CONFIG.PLAYER.DISPLAY_SIZE.WIDTH, GAME_CONFIG.PLAYER.DISPLAY_SIZE.HEIGHT);
     this.setTint(this.getCharacterColor());
 
     // Set origin for proper positioning
@@ -351,8 +358,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Gentle breathing effect
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: 1.02,
-      duration: 2000,
+      scaleY: GAME_CONFIG.ANIMATION.BREATHING_SCALE.SCALE_Y,
+      duration: GAME_CONFIG.ANIMATION.BREATHING_SCALE.DURATION,
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1,
@@ -363,8 +370,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Subtle bounce while walking
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: 1.05,
-      duration: 300,
+      scaleY: GAME_CONFIG.ANIMATION.HIT_EFFECT.SCALE_Y,
+      duration: GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION,
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1,
@@ -375,9 +382,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Stretch effect when jumping
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: 1.15,
+      scaleY: GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.SCALE_Y,
       scaleX: 0.95,
-      duration: 200,
+      duration: GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.DURATION,
       ease: 'Back.easeOut',
       yoyo: false,
       onComplete: () => {
@@ -517,7 +524,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private calculateAttackKnockback(): { x: number; y: number } {
-    const knockbackForce = 300;
+    const knockbackForce = GAME_CONFIG.COMBAT.MAX_KNOCKBACK_VELOCITY / 4; // Base knockback
     const direction = this.flipX ? -1 : 1;
 
     return {
@@ -661,7 +668,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Critical hits have more intense visual feedback
     if (damageInfo.isCritical) {
       tintColor = 0xffffff; // White flash for critical
-      shakeDuration = 300;
+      shakeDuration = GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION;
     }
 
     this.setTint(tintColor);
@@ -751,7 +758,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Visual feedback for healing
     this.setTint(0x00ff00); // Green tint
-    this.scene.time.delayedCall(300, () => {
+    this.scene.time.delayedCall(GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION, () => {
       this.setTint(this.getCharacterColor());
     });
 

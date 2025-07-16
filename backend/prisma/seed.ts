@@ -203,7 +203,7 @@ async function main() {
   console.log('📝 Creating game constants...');
   
   const gameConstants = [
-    // Physics Constants
+    // Physics Movement Constants
     {
       id: 'physics_gravity',
       category: 'physics',
@@ -218,6 +218,14 @@ async function main() {
       name: 'jump_velocity',
       description: 'Initial velocity for player jumps',
       value: -600,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_double_jump_velocity',
+      category: 'physics',
+      name: 'double_jump_velocity',
+      description: 'Velocity for double jump',
+      value: -500,
       dataType: 'number'
     },
     {
@@ -237,11 +245,51 @@ async function main() {
       dataType: 'number'
     },
     {
+      id: 'physics_max_acceleration',
+      category: 'physics',
+      name: 'max_acceleration',
+      description: 'Maximum acceleration for players',
+      value: 1200,
+      dataType: 'number'
+    },
+    {
       id: 'physics_friction',
       category: 'physics',
       name: 'friction',
       description: 'Ground friction coefficient',
       value: 0.9,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_air_resistance',
+      category: 'physics',
+      name: 'air_resistance',
+      description: 'Air resistance coefficient',
+      value: 0.95,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_bounce_factor',
+      category: 'physics',
+      name: 'bounce_factor',
+      description: 'Bounce factor for collisions',
+      value: 0.1,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_walking_threshold',
+      category: 'physics',
+      name: 'walking_threshold',
+      description: 'Velocity threshold for walking animation',
+      value: 10,
+      dataType: 'number'
+    },
+    {
+      id: 'physics_double_jump_multiplier',
+      category: 'physics',
+      name: 'double_jump_multiplier',
+      description: 'Multiplier for double jump velocity',
+      value: 0.8,
       dataType: 'number'
     },
     {
@@ -254,7 +302,9 @@ async function main() {
         max_x: 1000,
         min_y: -500,
         max_y: 600,
-        death_zone_y: 800
+        death_zone_y: 800,
+        width: 2000,
+        height: 1100
       },
       dataType: 'object'
     },
@@ -277,11 +327,35 @@ async function main() {
       dataType: 'number'
     },
     {
+      id: 'combat_critical_invulnerability',
+      category: 'combat',
+      name: 'critical_invulnerability_duration',
+      description: 'Invulnerability time after critical damage (ms)',
+      value: 1500,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_respawn_invulnerability',
+      category: 'combat',
+      name: 'respawn_invulnerability',
+      description: 'Invulnerability time after respawn (ms)',
+      value: 2000,
+      dataType: 'number'
+    },
+    {
       id: 'combat_max_damage',
       category: 'combat',
       name: 'max_damage_per_hit',
       description: 'Maximum damage allowed per single hit',
       value: 50,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_min_damage',
+      category: 'combat',
+      name: 'min_damage_per_hit',
+      description: 'Minimum damage per hit',
+      value: 1,
       dataType: 'number'
     },
     {
@@ -292,8 +366,56 @@ async function main() {
       value: 1200,
       dataType: 'number'
     },
+    {
+      id: 'combat_fall_damage',
+      category: 'combat',
+      name: 'fall_damage',
+      description: 'Damage taken from falling off stage',
+      value: 25,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_critical_multiplier',
+      category: 'combat',
+      name: 'critical_multiplier',
+      description: 'Damage multiplier for critical hits',
+      value: 1.5,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_critical_chance',
+      category: 'combat',
+      name: 'critical_chance',
+      description: 'Chance for critical hit (0.0-1.0)',
+      value: 0.1,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_attack_range',
+      category: 'combat',
+      name: 'attack_range',
+      description: 'Default attack range in pixels',
+      value: 150,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_max_combo_time',
+      category: 'combat',
+      name: 'max_combo_time',
+      description: 'Maximum time for combo chain (ms)',
+      value: 2000,
+      dataType: 'number'
+    },
+    {
+      id: 'combat_flash_interval',
+      category: 'combat',
+      name: 'flash_interval',
+      description: 'Flash interval during invulnerability (ms)',
+      value: 200,
+      dataType: 'number'
+    },
     
-    // Game Constants
+    // Game Rules
     {
       id: 'game_max_stocks',
       category: 'game',
@@ -316,6 +438,245 @@ async function main() {
       name: 'respawn_time',
       description: 'Time before respawn after KO (ms)',
       value: 2000,
+      dataType: 'number'
+    },
+    {
+      id: 'game_max_players',
+      category: 'game',
+      name: 'max_players',
+      description: 'Maximum players per match',
+      value: 2,
+      dataType: 'number'
+    },
+    
+    // Character Stats - Dash (Fast Lightweight)
+    {
+      id: 'character_dash_stats',
+      category: 'characters',
+      name: 'dash',
+      description: 'Stats for Dash character',
+      value: {
+        name: 'Dash',
+        speed: 250,
+        jumpVelocity: -650,
+        health: 80,
+        attackDamage: 15,
+        weight: 0.8
+      },
+      dataType: 'object'
+    },
+    // Character Stats - Rex (Balanced Allrounder)
+    {
+      id: 'character_rex_stats',
+      category: 'characters',
+      name: 'rex',
+      description: 'Stats for Rex character',
+      value: {
+        name: 'Rex',
+        speed: 200,
+        jumpVelocity: -600,
+        health: 100,
+        attackDamage: 20,
+        weight: 1.0
+      },
+      dataType: 'object'
+    },
+    // Character Stats - Titan (Heavy Hitter)
+    {
+      id: 'character_titan_stats',
+      category: 'characters',
+      name: 'titan',
+      description: 'Stats for Titan character',
+      value: {
+        name: 'Titan',
+        speed: 150,
+        jumpVelocity: -550,
+        health: 120,
+        attackDamage: 30,
+        weight: 1.3
+      },
+      dataType: 'object'
+    },
+    
+    // UI Constants
+    {
+      id: 'ui_colors',
+      category: 'ui',
+      name: 'colors',
+      description: 'UI color scheme',
+      value: {
+        primary: '#3498db',
+        secondary: '#2c3e50',
+        success: '#27ae60',
+        danger: '#e74c3c',
+        warning: '#f39c12',
+        text: '#ffffff',
+        text_secondary: '#bdc3c7'
+      },
+      dataType: 'object'
+    },
+    {
+      id: 'ui_fonts',
+      category: 'ui',
+      name: 'fonts',
+      description: 'UI font families',
+      value: {
+        primary: 'Arial, sans-serif',
+        secondary: 'monospace'
+      },
+      dataType: 'object'
+    },
+    
+    // Networking Constants
+    {
+      id: 'network_position_sync_rate',
+      category: 'network',
+      name: 'position_sync_rate',
+      description: 'Rate for position updates (ms)',
+      value: 60,
+      dataType: 'number'
+    },
+    {
+      id: 'network_max_input_buffer',
+      category: 'network',
+      name: 'max_input_buffer_size',
+      description: 'Maximum input buffer size',
+      value: 60,
+      dataType: 'number'
+    },
+    {
+      id: 'network_interpolation_delay',
+      category: 'network',
+      name: 'interpolation_delay',
+      description: 'Interpolation delay for remote players (ms)',
+      value: 100,
+      dataType: 'number'
+    },
+    {
+      id: 'network_max_buffer_size',
+      category: 'network',
+      name: 'max_buffer_size',
+      description: 'Maximum network buffer size',
+      value: 10,
+      dataType: 'number'
+    },
+    
+    // Physics Validation Constants
+    {
+      id: 'validation_position_tolerance',
+      category: 'validation',
+      name: 'position_tolerance',
+      description: 'Position validation tolerance',
+      value: 50,
+      dataType: 'number'
+    },
+    {
+      id: 'validation_velocity_tolerance',
+      category: 'validation',
+      name: 'velocity_tolerance',
+      description: 'Velocity validation tolerance',
+      value: 100,
+      dataType: 'number'
+    },
+    {
+      id: 'validation_max_position_change',
+      category: 'validation',
+      name: 'max_position_change_per_ms',
+      description: 'Maximum position change per millisecond',
+      value: 1.0,
+      dataType: 'number'
+    },
+    {
+      id: 'validation_max_velocity_change',
+      category: 'validation',
+      name: 'max_velocity_change_per_ms',
+      description: 'Maximum velocity change per millisecond',
+      value: 2.0,
+      dataType: 'number'
+    },
+    
+    // Player Entity Constants
+    {
+      id: 'player_collision_box',
+      category: 'player',
+      name: 'collision_box',
+      description: 'Player collision box dimensions',
+      value: {
+        width: 50,
+        height: 70
+      },
+      dataType: 'object'
+    },
+    {
+      id: 'player_display_size',
+      category: 'player',
+      name: 'display_size',
+      description: 'Player display dimensions',
+      value: {
+        width: 60,
+        height: 80
+      },
+      dataType: 'object'
+    },
+    {
+      id: 'player_radius',
+      category: 'player',
+      name: 'radius',
+      description: 'Player collision radius for simplified checks',
+      value: 25,
+      dataType: 'number'
+    },
+    
+    // Animation Constants
+    {
+      id: 'animation_breathing_scale',
+      category: 'animation',
+      name: 'breathing_scale',
+      description: 'Scale factors for breathing animation',
+      value: {
+        scaleY: 1.02,
+        duration: 2000
+      },
+      dataType: 'object'
+    },
+    {
+      id: 'animation_hit_effect',
+      category: 'animation',
+      name: 'hit_effect',
+      description: 'Hit effect animation parameters',
+      value: {
+        scaleY: 1.05,
+        duration: 300
+      },
+      dataType: 'object'
+    },
+    {
+      id: 'animation_damage_effect',
+      category: 'animation',
+      name: 'damage_effect',
+      description: 'Damage effect animation parameters',
+      value: {
+        scaleY: 1.15,
+        duration: 200
+      },
+      dataType: 'object'
+    },
+    
+    // Server Configuration
+    {
+      id: 'server_port',
+      category: 'server',
+      name: 'port',
+      description: 'Backend server port',
+      value: 3001,
+      dataType: 'number'
+    },
+    {
+      id: 'server_frontend_port',
+      category: 'server',
+      name: 'frontend_port',
+      description: 'Frontend development server port',
+      value: 3000,
       dataType: 'number'
     }
   ];

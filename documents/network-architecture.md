@@ -53,9 +53,86 @@ Brawl Bytes uses a client-server architecture with authoritative server design t
                     │   - User Accounts       │
                     │   - Match History       │
                     │   - Player Stats        │
+                    │   - Game Constants      │
                     │   - Leaderboards        │
                     └─────────────────────────┘
 ```
+
+## Game Constants API
+
+Brawl Bytes uses a centralized configuration system where all game constants are served via REST API from the database. This enables real-time game balancing without code deployments.
+
+### API Endpoints
+
+```http
+# Get all constants (called on game startup)
+GET /api/constants
+Response: { success: true, data: { physics: {...}, combat: {...}, ... } }
+
+# Get constants by category
+GET /api/constants/:category
+Response: { success: true, data: { gravity: 800, jump_velocity: -600, ... } }
+
+# Get specific constant
+GET /api/constants/:category/:name
+Response: { success: true, data: { name: "gravity", value: 800, description: "..." } }
+
+# Update constant (admin only)
+PUT /api/constants/:category/:name
+Body: { value: 850 }
+Response: { success: true, data: { name: "gravity", value: 850, updatedAt: "..." } }
+```
+
+### Constants Flow
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Database      │───▶│   REST API      │───▶│   Game Client   │
+│   (PostgreSQL)  │    │   /api/constants│    │   (Frontend)    │
+│                 │    │                 │    │                 │
+│ • 50+ Constants │    │ • Cached (1min) │    │ • Loaded once   │
+│ • Categories:   │    │ • Validation    │    │ • Strict checks │
+│   - physics     │    │ • Error handling│    │ • No fallbacks  │
+│   - combat      │    │                 │    │                 │
+│   - characters  │    │                 │    │                 │
+│   - game        │    │                 │    │                 │
+│   - ui          │    │                 │    │                 │
+│   - network     │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                 │
+                    ┌────────────▼────────────┐
+                    │   Game Server           │
+                    │   (Backend)             │
+                    │                         │
+                    │ • Uses same constants   │
+                    │ • Server-side validation│
+                    │ • Physics authority     │
+                    │ • Combat validation     │
+                    └─────────────────────────┘
+```
+
+### Fail-Fast Behavior
+
+The system is designed with **no fallback logic**. If constants cannot be loaded:
+
+```typescript
+// Frontend - Game won't start
+if (!GAME_CONFIG.PHYSICS.GRAVITY) {
+  throw new Error('Database constants required for game operation');
+}
+
+// Backend - Server operations fail
+if (!constants.COMBAT.ATTACK_RANGE) {
+  throw new Error('Attack range not loaded from database constants');
+}
+```
+
+### Performance Characteristics
+
+- **Startup Load**: Single API call (~2KB payload) with all 50+ constants
+- **Caching**: Server-side cache (1 minute duration) for optimal performance
+- **Updates**: Real-time via PUT requests, cache invalidation automatic
+- **Network**: Minimal overhead after initial load
 
 ## Core Network Components
 

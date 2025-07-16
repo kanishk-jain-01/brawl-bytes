@@ -25,12 +25,14 @@ export interface PhysicsConstants {
     INVULNERABILITY_DURATION: number;
     ATTACK_COOLDOWN_MIN: number;
     MAX_COMBO_TIME: number;
+    ATTACK_RANGE: number;
   };
   VALIDATION: {
     MAX_POSITION_CHANGE_PER_MS: number;
     MAX_VELOCITY_CHANGE_PER_MS: number;
     POSITION_TOLERANCE: number;
     VELOCITY_TOLERANCE: number;
+    PLAYER_RADIUS: number;
   };
 }
 
@@ -88,12 +90,12 @@ export class GameConstantsService {
       const physicsConstants: PhysicsConstants = {
         MOVEMENT: {
           MAX_VELOCITY: formattedConstants.physics?.max_velocity ?? 800,
-          MAX_ACCELERATION: 1200, // Not in DB yet, use default
+          MAX_ACCELERATION: formattedConstants.physics?.max_acceleration ?? 1200,
           GRAVITY: formattedConstants.physics?.gravity ?? 800,
           JUMP_VELOCITY: formattedConstants.physics?.jump_velocity ?? -600,
-          DOUBLE_JUMP_VELOCITY: -500, // Not in DB yet, use default
+          DOUBLE_JUMP_VELOCITY: formattedConstants.physics?.double_jump_velocity ?? -500,
           FRICTION: formattedConstants.physics?.friction ?? 0.9,
-          AIR_RESISTANCE: 0.95, // Not in DB yet, use default
+          AIR_RESISTANCE: formattedConstants.physics?.air_resistance ?? 0.95,
         },
         BOUNDS: {
           MIN_X: formattedConstants.physics?.world_bounds?.min_x ?? -1000,
@@ -106,20 +108,22 @@ export class GameConstantsService {
         COMBAT: {
           MAX_DAMAGE_PER_HIT:
             formattedConstants.combat?.max_damage_per_hit ?? 50,
-          MIN_DAMAGE_PER_HIT: 1, // Not in DB yet, use default
+          MIN_DAMAGE_PER_HIT: formattedConstants.combat?.min_damage_per_hit ?? 1,
           MAX_KNOCKBACK_VELOCITY:
             formattedConstants.combat?.max_knockback_velocity ?? 1200,
           INVULNERABILITY_DURATION:
             formattedConstants.combat?.invulnerability_duration ?? 1000,
           ATTACK_COOLDOWN_MIN:
             formattedConstants.combat?.attack_cooldown ?? 400,
-          MAX_COMBO_TIME: 2000, // Not in DB yet, use default
+          MAX_COMBO_TIME: formattedConstants.combat?.max_combo_time ?? 2000,
+          ATTACK_RANGE: formattedConstants.combat?.attack_range ?? 150,
         },
         VALIDATION: {
-          MAX_POSITION_CHANGE_PER_MS: 1.0, // Not in DB yet, use default
-          MAX_VELOCITY_CHANGE_PER_MS: 2.0, // Not in DB yet, use default
-          POSITION_TOLERANCE: 50, // Not in DB yet, use default
-          VELOCITY_TOLERANCE: 100, // Not in DB yet, use default
+          MAX_POSITION_CHANGE_PER_MS: formattedConstants.validation?.max_position_change_per_ms ?? 1.0,
+          MAX_VELOCITY_CHANGE_PER_MS: formattedConstants.validation?.max_velocity_change_per_ms ?? 2.0,
+          POSITION_TOLERANCE: formattedConstants.validation?.position_tolerance ?? 50,
+          VELOCITY_TOLERANCE: formattedConstants.validation?.velocity_tolerance ?? 100,
+          PLAYER_RADIUS: formattedConstants.player?.radius ?? 25,
         },
       };
 
@@ -130,12 +134,13 @@ export class GameConstantsService {
       return physicsConstants;
     } catch (error) {
       console.error(
-        'Failed to load game constants from database, using fallback values:',
+        'Failed to load game constants from database:',
         error
       );
-
-      // Return fallback constants if database fails
-      return this.getFallbackConstants();
+      
+      // Clear cache and re-throw error - no fallbacks allowed
+      this.cachedConstants = null;
+      throw new Error('Database constants are required for game operation. Cannot start game without valid constants.');
     }
   }
 
@@ -160,42 +165,4 @@ export class GameConstantsService {
     this.lastCacheTime = 0;
   }
 
-  /**
-   * Fallback constants in case database is unavailable
-   */
-  // eslint-disable-next-line class-methods-use-this
-  private getFallbackConstants(): PhysicsConstants {
-    return {
-      MOVEMENT: {
-        MAX_VELOCITY: 800,
-        MAX_ACCELERATION: 1200,
-        GRAVITY: 800,
-        JUMP_VELOCITY: -600,
-        DOUBLE_JUMP_VELOCITY: -500,
-        FRICTION: 0.9,
-        AIR_RESISTANCE: 0.95,
-      },
-      BOUNDS: {
-        MIN_X: -1000,
-        MAX_X: 1000,
-        MIN_Y: -500,
-        MAX_Y: 600,
-        DEATH_ZONE_Y: 800,
-      },
-      COMBAT: {
-        MAX_DAMAGE_PER_HIT: 50,
-        MIN_DAMAGE_PER_HIT: 1,
-        MAX_KNOCKBACK_VELOCITY: 1200,
-        INVULNERABILITY_DURATION: 1000,
-        ATTACK_COOLDOWN_MIN: 400,
-        MAX_COMBO_TIME: 2000,
-      },
-      VALIDATION: {
-        MAX_POSITION_CHANGE_PER_MS: 1.0,
-        MAX_VELOCITY_CHANGE_PER_MS: 2.0,
-        POSITION_TOLERANCE: 50,
-        VELOCITY_TOLERANCE: 100,
-      },
-    };
-  }
 }

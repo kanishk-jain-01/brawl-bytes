@@ -57,8 +57,9 @@ export class GameScene extends Phaser.Scene {
     console.log('GameScene: Starting game');
 
     // Retrieve selected character from global state, fallback to default
-    this.selectedCharacter =
-      getState().selectedCharacter || 'BALANCED_ALLROUNDER';
+    const rawCharacter = getState().selectedCharacter || 'BALANCED_ALLROUNDER';
+    // Map old character names to new ones
+    this.selectedCharacter = this.mapCharacterName(rawCharacter);
     // eslint-disable-next-line no-console
     console.log(`GameScene: Selected character - ${this.selectedCharacter}`);
 
@@ -239,7 +240,7 @@ export class GameScene extends Phaser.Scene {
       scene: this,
       x: spawnPoints[1].x,
       y: spawnPoints[1].y,
-      characterType: 'HEAVY_HITTER',
+      characterType: 'TITAN',
       playerId: 'dummy_player',
       isLocalPlayer: false,
     });
@@ -1107,5 +1108,22 @@ export class GameScene extends Phaser.Scene {
       // eslint-disable-next-line no-console
       console.warn('Position corrected by server');
     }
+  }
+
+  /**
+   * Map old character names to new centralized names
+   */
+  private mapCharacterName(oldName: string): string {
+    const characterMap: Record<string, string> = {
+      'FAST_LIGHTWEIGHT': 'DASH',
+      'BALANCED_ALLROUNDER': 'REX', 
+      'HEAVY_HITTER': 'TITAN',
+      // Also support new names directly
+      'DASH': 'DASH',
+      'REX': 'REX',
+      'TITAN': 'TITAN'
+    };
+    
+    return characterMap[oldName] || 'REX'; // Default to REX if unknown
   }
 }

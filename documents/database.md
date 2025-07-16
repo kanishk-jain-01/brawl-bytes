@@ -225,6 +225,20 @@ CREATE TABLE stages (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Game constants for centralized configuration
+CREATE TABLE game_constants (
+    id VARCHAR(50) PRIMARY KEY,
+    category VARCHAR(50) NOT NULL, -- 'physics', 'combat', 'game', 'characters', etc.
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    value JSONB NOT NULL, -- The actual constant value (number, object, string)
+    data_type VARCHAR(20) NOT NULL, -- 'number', 'object', 'string', 'array'
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(category, name)
+);
 ```
 
 ## Database Integration Architecture
@@ -240,11 +254,13 @@ CREATE TABLE stages (
 │   ├── UserRepository.ts
 │   ├── MatchRepository.ts
 │   ├── PlayerRepository.ts
+│   ├── GameConstantsRepository.ts
 │   └── LeaderboardRepository.ts
 ├── services/              # Business logic layer
 │   ├── UserService.ts
 │   ├── MatchService.ts
 │   ├── RankingService.ts
+│   ├── GameConstantsService.ts
 │   └── StatisticsService.ts
 └── migrations/            # Custom migration scripts
 ```
@@ -282,6 +298,35 @@ export class UserRepository {
                 playerProfile: true,
                 characterUnlocks: true
             }
+        });
+    }
+}
+
+// GameConstantsRepository.ts
+export class GameConstantsRepository {
+    constructor(private prisma: PrismaClient) {}
+
+    async getFormattedConstants(): Promise<Record<string, Record<string, any>>> {
+        const constants = await this.prisma.gameConstants.findMany({
+            where: { isActive: true },
+            orderBy: [{ category: 'asc' }, { name: 'asc' }]
+        });
+
+        const formatted: Record<string, Record<string, any>> = {};
+        constants.forEach(constant => {
+            if (!formatted[constant.category]) {
+                formatted[constant.category] = {};
+            }
+            formatted[constant.category][constant.name] = constant.value;
+        });
+
+        return formatted;
+    }
+
+    async updateConstant(category: string, name: string, value: any) {
+        return await this.prisma.gameConstants.update({
+            where: { category_name: { category, name } },
+            data: { value, updatedAt: new Date() }
         });
     }
 }
@@ -339,6 +384,51 @@ const seedData = {
             config: { platforms: 3, hazards: [] },
             unlockRequirements: { level: 1 }
         }
+    ],
+    gameConstants: [
+        // Physics Constants
+        {
+            id: 'physics_gravity',
+            category: 'physics',
+            name: 'gravity',
+            description: 'Gravity force applied to players',
+            value: 800,
+            dataType: 'number'
+        },
+        {
+            id: 'physics_jump_velocity',
+            category: 'physics',
+            name: 'jump_velocity',
+            description: 'Initial velocity for player jumps',
+            value: -600,
+            dataType: 'number'
+        },
+        // Combat Constants
+        {
+            id: 'combat_attack_cooldown',
+            category: 'combat',
+            name: 'attack_cooldown',
+            description: 'Minimum time between attacks (ms)',
+            value: 400,
+            dataType: 'number'
+        },
+        // Character Stats
+        {
+            id: 'character_dash_stats',
+            category: 'characters',
+            name: 'dash',
+            description: 'Stats for Dash character',
+            value: {
+                name: 'Dash',
+                speed: 250,
+                jumpVelocity: -650,
+                health: 80,
+                attackDamage: 15,
+                weight: 0.8
+            },
+            dataType: 'object'
+        }
+        // ... 50+ total constants across all categories
     ]
 };
 ```

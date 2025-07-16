@@ -200,7 +200,7 @@ function showErrorMessage(message: string): void {
         <h3 style="margin-bottom: 20px; color: #e74c3c;">❌ Connection Error</h3>
         <p style="margin-bottom: 30px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">${message}</p>
         <div style="margin-bottom: 20px;">
-          <p style="font-size: 14px; color: #bdc3c7;">Make sure the backend server is running on port 4000</p>
+          <p style="font-size: 14px; color: #bdc3c7;">Make sure the backend server is running on port 3001</p>
         </div>
         <button onclick="window.location.reload()" style="
           margin-top: 20px;
