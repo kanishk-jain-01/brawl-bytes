@@ -111,7 +111,7 @@ export class SocketManager {
         this.handleSelectStage(socket, data);
       });
 
-      socket.on('playerReadyChanged', data => {
+      socket.on('playerReady', data => {
         this.handlePlayerReady(socket, data);
       });
 

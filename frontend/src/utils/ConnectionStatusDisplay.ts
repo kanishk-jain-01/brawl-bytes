@@ -1,6 +1,7 @@
 import {
   ConnectionState,
   type ConnectionMetrics,
+  subscribeToConnection,
 } from '@/state/connectionStore';
 
 // Legacy types for ConnectionStatusDisplay compatibility
@@ -37,6 +38,8 @@ export class ConnectionStatusDisplay {
   private statusElement: HTMLElement | null = null;
 
   private autoHideTimeout: NodeJS.Timeout | null = null;
+
+  private unsubscribeStore: (() => void) | null = null;
 
   // private currentStatus: ConnectionStatus | null = null; // Unused for now
 
@@ -351,12 +354,21 @@ export class ConnectionStatusDisplay {
       clearTimeout(this.autoHideTimeout);
     }
 
+    if (this.unsubscribeStore) {
+      this.unsubscribeStore();
+      this.unsubscribeStore = null;
+    }
+
     if (this.statusElement && this.statusElement.parentNode) {
       this.statusElement.parentNode.removeChild(this.statusElement);
     }
 
     this.statusElement = null;
     // this.currentStatus = null;
+  }
+
+  public setUnsubscribe(unsubscribe: () => void): void {
+    this.unsubscribeStore = unsubscribe;
   }
 
   public setConfig(newConfig: Partial<ConnectionStatusDisplayConfig>): void {
@@ -377,8 +389,14 @@ export function createConnectionStatusDisplay(
     display.updateStatus(status);
   };
 
-  // Listen to socket events
-  socketManager.addNotificationCallback('statusDisplay', updateDisplay);
+  // Subscribe to connection store changes
+  const unsubscribe = subscribeToConnection(() => {
+    // Update display when connection state changes
+    updateDisplay();
+  });
+
+  // Store the unsubscribe function for cleanup
+  display.setUnsubscribe(unsubscribe);
 
   // Listen to connection state changes
   socketManager.on('connectionStateChanged', updateDisplay);
