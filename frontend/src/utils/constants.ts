@@ -192,50 +192,44 @@ export function updateGameConfig(serverConstants: any): void {
 
   // Asset Keys
   if (serverConstants.assets) {
-    if (serverConstants.assets.images) {
-      ASSET_KEYS.IMAGES = {
-        LOGO: serverConstants.assets.images.logo,
-        BACKGROUND_MENU: serverConstants.assets.images.background_menu,
-        BACKGROUND_STAGE1: serverConstants.assets.images.background_stage1,
-        BACKGROUND_STAGE2: serverConstants.assets.images.background_stage2,
-        CHARACTER_DASH: serverConstants.assets.images.character_dash,
-        CHARACTER_REX: serverConstants.assets.images.character_rex,
-        CHARACTER_TITAN: serverConstants.assets.images.character_titan,
-        CHARACTER_NINJA: serverConstants.assets.images.character_ninja,
-        PLATFORM: serverConstants.assets.images.platform,
-        UI_BUTTON: serverConstants.assets.images.ui_button,
-        UI_BUTTON_HOVER: serverConstants.assets.images.ui_button_hover,
-        HEALTH_BAR: serverConstants.assets.images.health_bar,
-        ENERGY_BAR: serverConstants.assets.images.energy_bar,
-      };
-    }
+    ASSET_KEYS.IMAGES = {
+      LOGO: serverConstants.assets.images_logo,
+      BACKGROUND_MENU: serverConstants.assets.images_background_menu,
+      BACKGROUND_STAGE1: serverConstants.assets.images_background_stage1,
+      BACKGROUND_STAGE2: serverConstants.assets.images_background_stage2,
+      CHARACTER_DASH: serverConstants.assets.images_character_dash,
+      CHARACTER_REX: serverConstants.assets.images_character_rex,
+      CHARACTER_TITAN: serverConstants.assets.images_character_titan,
+      CHARACTER_NINJA: serverConstants.assets.images_character_ninja,
+      PLATFORM: serverConstants.assets.images_platform,
+      UI_BUTTON: serverConstants.assets.images_ui_button,
+      UI_BUTTON_HOVER: serverConstants.assets.images_ui_button_hover,
+      HEALTH_BAR: serverConstants.assets.images_health_bar,
+      ENERGY_BAR: serverConstants.assets.images_energy_bar,
+    };
 
-    if (serverConstants.assets.audio) {
-      ASSET_KEYS.AUDIO = {
-        MENU_MUSIC: serverConstants.assets.audio.menu_music,
-        GAME_MUSIC: serverConstants.assets.audio.game_music,
-        BATTLE_THEME: serverConstants.assets.audio.battle_theme,
-        SKY_THEME: serverConstants.assets.audio.sky_theme,
-        VOLCANO_THEME: serverConstants.assets.audio.volcano_theme,
-        SFX_JUMP: serverConstants.assets.audio.sfx_jump,
-        SFX_ATTACK: serverConstants.assets.audio.sfx_attack,
-        SFX_HIT: serverConstants.assets.audio.sfx_hit,
-        SFX_BUTTON: serverConstants.assets.audio.sfx_button,
-        SFX_VICTORY: serverConstants.assets.audio.sfx_victory,
-        SFX_DEFEAT: serverConstants.assets.audio.sfx_defeat,
-      };
-    }
+    ASSET_KEYS.AUDIO = {
+      MENU_MUSIC: serverConstants.assets.audio_menu_music,
+      GAME_MUSIC: serverConstants.assets.audio_game_music,
+      BATTLE_THEME: serverConstants.assets.audio_battle_theme,
+      SKY_THEME: serverConstants.assets.audio_sky_theme,
+      VOLCANO_THEME: serverConstants.assets.audio_volcano_theme,
+      SFX_JUMP: serverConstants.assets.audio_sfx_jump,
+      SFX_ATTACK: serverConstants.assets.audio_sfx_attack,
+      SFX_HIT: serverConstants.assets.audio_sfx_hit,
+      SFX_BUTTON: serverConstants.assets.audio_sfx_button,
+      SFX_VICTORY: serverConstants.assets.audio_sfx_victory,
+      SFX_DEFEAT: serverConstants.assets.audio_sfx_defeat,
+    };
 
-    if (serverConstants.assets.spritesheets) {
-      ASSET_KEYS.SPRITESHEETS = {
-        DASH_SPRITES: serverConstants.assets.spritesheets.dash_sprites,
-        REX_SPRITES: serverConstants.assets.spritesheets.rex_sprites,
-        TITAN_SPRITES: serverConstants.assets.spritesheets.titan_sprites,
-        NINJA_SPRITES: serverConstants.assets.spritesheets.ninja_sprites,
-        EFFECTS: serverConstants.assets.spritesheets.effects,
-        UI_ELEMENTS: serverConstants.assets.spritesheets.ui_elements,
-      };
-    }
+    ASSET_KEYS.SPRITESHEETS = {
+      DASH_SPRITES: serverConstants.assets.spritesheets_dash_sprites,
+      REX_SPRITES: serverConstants.assets.spritesheets_rex_sprites,
+      TITAN_SPRITES: serverConstants.assets.spritesheets_titan_sprites,
+      NINJA_SPRITES: serverConstants.assets.spritesheets_ninja_sprites,
+      EFFECTS: serverConstants.assets.spritesheets_effects,
+      UI_ELEMENTS: serverConstants.assets.spritesheets_ui_elements,
+    };
   }
 
   // Physics Constants
@@ -254,27 +248,15 @@ export function updateGameConfig(serverConstants: any): void {
       DOUBLE_JUMP_MULTIPLIER: serverConstants.physics.double_jump_multiplier,
     });
 
-    if (serverConstants.physics.world_bounds) {
-      GAME_CONFIG.PHYSICS.WORLD_BOUNDS = {
-        WIDTH:
-          serverConstants.physics.world_bounds.width ||
-          Math.abs(
-            serverConstants.physics.world_bounds.max_x -
-              serverConstants.physics.world_bounds.min_x
-          ),
-        HEIGHT:
-          serverConstants.physics.world_bounds.height ||
-          Math.abs(
-            serverConstants.physics.world_bounds.max_y -
-              serverConstants.physics.world_bounds.min_y
-          ),
-        MIN_X: serverConstants.physics.world_bounds.min_x,
-        MAX_X: serverConstants.physics.world_bounds.max_x,
-        MIN_Y: serverConstants.physics.world_bounds.min_y,
-        MAX_Y: serverConstants.physics.world_bounds.max_y,
-        DEATH_ZONE_Y: serverConstants.physics.world_bounds.death_zone_y,
-      };
-    }
+    GAME_CONFIG.PHYSICS.WORLD_BOUNDS = {
+      WIDTH: serverConstants.physics.world_bounds_width,
+      HEIGHT: serverConstants.physics.world_bounds_height,
+      MIN_X: serverConstants.physics.world_bounds_min_x,
+      MAX_X: serverConstants.physics.world_bounds_max_x,
+      MIN_Y: serverConstants.physics.world_bounds_min_y,
+      MAX_Y: serverConstants.physics.world_bounds_max_y,
+      DEATH_ZONE_Y: serverConstants.physics.world_bounds_death_zone_y,
+    };
   }
 
   // Combat Constants
@@ -315,23 +297,20 @@ export function updateGameConfig(serverConstants: any): void {
 
   // UI Constants
   if (serverConstants.ui) {
-    if (serverConstants.ui.colors) {
-      Object.assign(GAME_CONFIG.UI.COLORS, {
-        PRIMARY: serverConstants.ui.colors.primary,
-        SECONDARY: serverConstants.ui.colors.secondary,
-        SUCCESS: serverConstants.ui.colors.success,
-        DANGER: serverConstants.ui.colors.danger,
-        WARNING: serverConstants.ui.colors.warning,
-        TEXT: serverConstants.ui.colors.text,
-        TEXT_SECONDARY: serverConstants.ui.colors.text_secondary,
-      });
-    }
-    if (serverConstants.ui.fonts) {
-      Object.assign(GAME_CONFIG.UI.FONTS, {
-        PRIMARY: serverConstants.ui.fonts.primary,
-        SECONDARY: serverConstants.ui.fonts.secondary,
-      });
-    }
+    GAME_CONFIG.UI.COLORS = {
+      PRIMARY: serverConstants.ui.colors_primary,
+      SECONDARY: serverConstants.ui.colors_secondary,
+      SUCCESS: serverConstants.ui.colors_success,
+      DANGER: serverConstants.ui.colors_danger,
+      WARNING: serverConstants.ui.colors_warning,
+      TEXT: serverConstants.ui.colors_text,
+      TEXT_SECONDARY: serverConstants.ui.colors_text_secondary,
+    };
+    
+    GAME_CONFIG.UI.FONTS = {
+      PRIMARY: serverConstants.ui.fonts_primary,
+      SECONDARY: serverConstants.ui.fonts_secondary,
+    };
   }
 
   // Network Constants
@@ -358,43 +337,35 @@ export function updateGameConfig(serverConstants: any): void {
 
   // Player Constants
   if (serverConstants.player) {
-    if (serverConstants.player.collision_box) {
-      Object.assign(GAME_CONFIG.PLAYER.COLLISION_BOX, {
-        WIDTH: serverConstants.player.collision_box.width,
-        HEIGHT: serverConstants.player.collision_box.height,
-      });
-    }
-    if (serverConstants.player.display_size) {
-      Object.assign(GAME_CONFIG.PLAYER.DISPLAY_SIZE, {
-        WIDTH: serverConstants.player.display_size.width,
-        HEIGHT: serverConstants.player.display_size.height,
-      });
-    }
-    if (serverConstants.player.radius) {
-      GAME_CONFIG.PLAYER.RADIUS = serverConstants.player.radius;
-    }
+    GAME_CONFIG.PLAYER.COLLISION_BOX = {
+      WIDTH: serverConstants.player.collision_box_width,
+      HEIGHT: serverConstants.player.collision_box_height,
+    };
+    
+    GAME_CONFIG.PLAYER.DISPLAY_SIZE = {
+      WIDTH: serverConstants.player.display_size_width,
+      HEIGHT: serverConstants.player.display_size_height,
+    };
+    
+    GAME_CONFIG.PLAYER.RADIUS = serverConstants.player.radius;
   }
 
   // Animation Constants
   if (serverConstants.animation) {
-    if (serverConstants.animation.breathing_scale) {
-      Object.assign(GAME_CONFIG.ANIMATION.BREATHING_SCALE, {
-        SCALE_Y: serverConstants.animation.breathing_scale.scaleY,
-        DURATION: serverConstants.animation.breathing_scale.duration,
-      });
-    }
-    if (serverConstants.animation.hit_effect) {
-      Object.assign(GAME_CONFIG.ANIMATION.HIT_EFFECT, {
-        SCALE_Y: serverConstants.animation.hit_effect.scaleY,
-        DURATION: serverConstants.animation.hit_effect.duration,
-      });
-    }
-    if (serverConstants.animation.damage_effect) {
-      Object.assign(GAME_CONFIG.ANIMATION.DAMAGE_EFFECT, {
-        SCALE_Y: serverConstants.animation.damage_effect.scaleY,
-        DURATION: serverConstants.animation.damage_effect.duration,
-      });
-    }
+    GAME_CONFIG.ANIMATION.BREATHING_SCALE = {
+      SCALE_Y: serverConstants.animation.breathing_scale_scale_y,
+      DURATION: serverConstants.animation.breathing_scale_duration,
+    };
+    
+    GAME_CONFIG.ANIMATION.HIT_EFFECT = {
+      SCALE_Y: serverConstants.animation.hit_effect_scale_y,
+      DURATION: serverConstants.animation.hit_effect_duration,
+    };
+    
+    GAME_CONFIG.ANIMATION.DAMAGE_EFFECT = {
+      SCALE_Y: serverConstants.animation.damage_effect_scale_y,
+      DURATION: serverConstants.animation.damage_effect_duration,
+    };
   }
 
   // Server Constants
@@ -513,8 +484,11 @@ export async function initializeConstants(): Promise<void> {
       throw new Error(`Failed to load constants: ${response.statusText}`);
     }
 
-    const constants = await response.json();
-    updateGameConfig(constants);
+    const apiResponse = await response.json();
+    if (!apiResponse.success || !apiResponse.data) {
+      throw new Error('Invalid constants response from server');
+    }
+    updateGameConfig(apiResponse.data);
 
     // Load characters and stages
     await Promise.all([loadCharacters(), loadStages()]);

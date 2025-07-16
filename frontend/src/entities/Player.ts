@@ -1200,7 +1200,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.currentTween = null;
     }
 
-    this.scene.physics.world.off('worldbounds', this.handleWorldBounds, this);
+    if (this.scene && this.scene.physics) {
+      this.scene.physics.world.off('worldbounds', this.handleWorldBounds, this);
+    }
 
     super.destroy();
   }
