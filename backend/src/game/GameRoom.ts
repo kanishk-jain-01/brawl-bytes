@@ -315,7 +315,9 @@ export class GameRoom {
 
     this.players.set(socket.userId, player);
     // Debug: Player joined room
-    console.log(`[JOIN] room=${this.id} user=${socket.userId} (${socket.username})`);
+    console.log(
+      `[JOIN] room=${this.id} user=${socket.userId} (${socket.username})`
+    );
     this.updateActivity();
 
     // Initialize physics for the player

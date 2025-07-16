@@ -54,7 +54,7 @@ export class GameConstantsRepository {
       if (!formatted[constant.category]) {
         formatted[constant.category] = {};
       }
-      
+
       // For now, use flat structure to avoid conflicts
       // We can enhance this later if needed for specific nested paths
       formatted[constant.category][constant.name] = constant.value;

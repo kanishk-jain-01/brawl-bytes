@@ -931,7 +931,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Immediate position update for instant visual feedback
     this.setPosition(position.x, position.y);
-    
+
     // Set velocity if physics body exists
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
@@ -941,7 +941,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Try to add to interpolation buffer if scene timing is available
     if (this.scene && this.scene.time) {
       const currentTime = this.scene.time.now;
-      
+
       // Add to interpolation buffer for smoother movement
       this.interpolationBuffer.push({
         position: { ...position },
@@ -997,9 +997,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.isLocalPlayer || this.interpolationBuffer.length === 0) return;
 
     // Get current time, preferring scene time but falling back to Date.now()
-    const currentTime = (this.scene && this.scene.time) 
-      ? this.scene.time.now 
-      : Date.now();
+    const currentTime =
+      this.scene && this.scene.time ? this.scene.time.now : Date.now();
     const renderTime = currentTime - this.interpolationDelay;
 
     // Find the two states to interpolate between

@@ -48,11 +48,25 @@ passport.use(
   )
 );
 
+/**
+ * Get JWT secret from environment variable
+ * Throws error if not set to prevent security vulnerabilities
+ */
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is required for security. Cannot start server without it.'
+    );
+  }
+  return secret;
+}
+
 passport.use(
   new JwtStrategy(
     {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || 'fallback_secret',
+      secretOrKey: getJWTSecret(),
     },
     async (payload, done) => {
       try {

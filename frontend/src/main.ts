@@ -59,9 +59,7 @@ async function initializeGame(): Promise<Phaser.Game> {
     // Load all constants, characters, and stages from database
     await loadGameConstants();
 
-    // Update loading indicator with database colors now that constants are loaded
-    // eslint-disable-next-line no-use-before-define
-    updateLoaderColors();
+    // Constants loaded successfully - no need to update colors since we transition to game
 
     // Update loading indicator
     // eslint-disable-next-line no-use-before-define
@@ -176,59 +174,16 @@ async function initializeGame(): Promise<Phaser.Game> {
 }
 
 /**
- * Fallback colors for loader (before database constants are loaded)
+ * Simple, consistent loading screen colors that are hardcoded for initial loading only
+ * Once database constants are loaded, we transition to the game proper
  */
-const LOADER_FALLBACK_COLORS = {
+const INITIAL_LOADER_COLORS = {
   BACKGROUND: '#2c3e50',
   PRIMARY: '#3498db',
   DANGER: '#e74c3c',
   TEXT_SECONDARY: '#bdc3c7',
-  WHITE: '#f3f3f3',
-};
-
-/**
- * Get color for loader - uses fallback if constants not loaded yet
- */
-function getLoaderColor(type: keyof typeof LOADER_FALLBACK_COLORS): string {
-  try {
-    // Try to use database colors if loaded
-    switch (type) {
-      case 'BACKGROUND':
-        return UI_COLORS.SECONDARY_HEX();
-      case 'PRIMARY':
-        return UI_COLORS.PRIMARY_HEX();
-      case 'DANGER':
-        return UI_COLORS.DANGER_HEX();
-      case 'TEXT_SECONDARY':
-        return UI_COLORS.TEXT_SECONDARY_HEX();
-      case 'WHITE':
-        return UI_COLORS.PRIMARY_HEX();
-      default:
-        return LOADER_FALLBACK_COLORS[type];
-    }
-  } catch {
-    // Fallback if constants not loaded yet
-    return LOADER_FALLBACK_COLORS[type];
-  }
-}
-
-/**
- * Update loader colors after constants are loaded
- */
-function updateLoaderColors(): void {
-  const loader = document.getElementById('game-loader');
-  if (loader) {
-    // Update the background color
-    loader.style.background = getLoaderColor('BACKGROUND');
-
-    // Find and update spinner colors if it exists
-    const spinner = loader.querySelector('div[style*="border"]');
-    if (spinner instanceof HTMLElement) {
-      spinner.style.border = `3px solid ${getLoaderColor('WHITE')}`;
-      spinner.style.borderTop = `3px solid ${getLoaderColor('PRIMARY')}`;
-    }
-  }
-}
+  WHITE: '#ecf0f1',
+} as const;
 
 /**
  * Show loading indicator
@@ -244,7 +199,7 @@ function showLoadingIndicator(message: string): void {
       left: 0;
       width: 100%;
       height: 100%;
-      background: ${getLoaderColor('BACKGROUND')};
+      background: ${INITIAL_LOADER_COLORS.BACKGROUND};
       color: white;
       display: flex;
       flex-direction: column;
@@ -260,7 +215,7 @@ function showLoadingIndicator(message: string): void {
     <div style="text-align: center;">
       <h2 style="margin-bottom: 20px;">🥊 Brawl Bytes</h2>
       <div style="margin-bottom: 20px;">
-        <div style="border: 3px solid ${getLoaderColor('WHITE')}; border-top: 3px solid ${getLoaderColor('PRIMARY')}; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <div style="border: 3px solid ${INITIAL_LOADER_COLORS.WHITE}; border-top: 3px solid ${INITIAL_LOADER_COLORS.PRIMARY}; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
       </div>
       <p>${message}</p>
     </div>
@@ -290,17 +245,17 @@ function showErrorMessage(message: string): void {
   const loader = document.getElementById('game-loader');
   if (loader) {
     loader.innerHTML = `
-      <div style="text-align: center; color: ${getLoaderColor('DANGER')};">
+      <div style="text-align: center; color: ${INITIAL_LOADER_COLORS.DANGER};">
         <h2 style="margin-bottom: 20px;">🥊 Brawl Bytes</h2>
-        <h3 style="margin-bottom: 20px; color: ${getLoaderColor('DANGER')};">❌ Connection Error</h3>
+        <h3 style="margin-bottom: 20px; color: ${INITIAL_LOADER_COLORS.DANGER};">❌ Connection Error</h3>
         <p style="margin-bottom: 30px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">${message}</p>
         <div style="margin-bottom: 20px;">
-          <p style="font-size: 14px; color: ${getLoaderColor('TEXT_SECONDARY')};">Make sure the backend server is running on port 3001</p>
+          <p style="font-size: 14px; color: ${INITIAL_LOADER_COLORS.TEXT_SECONDARY};">Make sure the backend server is running on port 3001</p>
         </div>
         <button onclick="window.location.reload()" style="
           margin-top: 20px;
           padding: 12px 24px;
-          background: ${getLoaderColor('PRIMARY')};
+          background: ${INITIAL_LOADER_COLORS.PRIMARY};
           color: white;
           border: none;
           border-radius: 8px;

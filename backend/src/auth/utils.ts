@@ -7,15 +7,27 @@ export interface JWTPayload {
   email: string;
 }
 
-export const generateToken = (payload: JWTPayload): string => {
-  const secret = process.env.JWT_SECRET || 'fallback_secret';
+/**
+ * Get JWT secret from environment variable
+ * Throws error if not set to prevent security vulnerabilities
+ */
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is required for security. Cannot start server without it.'
+    );
+  }
+  return secret;
+}
 
+export const generateToken = (payload: JWTPayload): string => {
+  const secret = getJWTSecret();
   return jwt.sign(payload as any, secret, { expiresIn: '15m' });
 };
 
 export const generateRefreshToken = (payload: JWTPayload): string => {
-  const secret = process.env.JWT_SECRET || 'fallback_secret';
-
+  const secret = getJWTSecret();
   return jwt.sign(payload as any, secret, { expiresIn: '30d' });
 };
 
