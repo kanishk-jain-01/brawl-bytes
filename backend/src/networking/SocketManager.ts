@@ -358,13 +358,10 @@ export class SocketManager {
     }
 
     // Find the GameRoom this player is in
-    let targetRoom: ActualGameRoom | null = null;
-    for (const gameRoom of this.gameRooms.values()) {
-      if (gameRoom.hasPlayer(socket.userId)) {
-        targetRoom = gameRoom;
-        break;
-      }
-    }
+    const targetRoom =
+      Array.from(this.gameRooms.values()).find(gameRoom =>
+        gameRoom.hasPlayer(socket.userId!)
+      ) || null;
 
     if (!targetRoom) {
       socket.emit('error', { message: 'Not in a game room' });
@@ -400,13 +397,10 @@ export class SocketManager {
     }
 
     // Find the GameRoom this player is in
-    let targetRoom: ActualGameRoom | null = null;
-    for (const gameRoom of this.gameRooms.values()) {
-      if (gameRoom.hasPlayer(socket.userId)) {
-        targetRoom = gameRoom;
-        break;
-      }
-    }
+    const targetRoom =
+      Array.from(this.gameRooms.values()).find(gameRoom =>
+        gameRoom.hasPlayer(socket.userId!)
+      ) || null;
 
     if (!targetRoom) {
       socket.emit('error', { message: 'Not in a game room' });
@@ -448,13 +442,10 @@ export class SocketManager {
     }
 
     // Find the GameRoom this player is in
-    let targetRoom: ActualGameRoom | null = null;
-    for (const gameRoom of this.gameRooms.values()) {
-      if (gameRoom.hasPlayer(socket.userId)) {
-        targetRoom = gameRoom;
-        break;
-      }
-    }
+    const targetRoom =
+      Array.from(this.gameRooms.values()).find(gameRoom =>
+        gameRoom.hasPlayer(socket.userId!)
+      ) || null;
 
     if (!targetRoom) {
       socket.emit('error', { message: 'Not in a game room' });
@@ -488,6 +479,9 @@ export class SocketManager {
       const players = gameRoom.getPlayers();
       const config = gameRoom.getConfig();
 
+      // Log active game rooms count
+      console.log(`Active game rooms: ${this.gameRooms.size}`);
+
       // Prepare game start data with player assignments and stage
       const gameStartData = {
         message: 'All players are ready! Starting game...',
@@ -508,7 +502,7 @@ export class SocketManager {
         },
       };
 
-      // Broadcast comprehensive game start event  
+      // Broadcast comprehensive game start event
       gameRoom.broadcastToRoom('gameStarted', gameStartData);
 
       // Also broadcast lobby:start for any clients that might be listening for this specific event
@@ -516,13 +510,20 @@ export class SocketManager {
 
       // Start the game
       gameRoom.startGame();
-      console.log(`Game started in room ${gameRoom.getId()} with stage: ${config.stage}`);
+      console.log(
+        `Game started in room ${gameRoom.getId()} with stage: ${config.stage}`
+      );
     }
   }
 
   private broadcastLobbyState(gameRoom: ActualGameRoom): void {
     const players = gameRoom.getPlayers();
     const config = gameRoom.getConfig();
+
+    // Log active game rooms count for debugging
+    console.log(
+      `Broadcasting lobby state, active rooms: ${this.gameRooms.size}`
+    );
 
     const lobbyState = {
       roomId: gameRoom.getId(),
