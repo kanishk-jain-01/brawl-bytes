@@ -146,15 +146,45 @@ export class LoginScene extends Phaser.Scene {
   // eslint-disable-next-line class-methods-use-this
   private async authenticateSocket(token: string): Promise<void> {
     const socketManager = getSocketManager();
-    if (!socketManager) return;
-
-    // Ensure connection ready
-    if (!socketManager.isConnected()) {
-      await socketManager.connect();
+    if (!socketManager) {
+      console.warn(
+        'Socket manager not available, skipping socket authentication'
+      );
+      return;
     }
 
-    if (!socketManager.isAuthenticated()) {
-      await socketManager.authenticate(token);
+    try {
+      console.log('Starting socket authentication...');
+
+      // Add timeout for socket operations
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Socket authentication timeout')),
+          5000
+        );
+      });
+
+      // Ensure connection ready
+      if (!socketManager.isConnected()) {
+        console.log('Socket not connected, attempting to connect...');
+        await Promise.race([socketManager.connect(), timeoutPromise]);
+        console.log('Socket connected successfully');
+      }
+
+      if (!socketManager.isAuthenticated()) {
+        console.log('Socket not authenticated, attempting authentication...');
+        await Promise.race([socketManager.authenticate(token), timeoutPromise]);
+        console.log('Socket authenticated successfully');
+      }
+    } catch (error) {
+      console.error('Socket authentication failed:', error);
+      console.log('Socket manager state:', {
+        connected: socketManager.isConnected(),
+        authenticated: socketManager.isAuthenticated(),
+        connectionState: socketManager.getConnectionState(),
+      });
+      // Don't throw error - allow user to continue to menu even if socket auth fails
+      // They can try multiplayer features later which will prompt for authentication
     }
   }
 }

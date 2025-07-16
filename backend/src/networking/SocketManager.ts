@@ -40,7 +40,14 @@ export class SocketManager {
       this.registerGameRoom(roomId, gameRoom);
     });
 
+    // Set the SocketManager instance for GameRoom creation
+    this.matchmakingQueue.setSocketManager(this);
+
     this.setupSocketHandlers();
+  }
+
+  public getIO(): Server {
+    return this.io;
   }
 
   /**
@@ -57,6 +64,9 @@ export class SocketManager {
 
       // Handle authentication
       socket.on('authenticate', (token: string) => {
+        console.log(
+          `Received authentication request from socket ${socket.id} with token: ${token ? 'present' : 'missing'}`
+        );
         this.authenticateSocket(socket, token);
 
         // After authentication, check for reconnection opportunities
@@ -106,7 +116,7 @@ export class SocketManager {
         this.handleSelectStage(socket, data);
       });
 
-      socket.on('playerReady', data => {
+      socket.on('playerReadyChanged', data => {
         this.handlePlayerReady(socket, data);
       });
 
@@ -137,6 +147,11 @@ export class SocketManager {
         }
       });
 
+      // Handle room state requests
+      socket.on('requestRoomState', () => {
+        this.handleRoomStateRequest(socket);
+      });
+
       // Basic connection test
       socket.emit('welcome', {
         message: 'Connected to Brawl Bytes server',
@@ -157,11 +172,12 @@ export class SocketManager {
       }
 
       const decoded = jwt.verify(token, jwtSecret) as {
-        id: string;
+        userId: string;
         username: string;
+        email: string;
       };
       // eslint-disable-next-line no-param-reassign
-      socket.userId = decoded.id;
+      socket.userId = decoded.userId;
       // eslint-disable-next-line no-param-reassign
       socket.username = decoded.username;
 
@@ -440,6 +456,10 @@ export class SocketManager {
       socket.emit('error', { message: 'Must be authenticated' });
       return;
     }
+
+    console.log(
+      `Player ${socket.username} ready status changed to: ${data.ready}`
+    );
 
     // Find the GameRoom this player is in
     const targetRoom =
@@ -800,6 +820,37 @@ export class SocketManager {
 
   public getQueueStats() {
     return this.matchmakingQueue.getQueueStats();
+  }
+
+  private handleRoomStateRequest(socket: AuthenticatedSocket): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    console.log(
+      `Room state request from ${socket.username} (${socket.userId})`
+    );
+    // Find the GameRoom this player is in
+    const targetRoom = Array.from(this.gameRooms.values()).find(gameRoom =>
+      gameRoom.hasPlayer(socket.userId!)
+    );
+
+    if (!targetRoom) {
+      console.log(`Player ${socket.username} not found in any game room`);
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    console.log(
+      `Found player ${socket.username} in room ${targetRoom.getId()}`
+    );
+    console.log(
+      `Socket rooms for ${socket.username}:`,
+      Array.from(socket.rooms)
+    );
+    // Broadcast current lobby state to the requesting player
+    this.broadcastLobbyState(targetRoom);
   }
 
   public cleanupDisconnectedPlayers(): void {

@@ -1,4 +1,7 @@
-import { AuthenticatedSocket } from '../networking/SocketManager';
+import {
+  AuthenticatedSocket,
+  SocketManager,
+} from '../networking/SocketManager';
 import { GameRoom, GameRoomConfig } from './GameRoom';
 
 export interface MatchPreferences {
@@ -60,6 +63,8 @@ export class MatchmakingQueue {
 
   private roomRegistrationCallback?: RoomRegistrationCallback;
 
+  private socketManager?: SocketManager;
+
   private constructor() {
     this.queue = new Map();
     this.startMatchmaking();
@@ -78,6 +83,13 @@ export class MatchmakingQueue {
    */
   public setRoomRegistrationCallback(callback: RoomRegistrationCallback): void {
     this.roomRegistrationCallback = callback;
+  }
+
+  /**
+   * Set the SocketManager instance for GameRoom creation
+   */
+  public setSocketManager(socketManager: SocketManager): void {
+    this.socketManager = socketManager;
   }
 
   /**
@@ -351,7 +363,10 @@ export class MatchmakingQueue {
     };
 
     // Create the game room
-    const gameRoom = new GameRoom(roomId, config);
+    if (!this.socketManager) {
+      throw new Error('SocketManager not set in MatchmakingQueue');
+    }
+    const gameRoom = new GameRoom(roomId, this.socketManager, config);
 
     // Add players to the room
     const addedPlayers: QueuedPlayer[] = [];

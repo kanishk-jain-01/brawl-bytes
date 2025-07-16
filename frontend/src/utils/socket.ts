@@ -224,25 +224,34 @@ export class SocketManager {
 
       this.setConnectionState(ConnectionState.CONNECTING);
 
+      console.log('Creating Socket.io connection to:', this.config.url);
       this.socket = io(this.config.url, {
         autoConnect: this.config.autoConnect,
         reconnection: this.config.reconnection,
         reconnectionAttempts: this.config.reconnectionAttempts,
         reconnectionDelay: this.config.reconnectionDelay,
         timeout: this.config.timeout,
+        // Force connection options for debugging
+        forceNew: true,
+        transports: ['polling', 'websocket'],
       });
 
       this.setupEventHandlers();
 
       // Connection success
       this.socket.on('connect', () => {
+        console.log('Socket.io connected successfully');
         this.setConnectionState(ConnectionState.CONNECTED);
         this.emit('connected', {});
         resolve();
       });
 
+      // Manually connect since autoConnect is false
+      this.socket.connect();
+
       // Connection error
       this.socket.on('connect_error', error => {
+        console.error('Socket.io connection error:', error);
         this.setConnectionState(ConnectionState.ERROR);
         this.emit('connection_error', { error });
       });
@@ -330,8 +339,16 @@ export class SocketManager {
     return this.connectionState;
   }
 
+  public getSocket(): any {
+    return this.socket;
+  }
+
   public getCurrentRoomId(): string | null {
     return this.currentRoomId;
+  }
+
+  public setCurrentRoomId(roomId: string | null): void {
+    this.currentRoomId = roomId;
   }
 
   // Event management
@@ -429,6 +446,11 @@ export class SocketManager {
 
     this.socket.on(SOCKET_EVENTS.ROOM_ERROR, error => {
       this.emit(SOCKET_EVENTS.ROOM_ERROR, error);
+    });
+
+    // Lobby state events
+    this.socket.on('lobbyState', data => {
+      this.emit('lobbyState', data);
     });
 
     // Player state events
@@ -982,32 +1004,41 @@ export class SocketManager {
 
   // Player state management
   public setPlayerReady(ready: boolean = true): void {
-    if (!this.socket || !this.isAuthenticated() || !this.currentRoomId) {
+    if (!this.socket || !this.isAuthenticated()) {
       // eslint-disable-next-line no-console
-      console.warn('Cannot set ready state: not authenticated or not in room');
+      console.warn('Cannot set ready state: not authenticated');
       return;
     }
 
+    console.log(
+      `SocketManager: Emitting playerReadyChanged with ready=${ready}`
+    );
+    // For now, allow ready state without being in a room
+    // This will be used for matchmaking readiness
     this.socket.emit(SOCKET_EVENTS.PLAYER_READY_CHANGED, { ready });
   }
 
   public selectCharacter(character: string): void {
-    if (!this.socket || !this.isAuthenticated() || !this.currentRoomId) {
+    if (!this.socket || !this.isAuthenticated()) {
       // eslint-disable-next-line no-console
-      console.warn('Cannot select character: not authenticated or not in room');
+      console.warn('Cannot select character: not authenticated');
       return;
     }
 
+    // For now, allow character selection without being in a room
+    // This will be used for matchmaking preferences
     this.socket.emit(SOCKET_EVENTS.SELECT_CHARACTER, { character });
   }
 
   public selectStage(stage: string): void {
-    if (!this.socket || !this.isAuthenticated() || !this.currentRoomId) {
+    if (!this.socket || !this.isAuthenticated()) {
       // eslint-disable-next-line no-console
-      console.warn('Cannot select stage: not authenticated or not in room');
+      console.warn('Cannot select stage: not authenticated');
       return;
     }
 
+    // For now, allow stage selection without being in a room
+    // This will be used for matchmaking preferences
     this.socket.emit(SOCKET_EVENTS.SELECT_STAGE, { stage });
   }
 

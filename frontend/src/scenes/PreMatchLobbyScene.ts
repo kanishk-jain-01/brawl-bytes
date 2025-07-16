@@ -101,8 +101,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.createStatusArea();
     this.setupInputs();
 
-    // Request current room state
-    this.requestRoomState();
+    // Start matchmaking process
+    this.startMatchmaking();
   }
 
   private setupSocketListeners(): void {
@@ -114,6 +114,12 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     // Listen for room state updates
     this.socketManager.on('roomStateSync', (data: RoomStateData) => {
       this.updateLobbyState(data);
+    });
+
+    // Listen for lobby state updates
+    this.socketManager.on('lobbyState', (data: any) => {
+      console.log('Received lobby state:', data);
+      this.updateLobbyFromBackend(data);
     });
 
     // Listen for player join/leave events
@@ -156,11 +162,91 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       console.log('Game started:', data);
       this.transitionToGame(data);
     });
+
+    // Listen for matchmaking events
+    this.socketManager.on('queueJoined', data => {
+      console.log('Joined matchmaking queue:', data);
+    });
+
+    this.socketManager.on('matchFound', data => {
+      console.log('Match found:', data);
+
+      // Set the room ID in socket manager
+      if (data.roomId) {
+        this.socketManager.setCurrentRoomId(data.roomId);
+      }
+
+      // Clear matchmaking UI and show lobby
+      this.children.removeAll();
+      this.setupSocketListeners();
+      this.createBackground();
+      this.createTitle();
+      this.createPlayerArea();
+      this.createStageDisplay();
+      this.createControlButtons();
+      this.createStatusArea();
+      this.setupInputs();
+      this.requestRoomState(); // Request room state
+    });
+  }
+
+  private startMatchmaking(): void {
+    if (!this.socketManager || !this.socketManager.isAuthenticated()) {
+      console.error('Cannot start matchmaking: not authenticated');
+      return;
+    }
+
+    console.log('Starting matchmaking from lobby...');
+
+    // Join matchmaking queue
+    if (this.socketManager.getSocket()) {
+      this.socketManager.getSocket().emit('joinMatchmakingQueue', {
+        gameMode: 'versus',
+        // TODO: Add selected character/stage as preferences
+      });
+    } else {
+      console.error('Socket not available for matchmaking');
+    }
+
+    // Show matchmaking status
+    this.showMatchmakingStatus();
+  }
+
+  private showMatchmakingStatus(): void {
+    // Add matchmaking status text
+    const statusText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      'Searching for opponent...',
+      {
+        fontSize: '24px',
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+      }
+    );
+    statusText.setOrigin(0.5);
+
+    // Add animation
+    this.tweens.add({
+      targets: statusText,
+      alpha: 0.5,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+    });
   }
 
   private requestRoomState(): void {
     if (this.socketManager && this.socketManager.isInRoom()) {
+      console.log(
+        'Requesting room state for room:',
+        this.socketManager.getCurrentRoomId()
+      );
       this.socketManager.requestRoomState();
+    } else {
+      console.log(
+        'Cannot request room state - not in room or socket manager not available'
+      );
     }
   }
 
@@ -186,6 +272,42 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.lobbyState.allPlayersReady =
       this.lobbyState.players.length >= 2 &&
       this.lobbyState.players.every(player => player.isReady);
+
+    // Update local player status
+    const localPlayerId = this.socketManager?.getAuthToken();
+    const localPlayer = this.lobbyState.players.find(
+      p => p.id === localPlayerId
+    );
+    if (localPlayer) {
+      this.isLocalPlayerReady = localPlayer.isReady;
+      this.isLocalPlayerHost = localPlayer.isHost;
+    }
+
+    // Update UI
+    this.updatePlayerCards();
+    this.updateStageDisplay();
+    this.updateControlButtons();
+    this.updateStatusText();
+  }
+
+  private updateLobbyFromBackend(lobbyData: any): void {
+    console.log('Updating lobby from backend:', lobbyData);
+
+    // Update lobby state from backend lobby data
+    this.lobbyState = {
+      ...this.lobbyState,
+      roomId: lobbyData.roomId,
+      players: lobbyData.players.map((player: any) => ({
+        id: player.userId,
+        username: player.username,
+        character: player.character as CharacterType,
+        isReady: player.ready,
+        isHost: player.isHost,
+        connected: player.connected,
+      })),
+      selectedStage: lobbyData.selectedStage as StageType,
+      allPlayersReady: lobbyData.allPlayersReady,
+    };
 
     // Update local player status
     const localPlayerId = this.socketManager?.getAuthToken();
@@ -696,6 +818,9 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private toggleReady(): void {
     if (!this.socketManager) return;
 
+    console.log(
+      `Toggling ready state from ${this.isLocalPlayerReady} to ${!this.isLocalPlayerReady}`
+    );
     this.socketManager.setPlayerReady(!this.isLocalPlayerReady);
   }
 

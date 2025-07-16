@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { AuthenticatedSocket } from '../networking/SocketManager';
+import {
+  AuthenticatedSocket,
+  SocketManager,
+} from '../networking/SocketManager';
 import {
   PhysicsSystem,
   type AttackData,
@@ -155,8 +158,15 @@ export class GameRoom {
 
   private isScheduledForCleanup = false;
 
-  constructor(id: string, config: Partial<GameRoomConfig> = {}) {
+  private socketManager: SocketManager;
+
+  constructor(
+    id: string,
+    socketManager: SocketManager,
+    config: Partial<GameRoomConfig> = {}
+  ) {
     this.id = id;
+    this.socketManager = socketManager;
     this.players = new Map();
     this.gameState = GameState.WAITING;
     this.config = {
@@ -311,6 +321,7 @@ export class GameRoom {
 
     // Join the socket.io room
     socket.join(this.id);
+    console.log(`Player ${socket.username} joined Socket.io room ${this.id}`);
 
     return { success: true };
   }
@@ -752,11 +763,12 @@ export class GameRoom {
 
   // Game loop and state synchronization methods
   public broadcastToRoom(event: string, data: any): void {
-    this.players.forEach(player => {
-      if (player.state !== PlayerState.DISCONNECTED) {
-        player.socket.emit(event, data);
-      }
-    });
+    // Use Socket.io's room broadcasting instead of direct socket emissions
+    console.log(
+      `Broadcasting event '${event}' to room ${this.id} with data:`,
+      data
+    );
+    this.socketManager.getIO().to(this.id).emit(event, data);
     this.updateActivity();
   }
 
