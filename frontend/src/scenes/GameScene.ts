@@ -1115,15 +1115,15 @@ export class GameScene extends Phaser.Scene {
    */
   private mapCharacterName(oldName: string): string {
     const characterMap: Record<string, string> = {
-      'FAST_LIGHTWEIGHT': 'DASH',
-      'BALANCED_ALLROUNDER': 'REX', 
-      'HEAVY_HITTER': 'TITAN',
+      FAST_LIGHTWEIGHT: 'DASH',
+      BALANCED_ALLROUNDER: 'REX',
+      HEAVY_HITTER: 'TITAN',
       // Also support new names directly
-      'DASH': 'DASH',
-      'REX': 'REX',
-      'TITAN': 'TITAN'
+      DASH: 'DASH',
+      REX: 'REX',
+      TITAN: 'TITAN',
     };
-    
+
     return characterMap[oldName] || 'REX'; // Default to REX if unknown
   }
 }

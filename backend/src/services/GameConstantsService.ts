@@ -90,10 +90,12 @@ export class GameConstantsService {
       const physicsConstants: PhysicsConstants = {
         MOVEMENT: {
           MAX_VELOCITY: formattedConstants.physics?.max_velocity ?? 800,
-          MAX_ACCELERATION: formattedConstants.physics?.max_acceleration ?? 1200,
+          MAX_ACCELERATION:
+            formattedConstants.physics?.max_acceleration ?? 1200,
           GRAVITY: formattedConstants.physics?.gravity ?? 800,
           JUMP_VELOCITY: formattedConstants.physics?.jump_velocity ?? -600,
-          DOUBLE_JUMP_VELOCITY: formattedConstants.physics?.double_jump_velocity ?? -500,
+          DOUBLE_JUMP_VELOCITY:
+            formattedConstants.physics?.double_jump_velocity ?? -500,
           FRICTION: formattedConstants.physics?.friction ?? 0.9,
           AIR_RESISTANCE: formattedConstants.physics?.air_resistance ?? 0.95,
         },
@@ -108,7 +110,8 @@ export class GameConstantsService {
         COMBAT: {
           MAX_DAMAGE_PER_HIT:
             formattedConstants.combat?.max_damage_per_hit ?? 50,
-          MIN_DAMAGE_PER_HIT: formattedConstants.combat?.min_damage_per_hit ?? 1,
+          MIN_DAMAGE_PER_HIT:
+            formattedConstants.combat?.min_damage_per_hit ?? 1,
           MAX_KNOCKBACK_VELOCITY:
             formattedConstants.combat?.max_knockback_velocity ?? 1200,
           INVULNERABILITY_DURATION:
@@ -119,10 +122,14 @@ export class GameConstantsService {
           ATTACK_RANGE: formattedConstants.combat?.attack_range ?? 150,
         },
         VALIDATION: {
-          MAX_POSITION_CHANGE_PER_MS: formattedConstants.validation?.max_position_change_per_ms ?? 1.0,
-          MAX_VELOCITY_CHANGE_PER_MS: formattedConstants.validation?.max_velocity_change_per_ms ?? 2.0,
-          POSITION_TOLERANCE: formattedConstants.validation?.position_tolerance ?? 50,
-          VELOCITY_TOLERANCE: formattedConstants.validation?.velocity_tolerance ?? 100,
+          MAX_POSITION_CHANGE_PER_MS:
+            formattedConstants.validation?.max_position_change_per_ms ?? 1.0,
+          MAX_VELOCITY_CHANGE_PER_MS:
+            formattedConstants.validation?.max_velocity_change_per_ms ?? 2.0,
+          POSITION_TOLERANCE:
+            formattedConstants.validation?.position_tolerance ?? 50,
+          VELOCITY_TOLERANCE:
+            formattedConstants.validation?.velocity_tolerance ?? 100,
           PLAYER_RADIUS: formattedConstants.player?.radius ?? 25,
         },
       };
@@ -133,14 +140,13 @@ export class GameConstantsService {
 
       return physicsConstants;
     } catch (error) {
-      console.error(
-        'Failed to load game constants from database:',
-        error
-      );
-      
+      console.error('Failed to load game constants from database:', error);
+
       // Clear cache and re-throw error - no fallbacks allowed
       this.cachedConstants = null;
-      throw new Error('Database constants are required for game operation. Cannot start game without valid constants.');
+      throw new Error(
+        'Database constants are required for game operation. Cannot start game without valid constants.'
+      );
     }
   }
 
@@ -164,5 +170,4 @@ export class GameConstantsService {
     this.cachedConstants = null;
     this.lastCacheTime = 0;
   }
-
 }

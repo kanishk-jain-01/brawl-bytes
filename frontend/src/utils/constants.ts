@@ -3,10 +3,10 @@
  * ===============================================
  * This file now serves as a runtime container for constants loaded from the database.
  * All actual values are fetched from the server's /api/constants endpoint on startup.
- * 
+ *
  * The GAME_CONFIG object starts empty and gets populated by updateGameConfig().
  * If constants fail to load, the application will throw errors (fail-fast behavior).
- * 
+ *
  * To update game configuration:
  * 1. Edit game-constants-master.yaml in the project root
  * 2. Run `npm run sync-constants` in the backend
@@ -17,7 +17,7 @@ export const GAME_CONFIG = {
   // Scene identifiers - loaded from database
   SCENE_KEYS: {} as Record<string, string>,
 
-  // Physics constants - loaded from database  
+  // Physics constants - loaded from database
   PHYSICS: {} as {
     GRAVITY: number;
     JUMP_VELOCITY: number;
@@ -67,24 +67,36 @@ export const GAME_CONFIG = {
   },
 
   // Character definitions - loaded from database via Character API
-  CHARACTERS: {} as Record<string, {
-    name: string;
-    speed: number;
-    jumpVelocity: number;
-    health: number;
-    attackDamage: number;
-    weight: number;
-  }>,
+  CHARACTERS: {} as Record<
+    string,
+    {
+      name: string;
+      speed: number;
+      jumpVelocity: number;
+      health: number;
+      attackDamage: number;
+      weight: number;
+    }
+  >,
 
   // Stage configurations - loaded from database via Stage API
-  STAGES: {} as Record<string, {
-    name: string;
-    description: string;
-    difficulty: string;
-    platforms: Array<{ x: number; y: number; width: number; height: number }>;
-    hazards: Array<{ type: string; x: number; y: number; width: number; height: number }>;
-    backgroundColor: { top: number; bottom: number };
-  }>,
+  STAGES: {} as Record<
+    string,
+    {
+      name: string;
+      description: string;
+      difficulty: string;
+      platforms: Array<{ x: number; y: number; width: number; height: number }>;
+      hazards: Array<{
+        type: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      }>;
+      backgroundColor: { top: number; bottom: number };
+    }
+  >,
 
   // Game rules - loaded from database
   GAME: {} as {
@@ -197,7 +209,7 @@ export function updateGameConfig(serverConstants: any): void {
         ENERGY_BAR: serverConstants.assets.images.energy_bar,
       };
     }
-    
+
     if (serverConstants.assets.audio) {
       ASSET_KEYS.AUDIO = {
         MENU_MUSIC: serverConstants.assets.audio.menu_music,
@@ -213,7 +225,7 @@ export function updateGameConfig(serverConstants: any): void {
         SFX_DEFEAT: serverConstants.assets.audio.sfx_defeat,
       };
     }
-    
+
     if (serverConstants.assets.spritesheets) {
       ASSET_KEYS.SPRITESHEETS = {
         DASH_SPRITES: serverConstants.assets.spritesheets.dash_sprites,
@@ -244,14 +256,18 @@ export function updateGameConfig(serverConstants: any): void {
 
     if (serverConstants.physics.world_bounds) {
       GAME_CONFIG.PHYSICS.WORLD_BOUNDS = {
-        WIDTH: serverConstants.physics.world_bounds.width || Math.abs(
-          serverConstants.physics.world_bounds.max_x -
-            serverConstants.physics.world_bounds.min_x
-        ),
-        HEIGHT: serverConstants.physics.world_bounds.height || Math.abs(
-          serverConstants.physics.world_bounds.max_y -
-            serverConstants.physics.world_bounds.min_y
-        ),
+        WIDTH:
+          serverConstants.physics.world_bounds.width ||
+          Math.abs(
+            serverConstants.physics.world_bounds.max_x -
+              serverConstants.physics.world_bounds.min_x
+          ),
+        HEIGHT:
+          serverConstants.physics.world_bounds.height ||
+          Math.abs(
+            serverConstants.physics.world_bounds.max_y -
+              serverConstants.physics.world_bounds.min_y
+          ),
         MIN_X: serverConstants.physics.world_bounds.min_x,
         MAX_X: serverConstants.physics.world_bounds.max_x,
         MIN_Y: serverConstants.physics.world_bounds.min_y,
@@ -274,7 +290,8 @@ export function updateGameConfig(serverConstants: any): void {
     Object.assign(GAME_CONFIG.TIMING, {
       ATTACK_COOLDOWN: serverConstants.combat.attack_cooldown,
       INVULNERABILITY_DURATION: serverConstants.combat.invulnerability_duration,
-      CRITICAL_INVULNERABILITY_DURATION: serverConstants.combat.critical_invulnerability_duration,
+      CRITICAL_INVULNERABILITY_DURATION:
+        serverConstants.combat.critical_invulnerability_duration,
       RESPAWN_INVULNERABILITY: serverConstants.combat.respawn_invulnerability,
       FLASH_INTERVAL: serverConstants.combat.flash_interval,
       MAX_COMBO_TIME: serverConstants.combat.max_combo_time,
@@ -332,8 +349,10 @@ export function updateGameConfig(serverConstants: any): void {
     Object.assign(GAME_CONFIG.VALIDATION, {
       POSITION_TOLERANCE: serverConstants.validation.position_tolerance,
       VELOCITY_TOLERANCE: serverConstants.validation.velocity_tolerance,
-      MAX_POSITION_CHANGE_PER_MS: serverConstants.validation.max_position_change_per_ms,
-      MAX_VELOCITY_CHANGE_PER_MS: serverConstants.validation.max_velocity_change_per_ms,
+      MAX_POSITION_CHANGE_PER_MS:
+        serverConstants.validation.max_position_change_per_ms,
+      MAX_VELOCITY_CHANGE_PER_MS:
+        serverConstants.validation.max_velocity_change_per_ms,
     });
   }
 
@@ -399,9 +418,9 @@ export async function loadCharacters(): Promise<void> {
     if (!response.ok) {
       throw new Error(`Failed to load characters: ${response.statusText}`);
     }
-    
+
     const characters = await response.json();
-    
+
     // Convert database character format to GAME_CONFIG format
     GAME_CONFIG.CHARACTERS = {};
     characters.forEach((char: any) => {
@@ -414,10 +433,12 @@ export async function loadCharacters(): Promise<void> {
         weight: char.stats.weight,
       };
     });
-    
+
     console.log(`✅ Loaded ${characters.length} characters from database`);
   } catch (error) {
-    throw new Error(`CRITICAL: Failed to load characters from database: ${error}`);
+    throw new Error(
+      `CRITICAL: Failed to load characters from database: ${error}`
+    );
   }
 }
 
@@ -430,9 +451,9 @@ export async function loadStages(): Promise<void> {
     if (!response.ok) {
       throw new Error(`Failed to load stages: ${response.statusText}`);
     }
-    
+
     const stages = await response.json();
-    
+
     // Convert database stage format to GAME_CONFIG format
     GAME_CONFIG.STAGES = {};
     stages.forEach((stage: any) => {
@@ -445,7 +466,7 @@ export async function loadStages(): Promise<void> {
         backgroundColor: stage.config.background_colors,
       };
     });
-    
+
     console.log(`✅ Loaded ${stages.length} stages from database`);
   } catch (error) {
     throw new Error(`CRITICAL: Failed to load stages from database: ${error}`);
@@ -459,20 +480,22 @@ export type SceneKey = string;
 // Helper functions to get character stats by type
 export function getCharacterStats(characterType: string) {
   const normalizedType = characterType.toUpperCase();
-  
+
   // Map old names to new names for backward compatibility
   let mappedType = normalizedType;
   if (normalizedType === 'FAST_LIGHTWEIGHT') mappedType = 'DASH';
   if (normalizedType === 'BALANCED_ALLROUNDER') mappedType = 'REX';
   if (normalizedType === 'HEAVY_HITTER') mappedType = 'TITAN';
-  
+
   const character = GAME_CONFIG.CHARACTERS[mappedType];
-  
+
   // Strict validation - no fallbacks allowed
   if (!character || !character.health || character.health === 0) {
-    throw new Error(`Character stats not loaded from database for ${characterType}. Database constants must be loaded before creating players.`);
+    throw new Error(
+      `Character stats not loaded from database for ${characterType}. Database constants must be loaded before creating players.`
+    );
   }
-  
+
   return character;
 }
 
@@ -482,26 +505,22 @@ export function getCharacterStats(characterType: string) {
  */
 export async function initializeConstants(): Promise<void> {
   console.log('🔄 Initializing all constants from database...');
-  
+
   try {
     // Load game constants
     const response = await fetch('/api/constants');
     if (!response.ok) {
       throw new Error(`Failed to load constants: ${response.statusText}`);
     }
-    
+
     const constants = await response.json();
     updateGameConfig(constants);
-    
+
     // Load characters and stages
-    await Promise.all([
-      loadCharacters(),
-      loadStages()
-    ]);
-    
+    await Promise.all([loadCharacters(), loadStages()]);
+
     console.log('✅ All constants initialized successfully');
     console.log('🎮 Game is ready to start with database-driven configuration');
-    
   } catch (error) {
     console.error('❌ CRITICAL ERROR: Failed to initialize constants:', error);
     throw new Error(`Game cannot start without database constants: ${error}`);

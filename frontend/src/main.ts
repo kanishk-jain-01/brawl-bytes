@@ -18,8 +18,9 @@ import { GAME_CONFIG, initializeConstants } from '@/utils/constants';
  */
 async function loadGameConstants(): Promise<void> {
   // Set API base URL for fetch requests
-  const apiUrl = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001';
-  
+  const apiUrl =
+    (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001';
+
   // Override fetch to use the API URL for relative paths
   const originalFetch = window.fetch;
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {

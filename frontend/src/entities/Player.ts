@@ -11,7 +11,11 @@
 import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
-import { GAME_CONFIG, CharacterType, getCharacterStats } from '../utils/constants';
+import {
+  GAME_CONFIG,
+  CharacterType,
+  getCharacterStats,
+} from '../utils/constants';
 import { getSocketManager } from '../utils/socket';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -108,7 +112,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     timestamp: number;
   } | null = null;
 
-  private maxInputBufferSize: number = GAME_CONFIG.NETWORK.MAX_INPUT_BUFFER_SIZE; // Keep ~1 second of inputs at 60fps
+  private maxInputBufferSize: number =
+    GAME_CONFIG.NETWORK.MAX_INPUT_BUFFER_SIZE; // Keep ~1 second of inputs at 60fps
 
   private predictionEnabled: boolean = true;
 
@@ -135,12 +140,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.character = getCharacterStats(this.characterType as string);
     console.log('🎮 Character loaded:', this.characterType, this.character);
-    
+
     // Strict validation - database constants must be loaded
     if (!GAME_CONFIG.GAME.MAX_STOCKS) {
-      throw new Error('Game constants not loaded from database. Cannot create player.');
+      throw new Error(
+        'Game constants not loaded from database. Cannot create player.'
+      );
     }
-    
+
     this.maxHealth = this.character.health;
     this.currentHealth = this.maxHealth;
     this.currentStocks = GAME_CONFIG.GAME.MAX_STOCKS;
@@ -163,16 +170,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(false); // Boundaries handled by Stage entity
     body.setBounce(GAME_CONFIG.PHYSICS.BOUNCE_FACTOR);
     body.setDragX(GAME_CONFIG.PHYSICS.FRICTION * 1000);
-    body.setMaxVelocity(GAME_CONFIG.PHYSICS.MAX_VELOCITY, GAME_CONFIG.PHYSICS.MAX_VELOCITY);
+    body.setMaxVelocity(
+      GAME_CONFIG.PHYSICS.MAX_VELOCITY,
+      GAME_CONFIG.PHYSICS.MAX_VELOCITY
+    );
 
     // Set hitbox size
-    body.setSize(GAME_CONFIG.PLAYER.COLLISION_BOX.WIDTH, GAME_CONFIG.PLAYER.COLLISION_BOX.HEIGHT);
+    body.setSize(
+      GAME_CONFIG.PLAYER.COLLISION_BOX.WIDTH,
+      GAME_CONFIG.PLAYER.COLLISION_BOX.HEIGHT
+    );
     body.setOffset(5, 5);
   }
 
   private setupVisuals(): void {
     // Set display size and color based on character
-    this.setDisplaySize(GAME_CONFIG.PLAYER.DISPLAY_SIZE.WIDTH, GAME_CONFIG.PLAYER.DISPLAY_SIZE.HEIGHT);
+    this.setDisplaySize(
+      GAME_CONFIG.PLAYER.DISPLAY_SIZE.WIDTH,
+      GAME_CONFIG.PLAYER.DISPLAY_SIZE.HEIGHT
+    );
     this.setTint(this.getCharacterColor());
 
     // Set origin for proper positioning
@@ -758,9 +774,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Visual feedback for healing
     this.setTint(0x00ff00); // Green tint
-    this.scene.time.delayedCall(GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION, () => {
-      this.setTint(this.getCharacterColor());
-    });
+    this.scene.time.delayedCall(
+      GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION,
+      () => {
+        this.setTint(this.getCharacterColor());
+      }
+    );
 
     // Emit healing event
     this.scene.events.emit('playerHealed', {

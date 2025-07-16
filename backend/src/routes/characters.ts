@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ router.get('/', async (_req, res) => {
   try {
     const characters = await prisma.character.findMany({
       where: { isActive: true },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
     });
 
     res.json(characters);
@@ -20,7 +20,7 @@ router.get('/', async (_req, res) => {
     console.error('Error fetching characters:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch characters'
+      message: 'Failed to fetch characters',
     });
   }
 });
@@ -32,18 +32,18 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const character = await prisma.character.findUnique({
-      where: { 
+      where: {
         id,
-        isActive: true 
-      }
+        isActive: true,
+      },
     });
 
     if (!character) {
       return res.status(404).json({
         success: false,
-        message: 'Character not found'
+        message: 'Character not found',
       });
     }
 
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
     console.error('Error fetching character:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch character'
+      message: 'Failed to fetch character',
     });
   }
 });

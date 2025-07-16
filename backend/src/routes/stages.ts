@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ router.get('/', async (_req, res) => {
   try {
     const stages = await prisma.stage.findMany({
       where: { isActive: true },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
     });
 
     res.json(stages);
@@ -20,7 +20,7 @@ router.get('/', async (_req, res) => {
     console.error('Error fetching stages:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch stages'
+      message: 'Failed to fetch stages',
     });
   }
 });
@@ -32,18 +32,18 @@ router.get('/', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const stage = await prisma.stage.findUnique({
-      where: { 
+      where: {
         id,
-        isActive: true 
-      }
+        isActive: true,
+      },
     });
 
     if (!stage) {
       return res.status(404).json({
         success: false,
-        message: 'Stage not found'
+        message: 'Stage not found',
       });
     }
 
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
     console.error('Error fetching stage:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch stage'
+      message: 'Failed to fetch stage',
     });
   }
 });

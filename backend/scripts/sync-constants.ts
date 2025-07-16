@@ -21,7 +21,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { PrismaClient } from '../src/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -65,16 +65,21 @@ async function clearExistingData(force: boolean) {
   
   console.log('🧹 Clearing existing data...');
   
-  // Clear in correct order due to foreign key constraints
-  await prisma.matchParticipant.deleteMany();
-  await prisma.match.deleteMany();
-  await prisma.characterUnlock.deleteMany();
-  await prisma.stageUnlock.deleteMany();
-  await prisma.character.deleteMany();
-  await prisma.stage.deleteMany();
-  await prisma.gameConstants.deleteMany();
-  
-  console.log('✅ Cleared all existing constants, characters, and stages');
+  try {
+    // Clear in correct order due to foreign key constraints
+    // Use try-catch for each operation in case tables don't exist yet
+    try { await prisma.matchParticipant.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.match.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.characterUnlock.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.stageUnlock.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.character.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.stage.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    try { await prisma.gameConstants.deleteMany(); } catch (e) { /* ignore if table doesn't exist */ }
+    
+    console.log('✅ Cleared all existing constants, characters, and stages');
+  } catch (error) {
+    console.log('ℹ️  Some tables may not exist yet (this is normal for fresh database)');
+  }
 }
 
 function flattenConstants(obj: any, category: string, prefix = ''): Array<{
