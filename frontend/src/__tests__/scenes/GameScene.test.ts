@@ -216,7 +216,7 @@ describe('GameScene', () => {
           scene,
           x: 200,
           y: 400,
-          characterType: 'BALANCED_ALLROUNDER',
+          characterType: 'REX',
           playerId: 'local_player',
           isLocalPlayer: true,
         })
@@ -228,7 +228,7 @@ describe('GameScene', () => {
           scene,
           x: 600,
           y: 400,
-          characterType: 'HEAVY_HITTER',
+          characterType: 'TITAN',
           playerId: 'dummy_player',
           isLocalPlayer: false,
         })
