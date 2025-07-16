@@ -10,8 +10,8 @@
 
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
+import { getSocketManager } from '@/managers/SocketManager';
 import { GAME_CONFIG, StageType } from '../utils/constants';
-import { getSocketManager } from '../utils/socket';
 
 export class StageSelectScene extends Phaser.Scene {
   private selectedStage: StageType | null = null;

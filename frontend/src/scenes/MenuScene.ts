@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, ASSET_KEYS, UI_COLORS } from '@/utils/constants';
 import { clearToken } from '@/api/auth';
-import { getSocketManager } from '@/utils/socket';
+import { getSocketManager } from '@/managers/SocketManager';
 
 export class MenuScene extends Phaser.Scene {
   private playButton!: Phaser.GameObjects.Image;

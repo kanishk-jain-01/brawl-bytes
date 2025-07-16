@@ -10,10 +10,10 @@
 
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
+import { getSocketManager } from '@/managers/SocketManager';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
-import { getSocketManager } from '../utils/socket';
 import {
   createConnectionStatusDisplay,
   ConnectionStatusDisplay,

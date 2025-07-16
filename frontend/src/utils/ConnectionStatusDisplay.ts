@@ -1,4 +1,27 @@
-import { ConnectionState, ConnectionStatus, ReconnectionInfo } from './socket';
+import {
+  ConnectionState,
+  type ConnectionMetrics,
+} from '@/state/connectionStore';
+
+// Legacy types for ConnectionStatusDisplay compatibility
+interface ConnectionStatus {
+  state: ConnectionState;
+  connected: boolean;
+  authenticated: boolean;
+  roomId: string | null;
+  metrics: ConnectionMetrics;
+  reconnectionInfo?: ReconnectionInfo;
+  lastDisconnectReason?: string;
+}
+
+interface ReconnectionInfo {
+  isReconnecting: boolean;
+  attempts: number;
+  attempt: number; // alias for attempts
+  maxAttempts: number;
+  nextAttemptIn: number;
+  totalDowntime: number;
+}
 
 export interface ConnectionStatusDisplayConfig {
   container?: HTMLElement;

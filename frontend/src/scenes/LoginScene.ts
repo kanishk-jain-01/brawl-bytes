@@ -9,7 +9,7 @@
 import Phaser from 'phaser';
 import { login, register, AuthResponse } from '@/api/auth';
 import { GAME_CONFIG } from '@/utils/constants';
-import { getSocketManager } from '@/utils/socket';
+import { getSocketManager } from '@/managers/SocketManager';
 
 export class LoginScene extends Phaser.Scene {
   private container: HTMLDivElement | null = null;

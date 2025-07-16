@@ -15,7 +15,10 @@ import { PreMatchLobbyScene } from '@/scenes/PreMatchLobbyScene';
 import { GameScene } from '@/scenes/GameScene';
 import { LoginScene } from '@/scenes/LoginScene';
 import { GAME_CONFIG, initializeConstants, UI_COLORS } from '@/utils/constants';
-import { createSocketManager, DEFAULT_SOCKET_CONFIG } from '@/utils/socket';
+import {
+  createSocketManager,
+  DEFAULT_SOCKET_CONFIG,
+} from '@/managers/SocketManager';
 import { getStoredToken } from '@/api/auth';
 
 /**

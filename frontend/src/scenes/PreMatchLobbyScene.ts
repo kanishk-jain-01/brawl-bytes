@@ -12,10 +12,11 @@
  */
 
 import Phaser from 'phaser';
+import { getSocketManager } from '@/managers/SocketManager';
+import { RoomStateData } from '@/types/Network';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { updateState, getState } from '../state/GameState';
 import { MatchPlayer } from '../types/GameState';
-import { getSocketManager, RoomStateData } from '../utils/socket';
 
 interface LobbyPlayer {
   id: string;
@@ -173,7 +174,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
       // Set the room ID in socket manager
       if (data.roomId) {
-        this.socketManager.setCurrentRoomId(data.roomId);
+        this.socketManager?.setCurrentRoomId(data.roomId);
       }
 
       // Clear matchmaking UI and show lobby
@@ -202,7 +203,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     if (this.socketManager.getSocket()) {
       const { selectedStage, selectedCharacter } = getState();
 
-      this.socketManager.getSocket().emit('joinMatchmakingQueue', {
+      this.socketManager?.getSocket()?.emit('joinMatchmakingQueue', {
         gameMode: 'versus',
         preferredStage: selectedStage,
         preferredCharacter: selectedCharacter,

@@ -3,9 +3,11 @@
  * ----------------
  * Provides typed helper functions for calling backend authentication endpoints
  * and storing the JWT access token for Socket.io and REST requests.
+ * Now integrates with Zustand connection store for centralized state management.
  */
 
 import axios from 'axios';
+import { connectionStore } from '@/state/connectionStore';
 
 /**
  * Backend base URL (REST). Defaults to localhost when env var not provided.
@@ -46,10 +48,18 @@ export type AuthResponse = AuthSuccess | AuthFailure;
 
 export function storeToken(token: string): void {
   localStorage.setItem(TOKEN_STORAGE_KEY, token);
+
+  // Also update the connection store
+  const store = connectionStore.getState();
+  store.setAuthData(token, store.userId);
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
+
+  // Also clear from connection store
+  const store = connectionStore.getState();
+  store.setAuthData(null, null);
 }
 
 export function getStoredToken(): string | null {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
+import { getSocketManager } from '@/managers/SocketManager';
 import { Player } from '../entities/Player';
-import { getSocketManager } from '../utils/socket';
 
 export interface InputState {
   left: boolean;

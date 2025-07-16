@@ -1,7 +1,7 @@
 import { SOCKET_EVENTS } from '@/types/Network';
 import { DamageType } from '@/types';
+import { getSocketManager } from '@/managers/SocketManager';
 import { Player } from '../entities/Player';
-import { getSocketManager } from '../utils/socket';
 
 export interface NetworkEventHandlers {
   onPlayerJoined: (data: { playerId: string; username: string }) => void;

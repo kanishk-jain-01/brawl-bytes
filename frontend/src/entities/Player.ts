@@ -11,12 +11,12 @@
 import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
+import { getSocketManager } from '@/managers/SocketManager';
 import {
   GAME_CONFIG,
   CharacterType,
   getCharacterStats,
 } from '../utils/constants';
-import { getSocketManager } from '../utils/socket';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   public characterType: CharacterType;

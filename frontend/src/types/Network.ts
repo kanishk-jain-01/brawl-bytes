@@ -243,3 +243,66 @@ export type SocketClient = {
   connected: boolean;
   id: string;
 };
+
+export interface RoomStateData {
+  roomId: string;
+  gameState: string;
+  players: {
+    userId: string;
+    username: string;
+    state: string;
+    character?: string;
+    isHost: boolean;
+  }[];
+  config: {
+    maxPlayers: number;
+    gameMode: string;
+    stage?: string;
+    timeLimit?: number;
+    stockCount?: number;
+  };
+}
+
+export interface PlayerJoinedData {
+  playerId: string;
+  username: string;
+  roomId: string;
+}
+
+export interface PlayerLeftData {
+  playerId: string;
+  username: string;
+  roomId: string;
+}
+
+export interface GameReadyData {
+  roomId: string;
+  players: any[];
+  gameConfig: any;
+}
+
+export interface PlayerInputData {
+  playerId: string;
+  inputType: string;
+  data: any;
+  timestamp: number;
+}
+
+export interface GameEventData {
+  type: string;
+  data: any;
+  timestamp: number;
+}
+
+export interface GameStateSync {
+  roomId: string;
+  gameState: any;
+  timestamp: number;
+}
+
+export interface MatchEndData {
+  roomId: string;
+  winner?: string;
+  reason: string;
+  stats: any;
+}
