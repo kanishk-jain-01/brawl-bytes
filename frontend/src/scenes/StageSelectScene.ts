@@ -172,15 +172,18 @@ export class StageSelectScene extends Phaser.Scene {
     let difficultyColor: number;
     if (stage.difficulty === 'Easy') {
       difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x')
+        GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x'),
+        16
       );
     } else if (stage.difficulty === 'Hard') {
       difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x')
+        GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x'),
+        16
       );
     } else {
       difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.WARNING.replace('#', '0x')
+        GAME_CONFIG.UI.COLORS.WARNING.replace('#', '0x'),
+        16
       );
     }
 

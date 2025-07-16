@@ -55,6 +55,9 @@ export class ConnectionStatusDisplay {
       case 'bottom-right':
         positionStyles = 'bottom: 20px; right: 20px;';
         break;
+      default:
+        positionStyles = 'top: 20px; right: 20px;'; // Default to top-right
+        break;
     }
 
     return `
@@ -121,6 +124,7 @@ export class ConnectionStatusDisplay {
     return true;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private isSuccessState(status: ConnectionStatus): boolean {
     return (
       status.state === ConnectionState.CONNECTED ||
@@ -181,6 +185,12 @@ export class ConnectionStatusDisplay {
             ? 'Unable to reconnect. Please refresh the page.'
             : 'Connection error. Please check your internet connection.';
         break;
+
+      default:
+        icon = '❓';
+        title = 'Unknown State';
+        message = 'Connection status unknown';
+        break;
     }
 
     return `
@@ -196,6 +206,7 @@ export class ConnectionStatusDisplay {
     `;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private getReconnectionMessage(info: ReconnectionInfo): string {
     const nextAttemptSeconds = Math.ceil(info.nextAttemptIn / 1000);
     const downtimeSeconds = Math.ceil(info.totalDowntime / 1000);
@@ -206,6 +217,7 @@ export class ConnectionStatusDisplay {
     `;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private generateProgressBar(info: ReconnectionInfo | undefined): string {
     if (!info || !info.isReconnecting) {
       return '';
@@ -241,6 +253,7 @@ export class ConnectionStatusDisplay {
     `;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private getQualityColor(quality: string): string {
     switch (quality) {
       case 'excellent':
@@ -275,6 +288,9 @@ export class ConnectionStatusDisplay {
         break;
       case ConnectionState.ERROR:
         backgroundColor = 'rgba(244, 67, 54, 0.9)';
+        break;
+      default:
+        backgroundColor = 'rgba(158, 158, 158, 0.9)'; // Gray for unknown states
         break;
     }
 

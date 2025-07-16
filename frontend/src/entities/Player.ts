@@ -205,8 +205,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       FAST_LIGHTWEIGHT: 0x27ae60,
       BALANCED_ALLROUNDER: 0x3498db,
       HEAVY_HITTER: 0xe74c3c,
-    };
-    return colors[this.characterType];
+    } as const;
+    return (
+      colors[this.characterType as keyof typeof colors] ||
+      colors.BALANCED_ALLROUNDER
+    );
   }
 
   private handleWorldBounds(): void {

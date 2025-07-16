@@ -143,7 +143,13 @@ export class CharacterSelectScene extends Phaser.Scene {
     const container = this.add.container(x, y);
 
     // Card background
-    const background = this.add.rectangle(0, 0, width, height, UI_COLORS.SECONDARY());
+    const background = this.add.rectangle(
+      0,
+      0,
+      width,
+      height,
+      UI_COLORS.SECONDARY()
+    );
     background.setStrokeStyle(2, UI_COLORS.PRIMARY());
     container.add(background);
 
@@ -340,13 +346,18 @@ export class CharacterSelectScene extends Phaser.Scene {
     };
 
     const descText = this.add
-      .text(0, 40, this.selectedCharacter ? descriptions[this.selectedCharacter] : '', {
-        fontSize: '12px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-        wordWrap: { width: 350 },
-      })
+      .text(
+        0,
+        40,
+        this.selectedCharacter ? descriptions[this.selectedCharacter] : '',
+        {
+          fontSize: '12px',
+          fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          align: 'center',
+          wordWrap: { width: 350 },
+        }
+      )
       .setOrigin(0.5);
     this.previewContainer.add(descText);
   }
@@ -510,7 +521,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     const socketManager = getSocketManager();
     if (socketManager && socketManager.isAuthenticated()) {
       socketManager.selectCharacter(this.selectedCharacter);
-      console.log(`Emitted character selection to server: ${this.selectedCharacter}`);
+      console.log(
+        `Emitted character selection to server: ${this.selectedCharacter}`
+      );
     }
 
     // Transition to StageSelectScene

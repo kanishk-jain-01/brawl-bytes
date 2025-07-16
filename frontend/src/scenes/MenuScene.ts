@@ -173,7 +173,7 @@ export class MenuScene extends Phaser.Scene {
     callback: () => void
   ): void {
     button.on('pointerover', () => {
-              button.setTint(UI_COLORS.PRIMARY());
+      button.setTint(UI_COLORS.PRIMARY());
       text.setColor(UI_COLORS.PRIMARY_HEX());
       this.tweens.add({
         targets: [button, text],

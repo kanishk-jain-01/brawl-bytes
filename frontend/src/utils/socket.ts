@@ -216,7 +216,7 @@ export class SocketManager {
 
   // Connection management
   public connect(): Promise<void> {
-    return new Promise((resolve, _reject) => {
+    return new Promise(resolve => {
       if (this.socket?.connected) {
         resolve();
         return;
@@ -385,17 +385,19 @@ export class SocketManager {
     this.socket.on(SOCKET_EVENTS.AUTHENTICATED, (response: AuthResponse) => {
       if (response.success) {
         this.setConnectionState(ConnectionState.AUTHENTICATED);
-        
+
         // Fail fast: Server must provide userId for multiplayer functionality
         if (!response.userId) {
-          throw new Error('Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.');
+          throw new Error(
+            'Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.'
+          );
         }
 
         // Store playerId in global state for game initialization
         import('@/state/GameState').then(({ updateState }) => {
           updateState({ playerId: response.userId });
         });
-        
+
         this.emit(SOCKET_EVENTS.AUTHENTICATED, response);
       } else {
         this.emit(SOCKET_EVENTS.AUTHENTICATION_FAILED, response);
@@ -756,10 +758,12 @@ export class SocketManager {
         this.socket!.off(SOCKET_EVENTS.AUTHENTICATED, onAuthenticated);
         // eslint-disable-next-line no-use-before-define
         this.socket!.off(SOCKET_EVENTS.AUTHENTICATION_FAILED, onAuthFailed);
-        
+
         // Fail fast: Server must provide userId for multiplayer functionality
         if (response.success && !response.userId) {
-          throw new Error('Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.');
+          throw new Error(
+            'Authentication failed: Server did not provide user ID. Cannot proceed with multiplayer game.'
+          );
         }
 
         // Store playerId in global state for game initialization
@@ -768,7 +772,7 @@ export class SocketManager {
             updateState({ playerId: response.userId });
           });
         }
-        
+
         resolve(response);
       };
 
@@ -1400,16 +1404,17 @@ export class SocketManager {
       this.startReconnectionProcess('user_requested');
 
       // Set up one-time listeners
-      const onReconnected = () => {
-        this.off('reconnected', onReconnected);
-        this.off('reconnect_failed', onReconnectFailed);
-        resolve();
-      };
-
+      let onReconnected: () => void;
       const onReconnectFailed = () => {
         this.off('reconnected', onReconnected);
         this.off('reconnect_failed', onReconnectFailed);
         reject(new Error('Reconnection failed'));
+      };
+
+      onReconnected = () => {
+        this.off('reconnected', onReconnected);
+        this.off('reconnect_failed', onReconnectFailed);
+        resolve();
       };
 
       this.on('reconnected', onReconnected);

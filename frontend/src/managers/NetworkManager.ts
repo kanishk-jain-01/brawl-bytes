@@ -1,7 +1,7 @@
 import { SOCKET_EVENTS } from '@/types/Network';
+import { DamageType } from '@/types';
 import { Player } from '../entities/Player';
 import { getSocketManager } from '../utils/socket';
-import { DamageType } from '@/types';
 
 export interface NetworkEventHandlers {
   onPlayerJoined: (data: { playerId: string; username: string }) => void;
@@ -208,7 +208,9 @@ export class NetworkManager {
     });
 
     this.remotePlayers.set(playerId, remotePlayer);
-    console.log(`Created remote player: ${username} (${playerId}) with character ${characterType}`);
+    console.log(
+      `Created remote player: ${username} (${playerId}) with character ${characterType}`
+    );
 
     return remotePlayer;
   }

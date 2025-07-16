@@ -137,8 +137,8 @@ export class Stage {
       BATTLE_ARENA: 0x8b4513, // Brown
       FLOATING_ISLANDS: 0x708090, // Slate gray
       VOLCANIC_CHAMBER: 0x2f4f4f, // Dark slate gray
-    };
-    return colors[this.stageType] || colors.BATTLE_ARENA;
+    } as const;
+    return colors[this.stageType as keyof typeof colors] || colors.BATTLE_ARENA;
   }
 
   private createBoundaries(): void {

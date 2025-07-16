@@ -26,10 +26,11 @@ async function loadGameConstants(): Promise<void> {
   // Override fetch to use the API URL for relative paths
   const originalFetch = window.fetch;
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    if (typeof input === 'string' && input.startsWith('/api/')) {
-      input = `${apiUrl}${input}`;
-    }
-    return originalFetch(input, init);
+    const requestInput =
+      typeof input === 'string' && input.startsWith('/api/')
+        ? `${apiUrl}${input}`
+        : input;
+    return originalFetch(requestInput, init);
   };
 
   try {
@@ -58,7 +59,7 @@ async function initializeGame(): Promise<Phaser.Game> {
     // Update loading indicator with database colors now that constants are loaded
     // eslint-disable-next-line no-use-before-define
     updateLoaderColors();
-    
+
     // Update loading indicator
     // eslint-disable-next-line no-use-before-define
     showLoadingIndicator('Starting game engine...');
@@ -154,7 +155,7 @@ async function initializeGame(): Promise<Phaser.Game> {
  */
 const LOADER_FALLBACK_COLORS = {
   BACKGROUND: '#2c3e50',
-  PRIMARY: '#3498db', 
+  PRIMARY: '#3498db',
   DANGER: '#e74c3c',
   TEXT_SECONDARY: '#bdc3c7',
   WHITE: '#f3f3f3',
@@ -167,12 +168,18 @@ function getLoaderColor(type: keyof typeof LOADER_FALLBACK_COLORS): string {
   try {
     // Try to use database colors if loaded
     switch (type) {
-      case 'BACKGROUND': return UI_COLORS.SECONDARY_HEX();
-      case 'PRIMARY': return UI_COLORS.PRIMARY_HEX(); 
-      case 'DANGER': return UI_COLORS.DANGER_HEX();
-      case 'TEXT_SECONDARY': return UI_COLORS.TEXT_SECONDARY_HEX();
-      case 'WHITE': return UI_COLORS.PRIMARY_HEX();
-      default: return LOADER_FALLBACK_COLORS[type];
+      case 'BACKGROUND':
+        return UI_COLORS.SECONDARY_HEX();
+      case 'PRIMARY':
+        return UI_COLORS.PRIMARY_HEX();
+      case 'DANGER':
+        return UI_COLORS.DANGER_HEX();
+      case 'TEXT_SECONDARY':
+        return UI_COLORS.TEXT_SECONDARY_HEX();
+      case 'WHITE':
+        return UI_COLORS.PRIMARY_HEX();
+      default:
+        return LOADER_FALLBACK_COLORS[type];
     }
   } catch {
     // Fallback if constants not loaded yet
@@ -188,7 +195,7 @@ function updateLoaderColors(): void {
   if (loader) {
     // Update the background color
     loader.style.background = getLoaderColor('BACKGROUND');
-    
+
     // Find and update spinner colors if it exists
     const spinner = loader.querySelector('div[style*="border"]');
     if (spinner instanceof HTMLElement) {
@@ -302,5 +309,7 @@ initializeGame()
     showErrorMessage('Failed to initialize game. Please refresh the page.');
   });
 
-// eslint-disable-next-line import/no-mutable-exports
-export default gameInstance;
+// Export a function that returns the game instance instead of a mutable variable
+export default function getGameInstance(): Phaser.Game | undefined {
+  return gameInstance;
+}

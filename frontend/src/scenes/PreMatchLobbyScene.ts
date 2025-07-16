@@ -466,11 +466,14 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Card background - different colors for ready/not ready
     const bgColor = player.isReady ? 0x27ae60 : 0x2c3e50;
-    const borderColor = player.isHost
-      ? 0xf39c12
-      : player.isReady
-        ? 0x2ecc71
-        : 0x3498db;
+    let borderColor: number;
+    if (player.isHost) {
+      borderColor = 0xf39c12;
+    } else if (player.isReady) {
+      borderColor = 0x2ecc71;
+    } else {
+      borderColor = 0x3498db;
+    }
 
     const background = this.add.rectangle(0, 0, width, height, bgColor);
     background.setStrokeStyle(player.isHost ? 3 : 2, borderColor);
@@ -512,11 +515,20 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       // Character placeholder (colored rectangle) - use database-driven colors
       let charColor: number;
       if (player.character === 'DASH') {
-        charColor = parseInt(GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x'));
+        charColor = parseInt(
+          GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x'),
+          16
+        );
       } else if (player.character === 'REX') {
-        charColor = parseInt(GAME_CONFIG.UI.COLORS.PRIMARY.replace('#', '0x'));
+        charColor = parseInt(
+          GAME_CONFIG.UI.COLORS.PRIMARY.replace('#', '0x'),
+          16
+        );
       } else if (player.character === 'TITAN') {
-        charColor = parseInt(GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x'));
+        charColor = parseInt(
+          GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x'),
+          16
+        );
       } else {
         // Strict validation - fail if unknown character type
         throw new Error(
@@ -709,7 +721,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }
 
     const countdownTimer = setInterval(() => {
-      this.lobbyState.countdown--;
+      this.lobbyState.countdown -= 1;
 
       if (this.countdownText) {
         if (this.lobbyState.countdown > 0) {
@@ -729,17 +741,25 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Fail fast: Require server's authoritative game start data
     if (!gameStartData) {
-      throw new Error('Cannot start game: No server data received. Game requires active server connection.');
+      throw new Error(
+        'Cannot start game: No server data received. Game requires active server connection.'
+      );
     }
 
     const serverData = gameStartData;
-    
+
     // Strict validation - all required fields must be present
     if (!serverData.stage) {
-      throw new Error('Cannot start game: Server did not provide stage selection.');
+      throw new Error(
+        'Cannot start game: Server did not provide stage selection.'
+      );
     }
-    
-    if (!serverData.players || !Array.isArray(serverData.players) || serverData.players.length === 0) {
+
+    if (
+      !serverData.players ||
+      !Array.isArray(serverData.players) ||
+      serverData.players.length === 0
+    ) {
       throw new Error('Cannot start game: Server did not provide player data.');
     }
 
@@ -748,7 +768,9 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }
 
     if (!serverData.gameConfig) {
-      throw new Error('Cannot start game: Server did not provide game configuration.');
+      throw new Error(
+        'Cannot start game: Server did not provide game configuration.'
+      );
     }
 
     // Store authoritative game data in global state
@@ -764,10 +786,10 @@ export class PreMatchLobbyScene extends Phaser.Scene {
           id: p.userId,
           name: p.username,
           character: p.character,
-          stats: { 
-            health: 100, 
-            stocks: serverData.gameConfig.stockCount, 
-            damage: 0 
+          stats: {
+            health: 100,
+            stocks: serverData.gameConfig.stockCount,
+            damage: 0,
           } as MatchPlayer['stats'],
           connected: true, // Server only sends connected players
           ready: true, // Server only starts when all ready
@@ -834,7 +856,5 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       this.socketManager.off('gameStarting');
       this.socketManager.off('gameStarted');
     }
-
-    super.shutdown();
   }
 }

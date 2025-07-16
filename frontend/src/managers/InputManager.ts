@@ -88,21 +88,26 @@ export class InputManager {
     player.updateInputState(inputState);
 
     // Broadcast input to other players via networking
-    this.broadcastInput(inputState);
+    InputManager.broadcastInput(inputState);
   }
 
-  private broadcastInput(inputState: InputState): void {
+  private static broadcastInput(inputState: InputState): void {
     const socketManager = getSocketManager();
     if (!socketManager) return;
 
     // Only broadcast significant input changes to reduce network traffic
     if (inputState.attack || inputState.special || inputState.up) {
+      let inputType: string;
+      if (inputState.attack) {
+        inputType = 'attack';
+      } else if (inputState.special) {
+        inputType = 'special';
+      } else {
+        inputType = 'jump';
+      }
+
       socketManager.emit('playerInput', {
-        inputType: inputState.attack
-          ? 'attack'
-          : inputState.special
-            ? 'special'
-            : 'jump',
+        inputType,
         timestamp: Date.now(),
       });
     }
