@@ -124,14 +124,7 @@ class APISecurityMiddleware {
 
 ## Authentication & Authorization
 
-To standardize credential handling and reduce custom security code, **Passport.js** is used throughout the backend:
-
-* **Local Strategy (`passport-local`)** – verifies email + password during `/auth/login`.
-* **JWT Strategy (`passport-jwt`)** – protects all REST endpoints, Socket.io namespaces, and admin tools. Tokens are signed with `JWT_SECRET`, expire after `JWT_EXPIRES_IN`, and use `jti` for revocation.
-* **Refresh Tokens** – 30-day JWTs stored in the `user_sessions` table. Rotation on every refresh mitigates replay attacks.
-* **Optional OAuth providers** – Google & Discord can be added by uncommenting the `OAUTH_*` variables in `.env`.
-
-Each Express route should include `passport.authenticate('jwt')` where applicable, and Socket.io connections are validated via `io.use(jwtGuard)`. See `documents/authentication.md` for full flow diagrams and acceptance criteria.
+Security policies require strong authentication and authorization controls for all user accounts and game sessions. This includes secure credential verification, session management, and access control enforcement across all game endpoints and real-time connections.
 
 ## Network Security
 

@@ -105,25 +105,6 @@ export const JwtAccessStrategy = new JwtStrategy(
 
 ---
 
-## Required Environment Variables
-
-```env
-# Access token secret & expiry (already present)
-JWT_SECRET="..."
-JWT_EXPIRES_IN="15m"
-
-# NEW – Refresh token settings
-JWT_REFRESH_EXPIRES_IN="30d"
-
-# Optional OAuth
-OAUTH_GOOGLE_CLIENT_ID=""
-OAUTH_GOOGLE_CLIENT_SECRET=""
-OAUTH_DISCORD_CLIENT_ID=""
-OAUTH_DISCORD_CLIENT_SECRET=""
-```
-
----
-
 ## Implementation Tasks
 
 1. Install deps: `npm i passport passport-local passport-jwt bcrypt jsonwebtoken`.

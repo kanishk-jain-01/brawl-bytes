@@ -218,31 +218,6 @@ Add these scripts to your `backend/package.json`:
 }
 ```
 
-### TypeScript Configuration for Prisma
-
-Update your `backend/tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-```
 
 ## Security Best Practices
 
@@ -271,41 +246,8 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO brawlbytes_readonly;
 
 ## Monitoring & Debugging
 
-### Database Connection Monitoring
-
-```typescript
-// Add to your server.ts
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
-});
-
-// Monitor connection health
-setInterval(async () => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('Database connection healthy');
-  } catch (error) {
-    console.error('Database connection failed:', error);
-  }
-}, 30000); // Check every 30 seconds
-```
-
 ### Environment Validation
 
-```typescript
-// Add to your server startup
-function validateEnvironment() {
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'PORT'];
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-}
-
-validateEnvironment();
-```
+Add environment validation to your server startup to ensure all required variables are present before the application starts.
 
 This configuration ensures smooth development locally and seamless deployment to Render with PostgreSQL! 

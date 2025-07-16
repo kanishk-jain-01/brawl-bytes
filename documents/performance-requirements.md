@@ -108,7 +108,6 @@ interface ScalabilityTargets {
 ## Client-Side Optimization
 
 ### 1. Rendering Optimization
-### **[POST-MVP] Rendering Optimization**
 
 ```typescript
 interface RenderingOptimization {
