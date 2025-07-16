@@ -1,29 +1,10 @@
 import {
   ConnectionState,
-  type ConnectionMetrics,
+  type ConnectionStatus,
+  type ReconnectionInfo,
   subscribeToConnection,
   getConnectionState,
 } from '@/state/connectionStore';
-
-// Legacy types for ConnectionStatusDisplay compatibility
-interface ConnectionStatus {
-  state: ConnectionState;
-  connected: boolean;
-  authenticated: boolean;
-  roomId: string | null;
-  metrics: ConnectionMetrics;
-  reconnectionInfo?: ReconnectionInfo;
-  lastDisconnectReason?: string;
-}
-
-interface ReconnectionInfo {
-  isReconnecting: boolean;
-  attempts: number;
-  attempt: number; // alias for attempts
-  maxAttempts: number;
-  nextAttemptIn: number;
-  totalDowntime: number;
-}
 
 export interface ConnectionStatusDisplayConfig {
   container?: HTMLElement;
@@ -41,8 +22,6 @@ export class ConnectionStatusDisplay {
   private autoHideTimeout: NodeJS.Timeout | null = null;
 
   private unsubscribeStore: (() => void) | null = null;
-
-  // private currentStatus: ConnectionStatus | null = null; // Unused for now
 
   constructor(config: ConnectionStatusDisplayConfig = {}) {
     this.config = {

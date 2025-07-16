@@ -104,7 +104,7 @@ export class GameScene extends Phaser.Scene {
     // Get local player ID from connectionStore
     const connectionState = getConnectionState();
     const localPlayerId = connectionState.userId;
-    
+
     if (!localPlayerId) {
       throw new Error(
         'GameScene: Local player ID not found. Authentication required.'

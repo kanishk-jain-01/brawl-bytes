@@ -54,6 +54,31 @@ export interface ErrorData {
 }
 
 /**
+ * Reconnection information
+ */
+export interface ReconnectionInfo {
+  isReconnecting: boolean;
+  attempts: number;
+  attempt: number; // alias for attempts
+  maxAttempts: number;
+  nextAttemptIn: number;
+  totalDowntime: number;
+}
+
+/**
+ * Complete connection status information
+ */
+export interface ConnectionStatus {
+  state: ConnectionState;
+  connected: boolean;
+  authenticated: boolean;
+  roomId: string | null;
+  metrics: ConnectionMetrics;
+  reconnectionInfo?: ReconnectionInfo;
+  lastDisconnectReason?: string;
+}
+
+/**
  * Connection store state interface
  */
 interface ConnectionStore {
@@ -405,6 +430,10 @@ export const connectionStore = createStore<ConnectionStore>()(
           metrics,
           isConnected,
           isAuthenticated,
+          isReconnecting,
+          reconnectAttempts,
+          maxReconnectAttempts,
+          lastError,
         } = get();
         return {
           state: connectionState,
@@ -412,6 +441,15 @@ export const connectionStore = createStore<ConnectionStore>()(
           authenticated: isAuthenticated,
           roomId: currentRoomId,
           metrics,
+          reconnectionInfo: {
+            isReconnecting,
+            attempts: reconnectAttempts,
+            attempt: reconnectAttempts, // alias for attempts
+            maxAttempts: maxReconnectAttempts,
+            nextAttemptIn: 0, // TODO: Could be calculated if needed
+            totalDowntime: 0, // TODO: Could be tracked if needed
+          },
+          lastDisconnectReason: lastError?.message,
         };
       },
     }),
@@ -462,5 +500,3 @@ export const useConnection = () => {
     getConnectionStatus: state.getConnectionStatus,
   };
 };
-
-

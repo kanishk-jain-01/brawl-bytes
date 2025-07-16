@@ -106,8 +106,6 @@ export class SocketManager {
     return store.connectionState;
   }
 
-
-
   /**
    * Emit an event to the server
    */
@@ -236,8 +234,6 @@ export class SocketManager {
       data,
     });
   }
-
-
 
   public getSocket(): Socket | null {
     const store = connectionStore.getState();
