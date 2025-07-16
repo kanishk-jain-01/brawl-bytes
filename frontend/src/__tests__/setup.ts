@@ -3,6 +3,13 @@
 import 'jest';
 
 // ---------------------------------------------------------------------------
+// Mock GAME_CONFIG values so tests relying on constants work with the new
+// database-driven setup. These values are lightweight stand-ins and ONLY used
+// inside Jest – they never reach the production bundle.
+// ---------------------------------------------------------------------------
+import { GAME_CONFIG } from '../utils/constants';
+
+// ---------------------------------------------------------------------------
 // Mock the Phaser module so importing scenes doesn't pull in the entire engine
 // (and its optional peer deps like phaser3spectorjs). We expose only the parts
 // our tests interact with.
@@ -147,13 +154,6 @@ global.cancelAnimationFrame = (id: number) => {
   clearTimeout(id);
 };
 
-// ---------------------------------------------------------------------------
-// Mock GAME_CONFIG values so tests relying on constants work with the new
-// database-driven setup. These values are lightweight stand-ins and ONLY used
-// inside Jest – they never reach the production bundle.
-// ---------------------------------------------------------------------------
-import { GAME_CONFIG } from '../utils/constants';
-
 // Populate physics & gameplay constants
 Object.assign(GAME_CONFIG, {
   // Scene keys are rarely used in unit-tests
@@ -289,12 +289,8 @@ Object.assign(GAME_CONFIG, {
       name: 'Volcanic Chamber',
       description: "Watch your step – it's hot!",
       difficulty: 'Hard',
-      platforms: [
-        { x: 600, y: 650, width: 2, height: 0.5 },
-      ],
-      hazards: [
-        { type: 'lava', x: 0, y: 1050, width: 2000, height: 150 },
-      ],
+      platforms: [{ x: 600, y: 650, width: 2, height: 0.5 }],
+      hazards: [{ type: 'lava', x: 0, y: 1050, width: 2000, height: 150 }],
       backgroundColor: { top: 0x8b0000, bottom: 0x4b0082 },
     },
   },

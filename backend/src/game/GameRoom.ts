@@ -35,6 +35,11 @@ export interface GameRoomPlayer {
   velocity?: { x: number; y: number };
   lastSequence?: number;
   lastUpdate?: number;
+  // Disconnect handling
+  disconnectedAt?: Date;
+  reconnectionTimeout?: NodeJS.Timeout;
+  disconnectCount?: number;
+  lastReconnectAt?: Date;
 }
 
 export interface GameRoomConfig {
@@ -43,6 +48,11 @@ export interface GameRoomConfig {
   stage?: string | undefined;
   timeLimit?: number;
   stockCount?: number;
+  // Reconnection timeout configuration
+  reconnectionGracePeriod?: number; // milliseconds
+  maxReconnectionTime?: number; // milliseconds
+  maxDisconnectCount?: number;
+  autoCleanupOnTimeout?: boolean;
 }
 
 export interface GameResults {
@@ -131,6 +141,20 @@ export class GameRoom {
 
   private physicsUpdateInterval: NodeJS.Timeout | null = null;
 
+  // Disconnect handling configuration
+  private readonly RECONNECTION_GRACE_PERIOD: number;
+
+  private readonly MAX_RECONNECTION_TIME: number;
+
+  private readonly MAX_DISCONNECT_COUNT: number;
+
+  private readonly AUTO_CLEANUP_ON_TIMEOUT: boolean;
+
+  // Room cleanup tracking
+  private cleanupTimeout: NodeJS.Timeout | null = null;
+
+  private isScheduledForCleanup = false;
+
   constructor(id: string, config: Partial<GameRoomConfig> = {}) {
     this.id = id;
     this.players = new Map();
@@ -140,11 +164,22 @@ export class GameRoom {
       gameMode: 'versus',
       timeLimit: 300, // 5 minutes in seconds
       stockCount: 3,
+      reconnectionGracePeriod: 30000, // 30 seconds
+      maxReconnectionTime: 120000, // 2 minutes total
+      maxDisconnectCount: 5,
+      autoCleanupOnTimeout: true,
       ...config,
     };
     this.createdAt = new Date();
     this.lastActivity = new Date();
     this.hostId = null;
+
+    // Set disconnect handling configuration from config
+    this.RECONNECTION_GRACE_PERIOD =
+      this.config.reconnectionGracePeriod || 30000;
+    this.MAX_RECONNECTION_TIME = this.config.maxReconnectionTime || 120000;
+    this.MAX_DISCONNECT_COUNT = this.config.maxDisconnectCount || 5;
+    this.AUTO_CLEANUP_ON_TIMEOUT = this.config.autoCleanupOnTimeout ?? true;
 
     // Initialize physics system with constants service
     const prisma = new PrismaClient();
@@ -289,6 +324,13 @@ export class GameRoom {
       return { success: false };
     }
 
+    console.log(`Removing player ${player.username} from room ${this.id}`);
+
+    // Clear any reconnection timeout
+    if (player.reconnectionTimeout) {
+      clearTimeout(player.reconnectionTimeout);
+    }
+
     // Leave the socket.io room
     player.socket.leave(this.id);
 
@@ -302,20 +344,42 @@ export class GameRoom {
     // Handle host transfer if host left
     if (this.hostId === userId) {
       this.hostId = null;
-      // Transfer host to next player
-      const remainingPlayers = Array.from(this.players.values());
+      // Transfer host to next connected player
+      const remainingPlayers = Array.from(this.players.values()).filter(
+        p => p.state !== PlayerState.DISCONNECTED
+      );
+
       if (remainingPlayers.length > 0) {
         const newHost = remainingPlayers[0];
         this.hostId = newHost.userId;
         // eslint-disable-next-line no-param-reassign
         newHost.isHost = true;
+
+        // Notify about host change
+        this.broadcastToRoom('hostChanged', {
+          newHostId: newHost.userId,
+          newHostUsername: newHost.username,
+          previousHostId: userId,
+        });
       }
     }
 
     // Reset game state if needed
     if (this.gameState === GameState.PLAYING && this.players.size < 2) {
       this.gameState = GameState.WAITING;
+      this.broadcastToRoom('gameEnded', {
+        reason: 'insufficient_players',
+        endedAt: new Date(),
+      });
     }
+
+    // Notify remaining players
+    this.broadcastToRoom('playerRemoved', {
+      playerId: userId,
+      username: player.username,
+      reason: 'timeout_or_excessive_disconnects',
+      remainingPlayers: this.players.size,
+    });
 
     return { success: true, player };
   }
@@ -376,23 +440,52 @@ export class GameRoom {
     return { success: true };
   }
 
-  public handlePlayerDisconnect(userId: string): void {
+  public handlePlayerDisconnect(userId: string, reason?: string): void {
     const player = this.players.get(userId);
-    if (player) {
-      // eslint-disable-next-line no-param-reassign
-      player.state = PlayerState.DISCONNECTED;
-      this.updateActivity();
+    if (!player) return;
 
-      // If game is in progress, pause it
-      if (this.gameState === GameState.PLAYING) {
-        this.gameState = GameState.PAUSED;
-      }
+    console.log(
+      `Player ${player.username} disconnected from room ${this.id}, reason: ${reason || 'unknown'}`
+    );
+
+    // Update player state
+    // eslint-disable-next-line no-param-reassign
+    player.state = PlayerState.DISCONNECTED;
+    // eslint-disable-next-line no-param-reassign
+    player.disconnectedAt = new Date();
+    // eslint-disable-next-line no-param-reassign
+    player.disconnectCount = (player.disconnectCount || 0) + 1;
+    this.updateActivity();
+
+    // If game is in progress, pause it
+    if (this.gameState === GameState.PLAYING) {
+      this.gameState = GameState.PAUSED;
+      this.broadcastToRoom('gamePaused', {
+        reason: 'player_disconnect',
+        disconnectedPlayer: {
+          userId: player.userId,
+          username: player.username,
+        },
+        pausedAt: new Date(),
+      });
     }
+
+    // Set up reconnection timeout
+    this.setReconnectionTimeout(userId);
+
+    // Notify other players
+    this.broadcastToOthers(userId, 'playerDisconnected', {
+      playerId: userId,
+      username: player.username,
+      gracePeriod: this.RECONNECTION_GRACE_PERIOD,
+      gameState: this.gameState,
+    });
   }
 
   public handlePlayerReconnect(socket: AuthenticatedSocket): {
     success: boolean;
     error?: string;
+    reconnectionData?: any;
   } {
     if (!socket.userId) {
       return { success: false, error: 'Socket must be authenticated' };
@@ -403,7 +496,26 @@ export class GameRoom {
       return { success: false, error: 'Player not found in room' };
     }
 
-    // Update socket reference and rejoin room
+    if (player.state !== PlayerState.DISCONNECTED) {
+      return { success: false, error: 'Player was not disconnected' };
+    }
+
+    // Clear reconnection timeout if it exists
+    if (player.reconnectionTimeout) {
+      clearTimeout(player.reconnectionTimeout);
+      // eslint-disable-next-line no-param-reassign
+      delete player.reconnectionTimeout;
+    }
+
+    const disconnectionDuration = player.disconnectedAt
+      ? Date.now() - player.disconnectedAt.getTime()
+      : 0;
+
+    console.log(
+      `Player ${player.username} reconnected to room ${this.id} after ${disconnectionDuration}ms`
+    );
+
+    // Update player state
     // eslint-disable-next-line no-param-reassign
     player.socket = socket;
     // eslint-disable-next-line no-param-reassign
@@ -411,18 +523,49 @@ export class GameRoom {
       this.gameState === GameState.PLAYING
         ? PlayerState.PLAYING
         : PlayerState.CONNECTED;
+    // eslint-disable-next-line no-param-reassign
+    player.lastReconnectAt = new Date();
+    // eslint-disable-next-line no-param-reassign
+    delete player.disconnectedAt;
+
     socket.join(this.id);
     this.updateActivity();
 
-    // Resume game if all players are back
-    if (
+    // Cancel room cleanup since a player has reconnected
+    this.cancelRoomCleanup();
+
+    // Check if we can resume the game
+    const shouldResumeGame =
       this.gameState === GameState.PAUSED &&
-      this.getPlayersByState(PlayerState.DISCONNECTED).length === 0
-    ) {
+      this.getPlayersByState(PlayerState.DISCONNECTED).length === 0;
+
+    if (shouldResumeGame) {
       this.gameState = GameState.PLAYING;
+      this.broadcastToRoom('gameResumed', {
+        reason: 'all_players_reconnected',
+        resumedAt: new Date(),
+      });
     }
 
-    return { success: true };
+    // Notify other players
+    this.broadcastToOthers(socket.userId, 'playerReconnected', {
+      playerId: socket.userId,
+      username: player.username,
+      disconnectionDuration,
+      gameState: this.gameState,
+    });
+
+    // Send room state sync to reconnected player
+    this.requestGameStateSync(socket.userId);
+
+    return {
+      success: true,
+      reconnectionData: {
+        disconnectionDuration,
+        gameResumed: shouldResumeGame,
+        roomState: this.getRoomState(),
+      },
+    };
   }
 
   // Match state management methods
@@ -1001,5 +1144,287 @@ export class GameRoom {
         this.syncRoomState();
       }
     }, intervalMs);
+  }
+
+  // Disconnect handling methods
+  private setReconnectionTimeout(userId: string): void {
+    const player = this.players.get(userId);
+    if (!player) return;
+
+    // Clear existing timeout if any
+    if (player.reconnectionTimeout) {
+      clearTimeout(player.reconnectionTimeout);
+    }
+
+    // Calculate total time spent disconnected by this player
+    const totalDisconnectTime = this.getTotalDisconnectTime(userId);
+    const remainingTime = Math.max(
+      0,
+      this.MAX_RECONNECTION_TIME - totalDisconnectTime
+    );
+
+    // If player has exceeded max reconnection time, handle immediately
+    if (remainingTime <= 0) {
+      console.log(
+        `Player ${player.username} has exceeded max reconnection time (${this.MAX_RECONNECTION_TIME}ms), removing immediately`
+      );
+      this.handleReconnectionTimeout(userId);
+      return;
+    }
+
+    // Use the shorter of grace period or remaining time
+    const timeoutDuration = Math.min(
+      this.RECONNECTION_GRACE_PERIOD,
+      remainingTime
+    );
+
+    // Set new timeout
+    // eslint-disable-next-line no-param-reassign
+    player.reconnectionTimeout = setTimeout(() => {
+      this.handleReconnectionTimeout(userId);
+    }, timeoutDuration);
+
+    console.log(
+      `Set reconnection timeout for player ${player.username} (${timeoutDuration}ms, ${remainingTime}ms total remaining)`
+    );
+
+    // Schedule room cleanup if no more active players and auto-cleanup is enabled
+    this.scheduleRoomCleanupIfNeeded();
+  }
+
+  private handleReconnectionTimeout(userId: string): void {
+    const player = this.players.get(userId);
+    if (!player || player.state !== PlayerState.DISCONNECTED) {
+      return;
+    }
+
+    console.log(
+      `Reconnection timeout for player ${player.username} in room ${this.id}`
+    );
+
+    // Check if player has too many disconnects
+    const shouldRemovePlayer =
+      (player.disconnectCount || 0) >= this.MAX_DISCONNECT_COUNT;
+
+    if (shouldRemovePlayer) {
+      console.log(
+        `Removing player ${player.username} due to excessive disconnects (${player.disconnectCount})`
+      );
+
+      // End game if in progress
+      if (
+        this.gameState === GameState.PLAYING ||
+        this.gameState === GameState.PAUSED
+      ) {
+        const results: GameResults = {
+          endReason: 'disconnect',
+          finalScores: {},
+          matchDuration: Date.now() - this.createdAt.getTime(),
+          endedAt: new Date(),
+        };
+
+        // Set winner as the remaining connected player
+        const connectedPlayers = this.getPlayersByState(PlayerState.PLAYING)
+          .concat(this.getPlayersByState(PlayerState.CONNECTED))
+          .filter(p => p.userId !== userId);
+
+        if (connectedPlayers.length > 0) {
+          const winner = connectedPlayers[0];
+          results.winnerId = winner.userId;
+          results.winnerUsername = winner.username;
+          results.loserId = userId;
+          results.loserUsername = player.username;
+        }
+
+        this.endGame(results);
+        this.broadcastToRoom('matchEnd', results);
+      }
+
+      // Remove player from room
+      this.removePlayer(userId);
+    } else {
+      // Keep player but notify others
+      this.broadcastToOthers(userId, 'playerReconnectionTimeout', {
+        playerId: userId,
+        username: player.username,
+        disconnectCount: player.disconnectCount,
+        timeoutAt: new Date(),
+      });
+
+      // If game was paused, consider ending it or keeping it paused
+      if (this.gameState === GameState.PAUSED) {
+        // For now, keep the game paused - could add policy to auto-end after certain time
+        console.log(
+          `Game remains paused due to ${player.username} not reconnecting`
+        );
+      }
+    }
+  }
+
+  public getDisconnectedPlayers(): GameRoomPlayer[] {
+    return this.getPlayersByState(PlayerState.DISCONNECTED);
+  }
+
+  public getReconnectionInfo(userId: string): {
+    isDisconnected: boolean;
+    disconnectedAt?: Date;
+    timeRemaining?: number;
+    totalTimeRemaining?: number;
+    disconnectCount?: number;
+    maxDisconnectCount?: number;
+  } {
+    const player = this.players.get(userId);
+    if (!player || player.state !== PlayerState.DISCONNECTED) {
+      return { isDisconnected: false };
+    }
+
+    const totalDisconnectTime = this.getTotalDisconnectTime(userId);
+    const totalTimeRemaining = Math.max(
+      0,
+      this.MAX_RECONNECTION_TIME - totalDisconnectTime
+    );
+    const timeRemaining = player.disconnectedAt
+      ? Math.max(
+          0,
+          Math.min(
+            this.RECONNECTION_GRACE_PERIOD -
+              (Date.now() - player.disconnectedAt.getTime()),
+            totalTimeRemaining
+          )
+        )
+      : 0;
+
+    return {
+      isDisconnected: true,
+      ...(player.disconnectedAt && { disconnectedAt: player.disconnectedAt }),
+      timeRemaining,
+      totalTimeRemaining,
+      disconnectCount: player.disconnectCount || 0,
+      maxDisconnectCount: this.MAX_DISCONNECT_COUNT,
+    };
+  }
+
+  public forceRemoveDisconnectedPlayer(userId: string): boolean {
+    const player = this.players.get(userId);
+    if (!player || player.state !== PlayerState.DISCONNECTED) {
+      return false;
+    }
+
+    // Clear timeout
+    if (player.reconnectionTimeout) {
+      clearTimeout(player.reconnectionTimeout);
+    }
+
+    // Force removal
+    this.handleReconnectionTimeout(userId);
+    return true;
+  }
+
+  private getTotalDisconnectTime(userId: string): number {
+    const player = this.players.get(userId);
+    if (!player) return 0;
+
+    let totalTime = 0;
+
+    // Add time from current disconnection if any
+    if (player.disconnectedAt) {
+      totalTime += Date.now() - player.disconnectedAt.getTime();
+    }
+
+    // For simplicity, we'll just track current disconnection time
+    // In a more complex system, we'd track historical disconnect times
+    return totalTime;
+  }
+
+  private scheduleRoomCleanupIfNeeded(): void {
+    if (!this.AUTO_CLEANUP_ON_TIMEOUT || this.isScheduledForCleanup) {
+      return;
+    }
+
+    // Check if all players are disconnected
+    const connectedPlayers = this.getPlayersByState(PlayerState.CONNECTED)
+      .concat(this.getPlayersByState(PlayerState.PLAYING))
+      .concat(this.getPlayersByState(PlayerState.READY));
+
+    if (connectedPlayers.length === 0) {
+      this.isScheduledForCleanup = true;
+      this.cleanupTimeout = setTimeout(() => {
+        console.log(
+          `Auto-cleaning up room ${this.id} due to all players disconnected`
+        );
+        this.forceCleanup();
+      }, this.MAX_RECONNECTION_TIME);
+
+      console.log(
+        `Scheduled room ${this.id} for cleanup in ${this.MAX_RECONNECTION_TIME}ms (all players disconnected)`
+      );
+    }
+  }
+
+  private cancelRoomCleanup(): void {
+    if (this.cleanupTimeout) {
+      clearTimeout(this.cleanupTimeout);
+      this.cleanupTimeout = null;
+      this.isScheduledForCleanup = false;
+      console.log(`Cancelled room cleanup for ${this.id}`);
+    }
+  }
+
+  public forceCleanup(): void {
+    console.log(`Force cleaning up room ${this.id}`);
+
+    // End any active game
+    if (
+      this.gameState === GameState.PLAYING ||
+      this.gameState === GameState.PAUSED
+    ) {
+      this.endGame({
+        endReason: 'disconnect',
+        finalScores: {},
+        matchDuration: Date.now() - this.createdAt.getTime(),
+        endedAt: new Date(),
+      });
+    }
+
+    this.cleanup();
+  }
+
+  public isScheduledForDestruction(): boolean {
+    return this.isScheduledForCleanup;
+  }
+
+  public getReconnectionConfig(): {
+    gracePeriod: number;
+    maxReconnectionTime: number;
+    maxDisconnectCount: number;
+    autoCleanupOnTimeout: boolean;
+  } {
+    return {
+      gracePeriod: this.RECONNECTION_GRACE_PERIOD,
+      maxReconnectionTime: this.MAX_RECONNECTION_TIME,
+      maxDisconnectCount: this.MAX_DISCONNECT_COUNT,
+      autoCleanupOnTimeout: this.AUTO_CLEANUP_ON_TIMEOUT,
+    };
+  }
+
+  // Enhanced cleanup method
+  public cleanup(): void {
+    // Clear all reconnection timeouts
+    this.players.forEach(player => {
+      if (player.reconnectionTimeout) {
+        clearTimeout(player.reconnectionTimeout);
+      }
+    });
+
+    // Clear room cleanup timeout
+    this.cancelRoomCleanup();
+
+    // Stop physics updates
+    this.stopPhysicsUpdate();
+
+    // Clear players
+    this.players.clear();
+
+    console.log(`GameRoom ${this.id} cleaned up`);
   }
 }

@@ -56,11 +56,30 @@ app.get('/health', (_req, res) => {
 // Initialize Socket Manager for game room handling
 const socketManager = new SocketManager(io);
 
+// Set up periodic cleanup for disconnected players
+const CLEANUP_INTERVAL = 30000; // 30 seconds
+setInterval(() => {
+  try {
+    socketManager.cleanupDisconnectedPlayers();
+
+    // Log cleanup stats
+    const stats = socketManager.getDisconnectionStats();
+    if (stats.totalDisconnectedPlayers > 0) {
+      console.log(
+        `🧹 Cleanup: ${stats.totalDisconnectedPlayers} disconnected players across ${stats.roomsWithDisconnectedPlayers} rooms`
+      );
+    }
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+  }
+}, CLEANUP_INTERVAL);
+
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
   console.log(`🚀 Brawl Bytes server running on port ${PORT}`);
   console.log(`📡 Socket.io server ready for connections`);
+  console.log(`🧹 Cleanup interval set to ${CLEANUP_INTERVAL}ms`);
   console.log(
     `🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`
   );

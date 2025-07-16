@@ -58,6 +58,17 @@ export class SocketManager {
       // Handle authentication
       socket.on('authenticate', (token: string) => {
         this.authenticateSocket(socket, token);
+
+        // After authentication, check for reconnection opportunities
+        if (socket.userId) {
+          const reconnectionResult = this.handlePlayerReconnection(socket);
+          if (reconnectionResult.success) {
+            socket.emit('automaticReconnection', {
+              success: true,
+              gameRoom: reconnectionResult.gameRoom,
+            });
+          }
+        }
       });
 
       // Handle room operations
@@ -97,6 +108,20 @@ export class SocketManager {
 
       socket.on('disconnect', reason => {
         this.handleDisconnect(socket, reason);
+      });
+
+      // Handle reconnection attempts
+      socket.on('attemptReconnection', () => {
+        const reconnectionResult = this.handlePlayerReconnection(socket);
+        socket.emit('reconnectionAttemptResult', reconnectionResult);
+      });
+
+      // Handle reconnection info requests
+      socket.on('getReconnectionInfo', () => {
+        if (socket.userId) {
+          const stats = this.getDisconnectionStats();
+          socket.emit('reconnectionInfo', stats);
+        }
       });
 
       // Basic connection test
@@ -385,7 +410,14 @@ export class SocketManager {
   }
 
   private handleDisconnect(socket: AuthenticatedSocket, reason: string): void {
-    console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
+    console.log(
+      `Client disconnected: ${socket.id} (${socket.username}), reason: ${reason}`
+    );
+
+    // Handle GameRoom disconnections first
+    if (socket.userId) {
+      this.handleGameRoomDisconnect(socket.userId, reason);
+    }
 
     // Remove from player map
     if (socket.userId) {
@@ -400,13 +432,133 @@ export class SocketManager {
       );
     }
 
-    // Remove from any rooms
-    this.leaveRoom(socket);
+    // Handle legacy room disconnections
+    this.handleLegacyRoomDisconnect(socket, reason);
   }
 
   // eslint-disable-next-line class-methods-use-this
   private generateRoomId(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  // Enhanced disconnect handling methods
+  private handleGameRoomDisconnect(userId: string, reason: string): void {
+    // Find which GameRoom the player is in
+    let playerGameRoom: ActualGameRoom | null = null;
+
+    const gameRooms = Array.from(this.gameRooms.values());
+    playerGameRoom =
+      gameRooms.find(gameRoom => gameRoom.hasPlayer(userId)) || null;
+
+    if (playerGameRoom) {
+      console.log(`Handling GameRoom disconnect for player ${userId}`);
+      playerGameRoom.handlePlayerDisconnect(userId, reason);
+    }
+  }
+
+  private handleLegacyRoomDisconnect(
+    socket: AuthenticatedSocket,
+    reason: string
+  ): void {
+    // Handle legacy room disconnections (existing logic)
+    this.legacyRooms.forEach((room: LegacyGameRoom, roomId: string) => {
+      const playerIndex = room.players.findIndex(
+        (p: AuthenticatedSocket) => p.id === socket.id
+      );
+      if (playerIndex !== -1) {
+        room.players.splice(playerIndex, 1);
+        socket.leave(roomId);
+
+        // Notify remaining players
+        this.io.to(roomId).emit('playerLeft', {
+          roomId,
+          playerId: socket.userId,
+          username: socket.username,
+          playerCount: room.players.length,
+          reason,
+        });
+
+        // If room is empty, clean it up
+        if (room.players.length === 0) {
+          this.legacyRooms.delete(roomId);
+          console.log(`Room ${roomId} deleted (empty)`);
+        } else {
+          // eslint-disable-next-line no-param-reassign
+          room.isActive = false; // Pause game if someone leaves
+        }
+
+        console.log(
+          `${socket.username} left legacy room ${roomId} due to ${reason}`
+        );
+      }
+    });
+  }
+
+  public handlePlayerReconnection(socket: AuthenticatedSocket): {
+    success: boolean;
+    error?: string;
+    gameRoom?: string;
+  } {
+    if (!socket.userId) {
+      return { success: false, error: 'Socket must be authenticated' };
+    }
+
+    // Try to reconnect to GameRoom
+    const gameRoomEntries = Array.from(this.gameRooms.entries());
+    const targetRoom = gameRoomEntries.find(([, gameRoom]) =>
+      gameRoom.hasPlayer(socket.userId!)
+    );
+
+    if (targetRoom) {
+      const [roomId, gameRoom] = targetRoom;
+      const reconnectionResult = gameRoom.handlePlayerReconnect(socket);
+
+      if (reconnectionResult.success) {
+        // Update player socket map
+        this.playerSocketMap.set(socket.userId, socket);
+
+        console.log(
+          `Player ${socket.username} successfully reconnected to GameRoom ${roomId}`
+        );
+
+        return {
+          success: true,
+          gameRoom: roomId,
+        };
+      }
+      return {
+        success: false,
+        error: reconnectionResult.error || 'Unknown reconnection error',
+      };
+    }
+
+    return { success: false, error: 'No room found for reconnection' };
+  }
+
+  public getDisconnectionStats(): {
+    totalDisconnectedPlayers: number;
+    roomsWithDisconnectedPlayers: number;
+    disconnectedPlayersByRoom: { [roomId: string]: number };
+  } {
+    let totalDisconnectedPlayers = 0;
+    let roomsWithDisconnectedPlayers = 0;
+    const disconnectedPlayersByRoom: { [roomId: string]: number } = {};
+
+    this.gameRooms.forEach((gameRoom, roomId) => {
+      const disconnectedPlayers = gameRoom.getDisconnectedPlayers();
+
+      if (disconnectedPlayers.length > 0) {
+        roomsWithDisconnectedPlayers += 1;
+        disconnectedPlayersByRoom[roomId] = disconnectedPlayers.length;
+        totalDisconnectedPlayers += disconnectedPlayers.length;
+      }
+    });
+
+    return {
+      totalDisconnectedPlayers,
+      roomsWithDisconnectedPlayers,
+      disconnectedPlayersByRoom,
+    };
   }
 
   // Public methods for external access
@@ -443,5 +595,32 @@ export class SocketManager {
 
   public cleanupDisconnectedPlayers(): void {
     this.matchmakingQueue.cleanupDisconnectedPlayers();
+
+    // Cleanup disconnected players from GameRooms
+    this.gameRooms.forEach((gameRoom, roomId) => {
+      const disconnectedPlayers = gameRoom.getDisconnectedPlayers();
+
+      disconnectedPlayers.forEach(player => {
+        const reconnectionInfo = gameRoom.getReconnectionInfo(player.userId);
+
+        // Force remove players who have been disconnected too long
+        if (
+          reconnectionInfo.timeRemaining &&
+          reconnectionInfo.timeRemaining <= 0
+        ) {
+          console.log(
+            `Force removing disconnected player ${player.username} from room ${roomId}`
+          );
+          gameRoom.forceRemoveDisconnectedPlayer(player.userId);
+        }
+      });
+
+      // Remove empty rooms
+      if (gameRoom.isEmpty()) {
+        console.log(`Removing empty GameRoom: ${roomId}`);
+        gameRoom.cleanup();
+        this.gameRooms.delete(roomId);
+      }
+    });
   }
 }

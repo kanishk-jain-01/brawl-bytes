@@ -306,7 +306,7 @@ export function updateGameConfig(serverConstants: any): void {
       TEXT: serverConstants.ui.colors_text,
       TEXT_SECONDARY: serverConstants.ui.colors_text_secondary,
     };
-    
+
     GAME_CONFIG.UI.FONTS = {
       PRIMARY: serverConstants.ui.fonts_primary,
       SECONDARY: serverConstants.ui.fonts_secondary,
@@ -341,12 +341,12 @@ export function updateGameConfig(serverConstants: any): void {
       WIDTH: serverConstants.player.collision_box_width,
       HEIGHT: serverConstants.player.collision_box_height,
     };
-    
+
     GAME_CONFIG.PLAYER.DISPLAY_SIZE = {
       WIDTH: serverConstants.player.display_size_width,
       HEIGHT: serverConstants.player.display_size_height,
     };
-    
+
     GAME_CONFIG.PLAYER.RADIUS = serverConstants.player.radius;
   }
 
@@ -356,12 +356,12 @@ export function updateGameConfig(serverConstants: any): void {
       SCALE_Y: serverConstants.animation.breathing_scale_scale_y,
       DURATION: serverConstants.animation.breathing_scale_duration,
     };
-    
+
     GAME_CONFIG.ANIMATION.HIT_EFFECT = {
       SCALE_Y: serverConstants.animation.hit_effect_scale_y,
       DURATION: serverConstants.animation.hit_effect_duration,
     };
-    
+
     GAME_CONFIG.ANIMATION.DAMAGE_EFFECT = {
       SCALE_Y: serverConstants.animation.damage_effect_scale_y,
       DURATION: serverConstants.animation.damage_effect_duration,

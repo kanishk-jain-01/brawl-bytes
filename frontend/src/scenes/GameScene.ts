@@ -16,6 +16,7 @@ import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
 import { getSocketManager } from '../utils/socket';
+import { createConnectionStatusDisplay, ConnectionStatusDisplay } from '../utils/ConnectionStatusDisplay';
 
 export class GameScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -38,11 +39,19 @@ export class GameScene extends Phaser.Scene {
 
   private activeHitboxes: Phaser.GameObjects.Rectangle[] = [];
 
+  private connectionStatusDisplay: ConnectionStatusDisplay | null = null;
+
   private cameraTarget: Phaser.GameObjects.GameObject | null = null;
 
   private uiContainer: Phaser.GameObjects.Container | null = null;
 
   private gameStarted = false;
+
+  private gamePaused = false;
+
+  private pauseReason: string | null = null;
+
+  private pauseOverlay: Phaser.GameObjects.Container | null = null;
 
   private matchTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -68,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.setupCamera();
     this.setupInput();
     this.createUI();
+    this.initializeConnectionStatusDisplay();
     this.setupAttackSystem();
     this.setupNetworking();
     this.startMatch();
@@ -402,6 +412,28 @@ export class GameScene extends Phaser.Scene {
     this.uiContainer.add(nameText);
   }
 
+  private initializeConnectionStatusDisplay(): void {
+    const socketManager = getSocketManager();
+    if (socketManager) {
+      this.connectionStatusDisplay = createConnectionStatusDisplay(socketManager, {
+        position: 'top-left',
+        showOnlyOnProblems: true,
+        autoHide: true,
+        autoHideDelay: 3000
+      });
+      
+      // Configure reconnection settings for game context
+      socketManager.setReconnectionConfig({
+        maxAttempts: 8, // More attempts during gameplay
+        baseDelay: 1000, // 1 second base delay
+        maxDelay: 15000, // Max 15 seconds between attempts
+        backoffFactor: 1.4 // Moderate exponential backoff
+      });
+      
+      console.log('Connection status display initialized for GameScene');
+    }
+  }
+
   private createDebugInfo(): void {
     if (!this.uiContainer) return;
 
@@ -701,13 +733,17 @@ export class GameScene extends Phaser.Scene {
   update(): void {
     if (!this.gameStarted || !this.player) return;
 
-    this.handlePlayerInput();
+    // Skip input handling and player updates if game is paused
+    if (!this.gamePaused) {
+      this.handlePlayerInput();
 
-    // Update all players
-    this.players.forEach(player => {
-      player.update();
-    });
+      // Update all players
+      this.players.forEach(player => {
+        player.update();
+      });
+    }
 
+    // Always update UI and debug info (even when paused)
     this.updateUI();
     this.updateDebugInfo();
   }
@@ -796,6 +832,7 @@ export class GameScene extends Phaser.Scene {
           `Character: ${this.selectedCharacter}`,
           `Health: ${this.player.getHealth()}/${this.player.getMaxHealth()}`,
           `Stocks: ${this.player.getStocks()}`,
+          `Game Paused: ${this.gamePaused ? `Yes (${this.pauseReason})` : 'No'}`,
           '',
           'Controls:',
           'Arrow Keys / WASD: Move',
@@ -939,6 +976,24 @@ export class GameScene extends Phaser.Scene {
     // Listen for position corrections
     socketManager.on('positionCorrection', (data: any) => {
       this.handlePositionCorrection(data);
+    });
+
+    // Listen for game pause/resume events
+    socketManager.on('gamePaused', (data: any) => {
+      this.handleGamePaused(data);
+    });
+
+    socketManager.on('gameResumed', (data: any) => {
+      this.handleGameResumed(data);
+    });
+
+    // Listen for player disconnect/reconnect events
+    socketManager.on('playerDisconnected', (data: any) => {
+      this.handlePlayerDisconnected(data);
+    });
+
+    socketManager.on('playerReconnected', (data: any) => {
+      this.handlePlayerReconnected(data);
     });
 
     // eslint-disable-next-line no-console
@@ -1110,9 +1165,342 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Public getters for game state
+  public isGamePaused(): boolean {
+    return this.gamePaused;
+  }
+
+  public getPauseReason(): string | null {
+    return this.pauseReason;
+  }
+
   /**
    * Map old character names to new centralized names
    */
+  // Game pause/resume handlers
+  private handleGamePaused(data: {
+    reason: string;
+    disconnectedPlayer?: { userId: string; username: string };
+    pausedAt: string;
+  }): void {
+    console.log('Game paused:', data);
+    
+    this.gamePaused = true;
+    this.pauseReason = data.reason;
+    
+    // Pause physics
+    this.physics.pause();
+    
+    // Pause timers
+    if (this.matchTimer) {
+      this.matchTimer.paused = true;
+    }
+    
+    // Show pause overlay
+    this.showPauseOverlay(data);
+    
+    // Disable player input
+    this.disablePlayerInput();
+    
+    console.log(`Game paused due to: ${data.reason}`);
+  }
+
+  private handleGameResumed(data: {
+    reason: string;
+    resumedAt: string;
+  }): void {
+    console.log('Game resumed:', data);
+    
+    this.gamePaused = false;
+    this.pauseReason = null;
+    
+    // Resume physics
+    this.physics.resume();
+    
+    // Resume timers
+    if (this.matchTimer) {
+      this.matchTimer.paused = false;
+    }
+    
+    // Hide pause overlay
+    this.hidePauseOverlay();
+    
+    // Re-enable player input
+    this.enablePlayerInput();
+    
+    console.log(`Game resumed: ${data.reason}`);
+  }
+
+  private handlePlayerDisconnected(data: {
+    playerId: string;
+    username: string;
+    gracePeriod: number;
+    gameState: string;
+  }): void {
+    console.log('Player disconnected:', data);
+    
+    // Show notification about disconnected player
+    this.showPlayerDisconnectedNotification(data);
+    
+    // Mark remote player as disconnected if they exist
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (remotePlayer) {
+      this.setPlayerDisconnectedState(remotePlayer, true);
+    }
+  }
+
+  private handlePlayerReconnected(data: {
+    playerId: string;
+    username: string;
+    disconnectionDuration: number;
+    gameState: string;
+  }): void {
+    console.log('Player reconnected:', data);
+    
+    // Show welcome back notification
+    this.showPlayerReconnectedNotification(data);
+    
+    // Mark remote player as connected if they exist
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (remotePlayer) {
+      this.setPlayerDisconnectedState(remotePlayer, false);
+    }
+  }
+
+  private showPauseOverlay(data: {
+    reason: string;
+    disconnectedPlayer?: { userId: string; username: string };
+    pausedAt: string;
+  }): void {
+    if (this.pauseOverlay) {
+      return; // Already showing
+    }
+
+    // Create pause overlay container
+    this.pauseOverlay = this.add.container(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY
+    );
+
+    // Semi-transparent background
+    const background = this.add.rectangle(
+      0, 0,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7
+    );
+    this.pauseOverlay.add(background);
+
+    // Pause icon
+    const pauseIcon = this.add.text(0, -80, '⏸️', {
+      fontSize: '64px',
+    }).setOrigin(0.5);
+    this.pauseOverlay.add(pauseIcon);
+
+    // Main title
+    const title = this.add.text(0, -20, 'GAME PAUSED', {
+      fontSize: '32px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    this.pauseOverlay.add(title);
+
+    // Reason text
+    let reasonText = '';
+    switch (data.reason) {
+      case 'player_disconnect':
+        reasonText = data.disconnectedPlayer 
+          ? `${data.disconnectedPlayer.username} disconnected`
+          : 'A player disconnected';
+        break;
+      default:
+        reasonText = 'Game paused';
+    }
+
+    const reason = this.add.text(0, 20, reasonText, {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#cccccc',
+    }).setOrigin(0.5);
+    this.pauseOverlay.add(reason);
+
+    // Waiting message
+    const waitingText = this.add.text(0, 50, 'Waiting for all players to reconnect...', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#999999',
+    }).setOrigin(0.5);
+    this.pauseOverlay.add(waitingText);
+
+    // Set high depth to ensure it's on top
+    this.pauseOverlay.setDepth(1000);
+
+    // Add subtle animation
+    this.tweens.add({
+      targets: this.pauseOverlay,
+      alpha: { from: 0, to: 1 },
+      duration: 300,
+      ease: 'Power2'
+    });
+  }
+
+  private hidePauseOverlay(): void {
+    if (!this.pauseOverlay) {
+      return;
+    }
+
+    // Animate out and destroy
+    this.tweens.add({
+      targets: this.pauseOverlay,
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2',
+      onComplete: () => {
+        if (this.pauseOverlay) {
+          this.pauseOverlay.destroy();
+          this.pauseOverlay = null;
+        }
+      }
+    });
+  }
+
+  private disablePlayerInput(): void {
+    // Disable keyboard input processing
+    this.input.keyboard?.disableGlobalCapture();
+  }
+
+  private enablePlayerInput(): void {
+    // Re-enable keyboard input processing
+    this.input.keyboard?.enableGlobalCapture();
+  }
+
+  private showPlayerDisconnectedNotification(data: {
+    playerId: string;
+    username: string;
+    gracePeriod: number;
+  }): void {
+    // Create temporary notification
+    const notification = this.add.container(
+      this.cameras.main.width - 20,
+      100
+    );
+
+    const background = this.add.rectangle(
+      0, 0, 300, 60,
+      0x333333, 0.9
+    ).setOrigin(1, 0);
+
+    const icon = this.add.text(-10, 10, '⚠️', {
+      fontSize: '16px',
+    }).setOrigin(1, 0);
+
+    const text = this.add.text(-30, 10, `${data.username} disconnected`, {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffaa00',
+    }).setOrigin(1, 0);
+
+    const subText = this.add.text(-30, 30, `Reconnecting... (${Math.ceil(data.gracePeriod / 1000)}s)`, {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#cccccc',
+    }).setOrigin(1, 0);
+
+    notification.add([background, icon, text, subText]);
+    notification.setDepth(999);
+
+    // Animate in
+    notification.setAlpha(0);
+    this.tweens.add({
+      targets: notification,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+
+    // Auto-remove after grace period
+    this.time.delayedCall(data.gracePeriod + 1000, () => {
+      this.tweens.add({
+        targets: notification,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => notification.destroy()
+      });
+    });
+  }
+
+  private showPlayerReconnectedNotification(data: {
+    playerId: string;
+    username: string;
+    disconnectionDuration: number;
+  }): void {
+    // Create temporary notification
+    const notification = this.add.container(
+      this.cameras.main.width - 20,
+      100
+    );
+
+    const background = this.add.rectangle(
+      0, 0, 300, 60,
+      0x2d5016, 0.9
+    ).setOrigin(1, 0);
+
+    const icon = this.add.text(-10, 10, '✅', {
+      fontSize: '16px',
+    }).setOrigin(1, 0);
+
+    const text = this.add.text(-30, 10, `${data.username} reconnected`, {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#4CAF50',
+    }).setOrigin(1, 0);
+
+    const downtime = Math.ceil(data.disconnectionDuration / 1000);
+    const subText = this.add.text(-30, 30, `Welcome back! (${downtime}s offline)`, {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#cccccc',
+    }).setOrigin(1, 0);
+
+    notification.add([background, icon, text, subText]);
+    notification.setDepth(999);
+
+    // Animate in
+    notification.setAlpha(0);
+    this.tweens.add({
+      targets: notification,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+
+    // Auto-remove after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this.tweens.add({
+        targets: notification,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => notification.destroy()
+      });
+    });
+  }
+
+  private setPlayerDisconnectedState(player: Player, disconnected: boolean): void {
+    if (disconnected) {
+      // Make player semi-transparent and add disconnected indicator
+      player.setAlpha(0.5);
+      player.setTint(0x666666);
+    } else {
+      // Restore normal appearance
+      player.setAlpha(1);
+      player.clearTint();
+    }
+  }
+
   private mapCharacterName(oldName: string): string {
     const characterMap: Record<string, string> = {
       FAST_LIGHTWEIGHT: 'DASH',
@@ -1125,5 +1513,21 @@ export class GameScene extends Phaser.Scene {
     };
 
     return characterMap[oldName] || 'REX'; // Default to REX if unknown
+  }
+
+  // Cleanup method for when scene is destroyed
+  public destroy(): void {
+    if (this.connectionStatusDisplay) {
+      this.connectionStatusDisplay.destroy();
+      this.connectionStatusDisplay = null;
+    }
+    
+    if (this.pauseOverlay) {
+      this.pauseOverlay.destroy();
+      this.pauseOverlay = null;
+    }
+    
+    // Note: Phaser Scene doesn't have a destroy method to call super on
+    // The scene will be cleaned up by Phaser automatically
   }
 }

@@ -49,7 +49,7 @@ async function initializeGame(): Promise<Phaser.Game> {
     // Update loading indicator
     // eslint-disable-next-line no-use-before-define
     showLoadingIndicator('Loading game configuration from database...');
-    
+
     // Load all constants, characters, and stages from database
     await loadGameConstants();
 
@@ -228,6 +228,10 @@ let gameInstance: Phaser.Game | undefined;
 initializeGame()
   .then(gameResult => {
     gameInstance = gameResult;
+    
+    // Initialize enhanced connection status display
+    // Note: Socket manager is initialized within the scenes, so we'll set this up there
+    console.log('Game initialized successfully with enhanced reconnection features');
   })
   .catch(error => {
     console.error('Game initialization failed:', error);

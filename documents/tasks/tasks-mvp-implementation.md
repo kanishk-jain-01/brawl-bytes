@@ -115,8 +115,14 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
     - [x] 5.4.3 Add input broadcasting for attacks and actions
     - [x] 5.4.4 Add client-side prediction with server reconciliation
   - [x] 5.5 Create server-side physics validation and authority
-  - [ ] 5.6 Implement matchmaking queue for 2-player matches
-  - [ ] 5.7 Add disconnect handling and reconnection logic
+  - [x] 5.6 Implement matchmaking queue for 2-player matches
+  - [x] 5.7 Add disconnect handling and reconnection logic
+    - [x] 5.7.1 Analyze existing disconnect handling code in SocketManager and GameRoom
+    - [x] 5.7.2 Enhance backend disconnect handling with graceful cleanup and reconnection timeout
+    - [x] 5.7.3 Improve frontend reconnection logic with exponential backoff and user feedback
+    - [x] 5.7.4 Implement automatic game pause/resume on player disconnect/reconnect
+    - [x] 5.7.5 Add configurable reconnection timeout with room cleanup
+    - [x] 5.7.6 Test various disconnect scenarios and edge cases
   - [ ] 5.8 Sync character selection and stage selection between players
   - [ ] 5.9 Write integration tests for GameRoom and Socket.io functionality
 
