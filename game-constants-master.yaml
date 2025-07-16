@@ -37,11 +37,14 @@ physics:
   world_bounds:
     width: 2000
     height: 1200
-    min_x: 0
+    min_x: -2000
     max_x: 2000
-    min_y: 0
+    min_y: -2000
     max_y: 1200
     death_zone_y: 1300
+  collision:
+    player_radius: 16
+    stage_thickness: 20
 
 # COMBAT SYSTEM
 # Damage calculations, attack timing, and combat mechanics
@@ -333,6 +336,7 @@ validation:
   max_velocity_change_per_ms: 10.0
   damage_validation_window: 1000
   input_validation_strictness: 0.8
+  max_ping_ms: 200
 
 # PLAYER ENTITY
 # Player collision and display configuration

@@ -385,8 +385,10 @@ export class PhysicsSystem {
     const currentTime = Date.now();
     const constants = await this.getConstants();
 
-    // Use deltaTime for future physics calculations
-    console.log(`Physics update with deltaTime: ${deltaTime}ms`);
+    // Verbose logging gated by DEBUG_PHYSICS to avoid console spam
+    if (process.env.DEBUG_PHYSICS === 'true') {
+      console.log(`Physics update with deltaTime: ${deltaTime}ms`);
+    }
 
     // Process all player states in parallel
     await Promise.all(
@@ -507,7 +509,7 @@ export class PhysicsSystem {
     }
 
     // Check collision with platforms
-    const playerRadius = (await this.getConstants()).VALIDATION.PLAYER_RADIUS;
+    const playerRadius = (await this.getConstants()).COLLISION.PLAYER_RADIUS;
     if (!playerRadius) {
       throw new Error('Player radius not loaded from database constants');
     }

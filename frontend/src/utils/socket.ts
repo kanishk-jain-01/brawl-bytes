@@ -1087,6 +1087,15 @@ export class SocketManager {
       timestamp: Date.now(),
     };
 
+    if (inputType === 'move') {
+      const { position } = data || {};
+      if (position) {
+        console.log(
+          `[INPUT_EMIT] pos=(${position.x.toFixed(1)},${position.y.toFixed(1)})`
+        );
+      }
+    }
+
     this.socket.emit(SOCKET_EVENTS.PLAYER_INPUT, inputData);
   }
 
@@ -1119,6 +1128,10 @@ export class SocketManager {
     position: { x: number; y: number },
     velocity: { x: number; y: number }
   ): void {
+    // Debug: local player movement emitted
+    console.log(
+      `[INPUT_EMIT] pos=(${position.x.toFixed(1)},${position.y.toFixed(1)})`
+    );
     this.sendPlayerInput('move', { position, velocity });
   }
 

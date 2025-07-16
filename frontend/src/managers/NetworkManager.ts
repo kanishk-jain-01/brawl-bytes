@@ -131,6 +131,10 @@ export class NetworkManager {
     position: { x: number; y: number };
     velocity: { x: number; y: number };
   }): void {
+    // Debug: remote player movement received
+    console.log(
+      `[REMOTE_MOVE] from=${data.playerId} pos=(${data.position.x.toFixed(1)},${data.position.y.toFixed(1)})`
+    );
     const remotePlayer = this.remotePlayers.get(data.playerId);
     if (!remotePlayer) return;
 

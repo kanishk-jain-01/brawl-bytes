@@ -314,6 +314,8 @@ export class GameRoom {
     };
 
     this.players.set(socket.userId, player);
+    // Debug: Player joined room
+    console.log(`[JOIN] room=${this.id} user=${socket.userId} (${socket.username})`);
     this.updateActivity();
 
     // Initialize physics for the player
@@ -763,11 +765,20 @@ export class GameRoom {
 
   // Game loop and state synchronization methods
   public broadcastToRoom(event: string, data: any): void {
-    // Use Socket.io's room broadcasting instead of direct socket emissions
-    console.log(
-      `Broadcasting event '${event}' to room ${this.id} with data:`,
-      data
-    );
+    // Only log non-spammy events to keep console readable
+    const noisyEvents = new Set([
+      'physicsUpdate',
+      'playerMove',
+      'serverState',
+      'positionCorrection',
+    ]);
+
+    if (!noisyEvents.has(event)) {
+      console.log(
+        `Broadcasting event '${event}' to room ${this.id} with data:`,
+        data
+      );
+    }
     this.socketManager.getIO().to(this.id).emit(event, data);
     this.updateActivity();
   }
@@ -878,6 +889,11 @@ export class GameRoom {
         timestamp: currentTime,
       });
 
+      // Debug: outgoing player movement
+      console.log(
+        `[MOVE_OUT] room=${this.id} player=${userId} seq=${sequence ?? 0}`
+      );
+
       // Send authoritative state back to client for reconciliation
       player.socket.emit('serverState', {
         position,
@@ -888,6 +904,9 @@ export class GameRoom {
     } else {
       // Send correction back to client
       const { correctedState } = validationResult;
+      console.log(
+        `[MOVE_REJECT] user=${userId} reason=${validationResult.reason}`
+      );
       if (correctedState) {
         const finalPosition = correctedState.position ||
           player.position || { x: 0, y: 0 };

@@ -121,6 +121,31 @@ export class SocketManager {
       });
 
       // Handle game events (placeholder for now)
+      // Modern player input routing (movement / attack etc.)
+      socket.on('playerInput', (inputData: any) => {
+        if (!socket.userId) return;
+
+        // We only care about movement for now
+        if (inputData.inputType !== 'move') return;
+
+        const { position, velocity } = inputData.data || {};
+        const sequence = inputData.sequence || 0;
+
+        // Find GameRoom containing this player
+        const targetRoom = Array.from(this.gameRooms.values()).find(r =>
+          r.hasPlayer(socket.userId!)
+        );
+
+        if (!targetRoom) return;
+
+        // Debug inbound movement
+        console.log(
+          `[MOVE_IN] user=${socket.userId} room=${targetRoom.getId()} seq=${sequence} pos=(${position?.x?.toFixed?.(1)},${position?.y?.toFixed?.(1)})`
+        );
+
+        targetRoom.handlePlayerMove(socket.userId!, position, velocity, sequence);
+      });
+
       socket.on('playerMove', data => {
         this.handlePlayerMove(socket, data);
       });
@@ -333,6 +358,10 @@ export class SocketManager {
         const velocity = data.velocity as { x: number; y: number };
         const sequence = data.sequence as number;
 
+        // Debug: inbound player movement
+        console.log(
+          `[MOVE_IN] user=${socket.userId} room=${roomId} seq=${sequence ?? 0} pos=(${position.x.toFixed(1)},${position.y.toFixed(1)})`
+        );
         // Broadcast to other players with validation data
         socket.to(roomId).emit('playerMove', {
           playerId: socket.userId,

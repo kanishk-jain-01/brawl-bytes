@@ -32,7 +32,11 @@ export interface PhysicsConstants {
     MAX_VELOCITY_CHANGE_PER_MS: number;
     POSITION_TOLERANCE: number;
     VELOCITY_TOLERANCE: number;
+    MAX_PING_MS: number;
+  };
+  COLLISION: {
     PLAYER_RADIUS: number;
+    STAGE_THICKNESS: number;
   };
 }
 
@@ -86,51 +90,72 @@ export class GameConstantsService {
       const formattedConstants =
         await this.gameConstantsRepo.getFormattedConstants();
 
+      // Helper to enforce presence of every constant (fail-fast philosophy)
+      const requireConst = (value: any, path: string) => {
+        if (value === undefined || value === null) {
+          throw new Error(`Missing constant value: ${path}`);
+        }
+        return value;
+      };
+
       // Map database values to PhysicsConstants structure
       const physicsConstants: PhysicsConstants = {
         MOVEMENT: {
-          MAX_VELOCITY: formattedConstants.physics?.max_velocity ?? 800,
-          MAX_ACCELERATION:
-            formattedConstants.physics?.max_acceleration ?? 1200,
-          GRAVITY: formattedConstants.physics?.gravity ?? 800,
-          JUMP_VELOCITY: formattedConstants.physics?.jump_velocity ?? -600,
-          DOUBLE_JUMP_VELOCITY:
-            formattedConstants.physics?.double_jump_velocity ?? -500,
-          FRICTION: formattedConstants.physics?.friction ?? 0.9,
-          AIR_RESISTANCE: formattedConstants.physics?.air_resistance ?? 0.95,
+          MAX_VELOCITY: requireConst(formattedConstants.physics?.max_velocity, 'physics.max_velocity'),
+          MAX_ACCELERATION: requireConst(formattedConstants.physics?.max_acceleration, 'physics.max_acceleration'),
+          GRAVITY: requireConst(formattedConstants.physics?.gravity, 'physics.gravity'),
+          JUMP_VELOCITY: requireConst(formattedConstants.physics?.jump_velocity, 'physics.jump_velocity'),
+          DOUBLE_JUMP_VELOCITY: requireConst(formattedConstants.physics?.double_jump_velocity, 'physics.double_jump_velocity'),
+          FRICTION: requireConst(formattedConstants.physics?.friction, 'physics.friction'),
+          AIR_RESISTANCE: requireConst(formattedConstants.physics?.air_resistance, 'physics.air_resistance'),
         },
         BOUNDS: {
-          MIN_X: formattedConstants.physics?.world_bounds?.min_x ?? -1000,
-          MAX_X: formattedConstants.physics?.world_bounds?.max_x ?? 1000,
-          MIN_Y: formattedConstants.physics?.world_bounds?.min_y ?? -500,
-          MAX_Y: formattedConstants.physics?.world_bounds?.max_y ?? 600,
-          DEATH_ZONE_Y:
-            formattedConstants.physics?.world_bounds?.death_zone_y ?? 800,
+          MIN_X: requireConst(formattedConstants.physics?.world_bounds_min_x, 'physics.world_bounds_min_x'),
+          MAX_X: requireConst(formattedConstants.physics?.world_bounds_max_x, 'physics.world_bounds_max_x'),
+          MIN_Y: requireConst(formattedConstants.physics?.world_bounds_min_y, 'physics.world_bounds_min_y'),
+          MAX_Y: requireConst(formattedConstants.physics?.world_bounds_max_y, 'physics.world_bounds_max_y'),
+          DEATH_ZONE_Y: requireConst(formattedConstants.physics?.world_bounds_death_zone_y, 'physics.world_bounds_death_zone_y'),
         },
         COMBAT: {
-          MAX_DAMAGE_PER_HIT:
-            formattedConstants.combat?.max_damage_per_hit ?? 50,
-          MIN_DAMAGE_PER_HIT:
-            formattedConstants.combat?.min_damage_per_hit ?? 1,
-          MAX_KNOCKBACK_VELOCITY:
-            formattedConstants.combat?.max_knockback_velocity ?? 1200,
-          INVULNERABILITY_DURATION:
-            formattedConstants.combat?.invulnerability_duration ?? 1000,
-          ATTACK_COOLDOWN_MIN:
-            formattedConstants.combat?.attack_cooldown ?? 400,
-          MAX_COMBO_TIME: formattedConstants.combat?.max_combo_time ?? 2000,
-          ATTACK_RANGE: formattedConstants.combat?.attack_range ?? 150,
+          MAX_DAMAGE_PER_HIT: requireConst(
+            formattedConstants.combat?.max_damage_per_hit,
+            'combat.max_damage_per_hit'
+          ),
+          MIN_DAMAGE_PER_HIT: requireConst(
+            formattedConstants.combat?.min_damage_per_hit,
+            'combat.min_damage_per_hit'
+          ),
+          MAX_KNOCKBACK_VELOCITY: requireConst(
+            formattedConstants.combat?.max_knockback_velocity,
+            'combat.max_knockback_velocity'
+          ),
+          INVULNERABILITY_DURATION: requireConst(
+            formattedConstants.combat?.invulnerability_duration,
+            'combat.invulnerability_duration'
+          ),
+          ATTACK_COOLDOWN_MIN: requireConst(
+            formattedConstants.combat?.attack_cooldown,
+            'combat.attack_cooldown'
+          ),
+          MAX_COMBO_TIME: requireConst(
+            formattedConstants.combat?.max_combo_time,
+            'combat.max_combo_time'
+          ),
+          ATTACK_RANGE: requireConst(
+            formattedConstants.combat?.attack_range,
+            'combat.attack_range'
+          ),
         },
         VALIDATION: {
-          MAX_POSITION_CHANGE_PER_MS:
-            formattedConstants.validation?.max_position_change_per_ms ?? 1.0,
-          MAX_VELOCITY_CHANGE_PER_MS:
-            formattedConstants.validation?.max_velocity_change_per_ms ?? 2.0,
-          POSITION_TOLERANCE:
-            formattedConstants.validation?.position_tolerance ?? 50,
-          VELOCITY_TOLERANCE:
-            formattedConstants.validation?.velocity_tolerance ?? 100,
-          PLAYER_RADIUS: formattedConstants.player?.radius ?? 25,
+          MAX_POSITION_CHANGE_PER_MS: requireConst(formattedConstants.validation?.max_position_change_per_ms, 'validation.max_position_change_per_ms'),
+          MAX_VELOCITY_CHANGE_PER_MS: requireConst(formattedConstants.validation?.max_velocity_change_per_ms, 'validation.max_velocity_change_per_ms'),
+          POSITION_TOLERANCE: requireConst(formattedConstants.validation?.position_tolerance, 'validation.position_tolerance'),
+          VELOCITY_TOLERANCE: requireConst(formattedConstants.validation?.velocity_tolerance, 'validation.velocity_tolerance'),
+          MAX_PING_MS: requireConst(formattedConstants.validation?.max_ping_ms, 'validation.max_ping_ms'),
+        },
+        COLLISION: {
+          PLAYER_RADIUS: requireConst(formattedConstants.physics?.collision_player_radius, 'physics.collision_player_radius'),
+          STAGE_THICKNESS: requireConst(formattedConstants.physics?.collision_stage_thickness, 'physics.collision_stage_thickness'),
         },
       };
 
