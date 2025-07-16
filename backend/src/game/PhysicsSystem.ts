@@ -388,53 +388,55 @@ export class PhysicsSystem {
     // Use deltaTime for future physics calculations
     console.log(`Physics update with deltaTime: ${deltaTime}ms`);
 
-    // eslint-disable-next-line no-param-reassign
-    this.playerStates.forEach(state => {
-      // Update invulnerability
-      if (state.isInvulnerable) {
-        const invulnerabilityElapsed =
-          currentTime - state.lastInvulnerabilityStart;
-        if (
-          invulnerabilityElapsed >= constants.COMBAT.INVULNERABILITY_DURATION
-        ) {
-          // eslint-disable-next-line no-param-reassign
-          state.isInvulnerable = false;
+    // Process all player states in parallel
+    await Promise.all(
+      Array.from(this.playerStates.values()).map(async state => {
+        // Update invulnerability
+        if (state.isInvulnerable) {
+          const invulnerabilityElapsed =
+            currentTime - state.lastInvulnerabilityStart;
+          if (
+            invulnerabilityElapsed >= constants.COMBAT.INVULNERABILITY_DURATION
+          ) {
+            // eslint-disable-next-line no-param-reassign
+            state.isInvulnerable = false;
+          }
         }
-      }
 
-      // Check for death zone
-      if (state.position.y > constants.BOUNDS.DEATH_ZONE_Y) {
-        // eslint-disable-next-line no-param-reassign
-        state.stocks = Math.max(0, state.stocks - 1);
-        // eslint-disable-next-line no-param-reassign
-        state.health = 100;
-        // eslint-disable-next-line no-param-reassign
-        state.position = { x: 0, y: 0 };
-        // eslint-disable-next-line no-param-reassign
-        state.velocity = { x: 0, y: 0 };
-        // eslint-disable-next-line no-param-reassign
-        state.isInvulnerable = true;
-        // eslint-disable-next-line no-param-reassign
-        state.lastInvulnerabilityStart = currentTime;
-      }
-
-      // Update grounded state based on stage collision
-      if (this.stageData) {
-        // eslint-disable-next-line no-param-reassign
-        state.isGrounded = this.checkGroundCollision(state.position);
-
-        // Reset double jump when grounded
-        if (state.isGrounded) {
+        // Check for death zone
+        if (state.position.y > constants.BOUNDS.DEATH_ZONE_Y) {
           // eslint-disable-next-line no-param-reassign
-          state.canDoubleJump = true;
+          state.stocks = Math.max(0, state.stocks - 1);
           // eslint-disable-next-line no-param-reassign
-          state.hasUsedDoubleJump = false;
+          state.health = 100;
+          // eslint-disable-next-line no-param-reassign
+          state.position = { x: 0, y: 0 };
+          // eslint-disable-next-line no-param-reassign
+          state.velocity = { x: 0, y: 0 };
+          // eslint-disable-next-line no-param-reassign
+          state.isInvulnerable = true;
+          // eslint-disable-next-line no-param-reassign
+          state.lastInvulnerabilityStart = currentTime;
         }
-      }
 
-      // eslint-disable-next-line no-param-reassign
-      state.lastUpdateTime = currentTime;
-    });
+        // Update grounded state based on stage collision
+        if (this.stageData) {
+          // eslint-disable-next-line no-param-reassign
+          state.isGrounded = await this.checkGroundCollision(state.position);
+
+          // Reset double jump when grounded
+          if (state.isGrounded) {
+            // eslint-disable-next-line no-param-reassign
+            state.canDoubleJump = true;
+            // eslint-disable-next-line no-param-reassign
+            state.hasUsedDoubleJump = false;
+          }
+        }
+
+        // eslint-disable-next-line no-param-reassign
+        state.lastUpdateTime = currentTime;
+      })
+    );
 
     return new Map(this.playerStates);
   }
@@ -496,7 +498,10 @@ export class PhysicsSystem {
   /**
    * Check if player is on ground (simplified collision detection)
    */
-  private checkGroundCollision(position: { x: number; y: number }): boolean {
+  private async checkGroundCollision(position: {
+    x: number;
+    y: number;
+  }): Promise<boolean> {
     if (!this.stageData) {
       return position.y >= 0; // Assume ground at y=0 if no stage data
     }
