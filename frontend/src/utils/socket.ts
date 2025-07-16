@@ -185,7 +185,8 @@ export class SocketManager {
 
   private totalReconnectAttempts = 0;
 
-  private userNotificationCallbacks: Map<string, (info: any) => void> = new Map();
+  private userNotificationCallbacks: Map<string, (info: any) => void> =
+    new Map();
 
   private connectionMetrics: ConnectionMetrics = {
     latency: 0,
@@ -257,7 +258,10 @@ export class SocketManager {
         this.lastDisconnectReason = reason;
         this.lastDisconnectTime = Date.now();
         this.setConnectionState(ConnectionState.DISCONNECTED);
-        this.emit('disconnected', { reason, timestamp: this.lastDisconnectTime });
+        this.emit('disconnected', {
+          reason,
+          timestamp: this.lastDisconnectTime,
+        });
 
         // Attempt to reconnect for most disconnect reasons
         if (reason !== 'io client disconnect') {
@@ -277,10 +281,10 @@ export class SocketManager {
           'RECONNECT_ERROR',
           true
         );
-        this.emit('reconnect_error', { 
-          error: error.message, 
+        this.emit('reconnect_error', {
+          error: error.message,
           attempt: this.reconnectAttempts,
-          nextAttemptIn: this.calculateNextReconnectionDelay()
+          nextAttemptIn: this.calculateNextReconnectionDelay(),
         });
       });
 
@@ -514,7 +518,7 @@ export class SocketManager {
     this.isReconnecting = true;
     this.reconnectionStartTime = Date.now();
     this.reconnectAttempts = 0;
-    
+
     console.log(`Starting reconnection process due to: ${reason}`);
     this.attemptReconnectionWithBackoff();
   }
@@ -527,14 +531,16 @@ export class SocketManager {
 
     this.reconnectAttempts += 1;
     this.totalReconnectAttempts += 1;
-    
+
     const delay = this.calculateNextReconnectionDelay();
-    
-    console.log(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
-    
+
+    console.log(
+      `Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`
+    );
+
     // Notify user about reconnection attempt
     this.notifyReconnectionAttempt(delay);
-    
+
     this.reconnectionTimeout = setTimeout(() => {
       this.performReconnectionAttempt();
     }, delay);
@@ -542,10 +548,11 @@ export class SocketManager {
 
   private calculateNextReconnectionDelay(): number {
     const exponentialDelay = Math.min(
-      this.baseReconnectionDelay * Math.pow(this.exponentialBackoffFactor, this.reconnectAttempts - 1),
+      this.baseReconnectionDelay *
+        this.exponentialBackoffFactor ** (this.reconnectAttempts - 1),
       this.maxReconnectionDelay
     );
-    
+
     // Add some jitter (±25%) to prevent thundering herd
     const jitter = exponentialDelay * 0.25 * (Math.random() - 0.5);
     return Math.round(exponentialDelay + jitter);
@@ -554,34 +561,36 @@ export class SocketManager {
   private async performReconnectionAttempt(): Promise<void> {
     try {
       console.log(`Performing reconnection attempt ${this.reconnectAttempts}`);
-      
+
       // Close existing socket if any
       if (this.socket) {
         this.socket.disconnect();
         this.socket = null;
       }
-      
+
       // Attempt to connect
       await this.connect();
-      
+
       // If we have a token, try to authenticate
       if (this.authToken) {
         await this.authenticate(this.authToken);
       }
-      
+
       // If we get here, reconnection was successful
       this.handleSuccessfulReconnection(this.reconnectAttempts);
-      
     } catch (error) {
-      console.error(`Reconnection attempt ${this.reconnectAttempts} failed:`, error);
-      
+      console.error(
+        `Reconnection attempt ${this.reconnectAttempts} failed:`,
+        error
+      );
+
       // Emit reconnection error with details
       this.emit('reconnect_error', {
         error: error instanceof Error ? error.message : 'Unknown error',
         attempt: this.reconnectAttempts,
-        nextAttemptIn: this.calculateNextReconnectionDelay()
+        nextAttemptIn: this.calculateNextReconnectionDelay(),
       });
-      
+
       // Try again with backoff
       this.attemptReconnectionWithBackoff();
     }
@@ -589,67 +598,73 @@ export class SocketManager {
 
   private handleSuccessfulReconnection(attemptNumber: number): void {
     const totalDowntime = Date.now() - this.reconnectionStartTime;
-    
-    console.log(`Successfully reconnected after ${attemptNumber} attempts and ${totalDowntime}ms downtime`);
-    
+
+    console.log(
+      `Successfully reconnected after ${attemptNumber} attempts and ${totalDowntime}ms downtime`
+    );
+
     // Reset reconnection state
     this.isReconnecting = false;
     this.reconnectAttempts = 0;
-    
+
     if (this.reconnectionTimeout) {
       clearTimeout(this.reconnectionTimeout);
       this.reconnectionTimeout = null;
     }
-    
+
     this.setConnectionState(ConnectionState.CONNECTED);
-    
+
     // Restart monitoring
     this.startConnectionMonitoring();
-    
+
     // Re-authenticate if we have a token
     if (this.authToken) {
-      this.authenticate(this.authToken).then(() => {
-        // Check for automatic room reconnection
-        this.emit('automaticReconnection', { attempt: attemptNumber });
-      }).catch(error => {
-        console.error('Re-authentication failed after reconnection:', error);
-      });
+      this.authenticate(this.authToken)
+        .then(() => {
+          // Check for automatic room reconnection
+          this.emit('automaticReconnection', { attempt: attemptNumber });
+        })
+        .catch(error => {
+          console.error('Re-authentication failed after reconnection:', error);
+        });
     }
-    
+
     // Notify successful reconnection
     this.emit('reconnected', {
       attemptNumber,
       totalDowntime,
-      totalAttempts: this.totalReconnectAttempts
+      totalAttempts: this.totalReconnectAttempts,
     });
-    
+
     this.notifyReconnectionSuccess(totalDowntime);
   }
 
   private handleReconnectionFailure(): void {
-    console.error(`Reconnection failed after ${this.maxReconnectAttempts} attempts`);
-    
+    console.error(
+      `Reconnection failed after ${this.maxReconnectAttempts} attempts`
+    );
+
     this.isReconnecting = false;
     this.setConnectionState(ConnectionState.ERROR);
-    
+
     if (this.reconnectionTimeout) {
       clearTimeout(this.reconnectionTimeout);
       this.reconnectionTimeout = null;
     }
-    
+
     this.logError(
       'connection',
       'Max reconnection attempts reached',
       'RECONNECT_FAILED',
       false
     );
-    
+
     this.emit('reconnect_failed', {
       maxAttempts: this.maxReconnectAttempts,
       totalDowntime: Date.now() - this.reconnectionStartTime,
-      reason: this.lastDisconnectReason
+      reason: this.lastDisconnectReason,
     });
-    
+
     this.notifyReconnectionFailure();
   }
 
@@ -661,17 +676,17 @@ export class SocketManager {
       totalDowntime: Date.now() - this.reconnectionStartTime,
       isReconnecting: true,
       exponentialDelay: nextAttemptIn,
-      reason: this.lastDisconnectReason
+      reason: this.lastDisconnectReason,
     };
-    
+
     this.emit('reconnecting', reconnectionInfo);
-    
+
     // Call user notification callbacks
     this.userNotificationCallbacks.forEach(callback => {
       try {
         callback({
           type: 'reconnecting',
-          info: reconnectionInfo
+          info: reconnectionInfo,
         });
       } catch (error) {
         console.error('Error in user notification callback:', error);
@@ -686,8 +701,8 @@ export class SocketManager {
           type: 'reconnected',
           info: {
             totalDowntime,
-            attempts: this.reconnectAttempts
-          }
+            attempts: this.reconnectAttempts,
+          },
         });
       } catch (error) {
         console.error('Error in user notification callback:', error);
@@ -703,8 +718,8 @@ export class SocketManager {
           info: {
             maxAttempts: this.maxReconnectAttempts,
             totalDowntime: Date.now() - this.reconnectionStartTime,
-            reason: this.lastDisconnectReason
-          }
+            reason: this.lastDisconnectReason,
+          },
         });
       } catch (error) {
         console.error('Error in user notification callback:', error);
@@ -1348,28 +1363,28 @@ export class SocketManager {
       }
 
       console.log('Force reconnection requested');
-      
+
       // Disconnect first
       if (this.socket) {
         this.socket.disconnect();
       }
-      
+
       // Start reconnection process
       this.startReconnectionProcess('user_requested');
-      
+
       // Set up one-time listeners
       const onReconnected = () => {
         this.off('reconnected', onReconnected);
         this.off('reconnect_failed', onReconnectFailed);
         resolve();
       };
-      
+
       const onReconnectFailed = () => {
         this.off('reconnected', onReconnected);
         this.off('reconnect_failed', onReconnectFailed);
         reject(new Error('Reconnection failed'));
       };
-      
+
       this.on('reconnected', onReconnected);
       this.on('reconnect_failed', onReconnectFailed);
     });
@@ -1379,19 +1394,19 @@ export class SocketManager {
     if (!this.isReconnecting) {
       return;
     }
-    
+
     console.log('Cancelling reconnection process');
-    
+
     this.isReconnecting = false;
-    
+
     if (this.reconnectionTimeout) {
       clearTimeout(this.reconnectionTimeout);
       this.reconnectionTimeout = null;
     }
-    
+
     this.emit('reconnection_cancelled', {
       attempt: this.reconnectAttempts,
-      totalDowntime: Date.now() - this.reconnectionStartTime
+      totalDowntime: Date.now() - this.reconnectionStartTime,
     });
   }
 
@@ -1399,7 +1414,7 @@ export class SocketManager {
     if (!this.isReconnecting) {
       return null;
     }
-    
+
     return {
       attempt: this.reconnectAttempts,
       maxAttempts: this.maxReconnectAttempts,
@@ -1407,7 +1422,7 @@ export class SocketManager {
       totalDowntime: Date.now() - this.reconnectionStartTime,
       isReconnecting: this.isReconnecting,
       exponentialDelay: this.calculateNextReconnectionDelay(),
-      reason: this.lastDisconnectReason
+      reason: this.lastDisconnectReason,
     };
   }
 
@@ -1418,12 +1433,15 @@ export class SocketManager {
       lastDisconnectReason: this.lastDisconnectReason,
       lastDisconnectTime: this.lastDisconnectTime || undefined,
       totalReconnectAttempts: this.totalReconnectAttempts,
-      metrics: this.getConnectionMetrics()
+      metrics: this.getConnectionMetrics(),
     };
   }
 
   // User notification management
-  public addNotificationCallback(id: string, callback: (info: any) => void): void {
+  public addNotificationCallback(
+    id: string,
+    callback: (info: any) => void
+  ): void {
     this.userNotificationCallbacks.set(id, callback);
   }
 
@@ -1449,12 +1467,12 @@ export class SocketManager {
     if (config.backoffFactor !== undefined) {
       this.exponentialBackoffFactor = config.backoffFactor;
     }
-    
+
     console.log('Reconnection config updated:', {
       maxAttempts: this.maxReconnectAttempts,
       baseDelay: this.baseReconnectionDelay,
       maxDelay: this.maxReconnectionDelay,
-      backoffFactor: this.exponentialBackoffFactor
+      backoffFactor: this.exponentialBackoffFactor,
     });
   }
 

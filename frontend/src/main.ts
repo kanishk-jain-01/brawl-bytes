@@ -228,10 +228,12 @@ let gameInstance: Phaser.Game | undefined;
 initializeGame()
   .then(gameResult => {
     gameInstance = gameResult;
-    
+
     // Initialize enhanced connection status display
     // Note: Socket manager is initialized within the scenes, so we'll set this up there
-    console.log('Game initialized successfully with enhanced reconnection features');
+    console.log(
+      'Game initialized successfully with enhanced reconnection features'
+    );
   })
   .catch(error => {
     console.error('Game initialization failed:', error);

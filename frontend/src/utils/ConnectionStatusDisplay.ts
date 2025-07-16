@@ -39,7 +39,7 @@ export class ConnectionStatusDisplay {
   }
 
   private getBaseStyles(): string {
-    const position = this.config.position;
+    const { position } = this.config;
     let positionStyles = '';
 
     switch (position) {
@@ -112,7 +112,9 @@ export class ConnectionStatusDisplay {
         status.state === ConnectionState.DISCONNECTED ||
         status.state === ConnectionState.ERROR ||
         status.state === ConnectionState.CONNECTING ||
-        Boolean(status.reconnectionInfo && status.reconnectionInfo.isReconnecting)
+        Boolean(
+          status.reconnectionInfo && status.reconnectionInfo.isReconnecting
+        )
       );
     }
 
@@ -258,7 +260,7 @@ export class ConnectionStatusDisplay {
     if (!this.statusElement) return;
 
     let backgroundColor = '';
-    let color = 'white';
+    const color = 'white';
 
     switch (status.state) {
       case ConnectionState.CONNECTING:
