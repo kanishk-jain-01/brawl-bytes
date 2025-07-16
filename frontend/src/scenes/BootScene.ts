@@ -9,6 +9,7 @@
 
 import Phaser from 'phaser';
 import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
+import { getStoredToken } from '@/api/auth';
 
 export class BootScene extends Phaser.Scene {
   private loadingText!: Phaser.GameObjects.Text;
@@ -178,9 +179,11 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 0, 0, 0);
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      // eslint-disable-next-line no-console
-      console.log('Transitioning to MenuScene...');
-      this.scene.start(GAME_CONFIG.SCENE_KEYS.MENU);
+      const nextScene = getStoredToken()
+        ? GAME_CONFIG.SCENE_KEYS.MENU
+        : 'LOGIN_SCENE';
+      console.log(`Transitioning to ${nextScene}...`);
+      this.scene.start(nextScene);
     });
   }
 }

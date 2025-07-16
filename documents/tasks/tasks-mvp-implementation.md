@@ -105,7 +105,15 @@ Based on the Brawl Bytes planning documents, this task list focuses on creating 
   - [x] 4.6 Add health system and damage calculation
   - [x] 4.7 Implement knockback mechanics and stock system
   - [x] 4.8 Add victory/defeat conditions and match end logic
-  - [x] 4.9 Write unit tests for Player entity and combat mechanics
+  - [ ] 4.9 Write unit tests for Player entity and combat mechanics
+
+- [ ] 4.10 Front-End Authentication
+  - [x] 4.10.1 Auth API wrapper (login/register/refresh)
+  - [x] 4.10.2 LoginScene with username & password (register toggle)
+  - [ ] 4.10.3 Token storage and auto-authentication on page load
+  - [ ] 4.10.4 Socket.io authenticate(token) hookup in main.ts
+  - [ ] 4.10.5 Logout flow (clear token & return to LoginScene)
+  - [ ] 4.10.6 Frontend auth unit tests
 
 - [ ] 5.0 Multiplayer Networking Foundation
   - [x] 5.1 Set up Socket.io server in backend with room management

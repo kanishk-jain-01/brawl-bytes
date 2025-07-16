@@ -13,7 +13,10 @@ import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
 import { StageSelectScene } from '@/scenes/StageSelectScene';
 import { PreMatchLobbyScene } from '@/scenes/PreMatchLobbyScene';
 import { GameScene } from '@/scenes/GameScene';
+import { LoginScene } from '@/scenes/LoginScene';
 import { GAME_CONFIG, initializeConstants, UI_COLORS } from '@/utils/constants';
+import { createSocketManager, DEFAULT_SOCKET_CONFIG } from '@/utils/socket';
+import { getStoredToken } from '@/api/auth';
 
 /**
  * Load all game constants, characters, and stages from database
@@ -81,6 +84,7 @@ async function initializeGame(): Promise<Phaser.Game> {
       },
       scene: [
         BootScene,
+        LoginScene,
         MenuScene,
         CharacterSelectScene,
         StageSelectScene,
@@ -131,6 +135,27 @@ async function initializeGame(): Promise<Phaser.Game> {
     }
 
     console.log('✅ Brawl Bytes initialized successfully!');
+
+    // Initialize global Socket.io connection before starting Phaser
+    const socketManager = createSocketManager(DEFAULT_SOCKET_CONFIG);
+    socketManager
+      .connect()
+      .then(async () => {
+        const stored = getStoredToken();
+        if (stored) {
+          try {
+            await socketManager.authenticate(stored);
+            console.log('Socket authenticated with stored token');
+          } catch (_err) {
+            console.warn('Stored token invalid, clearing', _err);
+            localStorage.removeItem('brawlbytes_access_token');
+          }
+        }
+      })
+      .catch(connErr => {
+        console.error('Socket connection failed:', connErr);
+      });
+
     return game;
   } catch (error) {
     console.error('❌ Failed to initialize game:', error);
