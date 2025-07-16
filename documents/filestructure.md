@@ -78,61 +78,42 @@ project/
     ├── jest.config.ts       # With node env
     ├── .env                 # Environment variables (DATABASE_URL, etc.)
     ├── .env.example         # Example environment file
+    ├── prisma/              # Prisma ORM setup (standard location)
+    │   ├── schema.prisma        # Database schema definition
+    │   ├── seed.ts              # Initial data seeding
+    │   └── migrations/          # Database migrations
+    │       └── 20250716005307_init/
+    │           └── migration.sql
     ├── src/
-    │   ├── server.ts        # Main entry point
-    │   ├── database/        # Database layer
-    │   │   ├── prisma/          # Prisma ORM setup
-    │   │   │   ├── schema.prisma    # Database schema definition
-    │   │   │   ├── migrations/      # Database migrations
-    │   │   │   └── seed.ts          # Initial data seeding
-    │   │   ├── repositories/    # Data access layer
-    │   │   │   ├── UserRepository.ts
-    │   │   │   ├── MatchRepository.ts
-    │   │   │   ├── PlayerRepository.ts
-    │   │   │   └── LeaderboardRepository.ts
-    │   │   └── services/        # Business logic layer
-    │   │       ├── UserService.ts
-    │   │       ├── MatchService.ts
-    │   │       ├── RankingService.ts
-    │   │       └── StatisticsService.ts
-    │   ├── game/            # Core game logic
-    │   │   ├── GameRoom.ts      # Room management and lifecycle
-    │   │   ├── GameLoop.ts      # Server tick logic (60Hz)
-    │   │   ├── GameState.ts     # Authoritative game state
-    │   │   ├── CollisionSystem.ts   # Server-side collision detection
-    │   │   ├── PhysicsSystem.ts     # Server physics simulation
-    │   │   ├── CombatSystem.ts      # Damage calculation and knockback
-    │   │   └── StateSync.ts         # State synchronization logic
-    │   ├── matchmaking/     # Player pairing and lobbies
-    │   │   ├── MatchmakingService.ts    # Find games for players
-    │   │   ├── LobbyManager.ts          # Manage game lobbies
-    │   │   └── RatingSystem.ts          # Skill-based matching
-    │   ├── networking/      # Network management
-    │   │   ├── SocketManager.ts     # Socket.io connection handling
-    │   │   ├── MessageHandler.ts    # Process client messages
-    │   │   ├── NetworkOptimizer.ts  # Bandwidth optimization
-    │   │   └── ConnectionMonitor.ts # Track connection quality
-    │   ├── security/        # Input validation and rate limiting
-    │   │   ├── InputValidator.ts    # Validate player inputs
-    │   │   ├── RateLimiter.ts       # Prevent spam/abuse
-    │   │   └── SanityChecker.ts     # Basic input validation
-    │   ├── persistence/     # Data storage
-    │   │   ├── PlayerData.ts        # Player profiles and stats
-    │   │   ├── GameHistory.ts       # Match history and replays
-    │   │   └── Leaderboard.ts       # Rankings and progression
-    │   ├── monitoring/      # Performance and analytics
-    │   │   ├── MetricsCollector.ts  # Performance metrics
-    │   │   ├── Logger.ts            # Structured logging
-    │   │   └── Analytics.ts         # Game analytics
-    │   ├── utils/           # Shared utilities
-    │   │   ├── auth.ts              # Authentication helpers
-    │   │   ├── constants.ts         # Server constants
-    │   │   ├── math.ts              # Math utilities
-    │   │   └── validation.ts        # Input validation helpers
-    │   └── __tests__/       # Server tests
-    │       ├── game/                # Game logic tests
-    │       ├── matchmaking/         # Matchmaking tests
-    │       ├── networking/          # Network tests
-    │       ├── security/            # Security tests
-    │       └── integration/         # End-to-end tests
-    └── dist/                # Compiled JS (git-ignored)
+    │   ├── server.ts            # Main entry point with Express + Socket.io
+    │   ├── auth/                # Authentication layer
+    │   │   ├── passport.ts          # Passport.js configuration (Local + JWT)
+    │   │   ├── middleware.ts        # Auth middleware for route protection
+    │   │   └── utils.ts             # JWT generation, password hashing
+    │   ├── controllers/         # Request handlers (Express pattern)
+    │   │   └── gameConstantsController.ts  # Game constants API controller
+    │   ├── routes/              # API route definitions
+    │   │   ├── auth.ts              # Authentication endpoints (/api/auth)
+    │   │   ├── characters.ts        # Character data endpoints
+    │   │   ├── stages.ts            # Stage data endpoints
+    │   │   └── gameConstants.ts     # Game constants endpoints (/api/constants)
+    │   ├── services/            # Business logic layer
+    │   │   └── GameConstantsService.ts  # Game constants business logic
+    │   ├── database/            # Data access layer
+    │   │   └── repositories/        # Repository pattern for data access
+    │   │       ├── UserRepository.ts           # User CRUD operations
+    │   │       └── GameConstantsRepository.ts  # Game constants data access
+    │   ├── game/                # Core game logic
+    │   │   ├── GameRoom.ts          # Room management and player state
+    │   │   └── PhysicsSystem.ts     # Server-side physics validation
+    │   ├── networking/          # Network management
+    │   │   └── SocketManager.ts     # Socket.io connection and message handling
+    │   ├── utils/               # Shared utilities
+    │   └── __tests__/           # Unit and integration tests
+    │       ├── __mocks__/           # Test mocks (Prisma, etc.)
+    │       ├── auth/                # Authentication tests
+    │       ├── database/            # Repository tests
+    │       ├── routes/              # API endpoint tests
+    │       ├── server.test.ts       # Server integration tests
+    │       └── setup.ts             # Jest test setup
+    └── dist/                    # Compiled JS (git-ignored)
