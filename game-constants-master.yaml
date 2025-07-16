@@ -332,8 +332,8 @@ network:
 validation:
   position_tolerance: 5.0
   velocity_tolerance: 50.0
-  max_position_change_per_ms: 2.0
-  max_velocity_change_per_ms: 10.0
+  max_position_change_per_ms: 100.0
+  max_velocity_change_per_ms: 500.0
   damage_validation_window: 1000
   input_validation_strictness: 0.8
   max_ping_ms: 200

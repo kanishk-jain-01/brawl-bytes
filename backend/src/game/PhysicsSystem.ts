@@ -98,7 +98,7 @@ export class PhysicsSystem {
   public initializePlayer(player: GameRoomPlayer): void {
     const initialState: PlayerPhysicsState = {
       playerId: player.userId,
-      position: { x: 0, y: 0 },
+      position: { x: 900, y: 1000 },
       velocity: { x: 0, y: 0 },
       isGrounded: false,
       canDoubleJump: true,

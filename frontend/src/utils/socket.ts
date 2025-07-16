@@ -479,6 +479,10 @@ export class SocketManager {
       this.emit(SOCKET_EVENTS.PLAYER_INPUT, data);
     });
 
+    this.socket.on(SOCKET_EVENTS.PLAYER_MOVE, (data: any) => {
+      this.emit(SOCKET_EVENTS.PLAYER_MOVE, data);
+    });
+
     this.socket.on(SOCKET_EVENTS.GAME_EVENT, (data: GameEventData) => {
       this.emit(SOCKET_EVENTS.GAME_EVENT, data);
     });

@@ -929,18 +929,41 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   ): void {
     if (this.isLocalPlayer) return;
 
-    const currentTime = this.scene.time.now;
+    // Immediate position update for instant visual feedback
+    this.setPosition(position.x, position.y);
+    
+    // Set velocity if physics body exists
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(velocity.x, velocity.y);
+    }
 
-    // Add to interpolation buffer
-    this.interpolationBuffer.push({
-      position: { ...position },
-      velocity: { ...velocity },
-      timestamp: currentTime,
-    });
+    // Try to add to interpolation buffer if scene timing is available
+    if (this.scene && this.scene.time) {
+      const currentTime = this.scene.time.now;
+      
+      // Add to interpolation buffer for smoother movement
+      this.interpolationBuffer.push({
+        position: { ...position },
+        velocity: { ...velocity },
+        timestamp: currentTime,
+      });
 
-    // Keep buffer size manageable
-    if (this.interpolationBuffer.length > this.maxBufferSize) {
-      this.interpolationBuffer.shift();
+      // Keep buffer size manageable
+      if (this.interpolationBuffer.length > this.maxBufferSize) {
+        this.interpolationBuffer.shift();
+      }
+    } else {
+      // Fallback: use Date.now() for timestamp if scene time isn't available
+      this.interpolationBuffer.push({
+        position: { ...position },
+        velocity: { ...velocity },
+        timestamp: Date.now(),
+      });
+
+      if (this.interpolationBuffer.length > this.maxBufferSize) {
+        this.interpolationBuffer.shift();
+      }
     }
   }
 
@@ -973,7 +996,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private updateRemotePlayerInterpolation(): void {
     if (this.isLocalPlayer || this.interpolationBuffer.length === 0) return;
 
-    const currentTime = this.scene.time.now;
+    // Get current time, preferring scene time but falling back to Date.now()
+    const currentTime = (this.scene && this.scene.time) 
+      ? this.scene.time.now 
+      : Date.now();
     const renderTime = currentTime - this.interpolationDelay;
 
     // Find the two states to interpolate between
