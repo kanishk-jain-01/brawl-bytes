@@ -353,21 +353,8 @@ export class GameScene extends Phaser.Scene {
     // Add player to players array
     this.players.push(this.player);
 
-    // Create a second player for testing combat (dummy AI)
-    const dummyPlayer = new Player({
-      scene: this,
-      x: spawnPoints[1].x,
-      y: spawnPoints[1].y,
-      characterType: 'TITAN',
-      playerId: 'dummy_player',
-      isLocalPlayer: false,
-    });
-
-    this.players.push(dummyPlayer);
-
-    // Set up stage collisions for both players
+    // Set up stage collisions for player
     this.stage.setupPlayerCollisions(this.player);
-    this.stage.setupPlayerCollisions(dummyPlayer);
 
     // Set camera target
     this.cameraTarget = this.player;
