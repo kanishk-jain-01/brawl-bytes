@@ -287,10 +287,12 @@ export class SocketManager {
     // If not in a room, try to find an existing room first, then create if needed
     if (!targetRoom) {
       // First, check if there are existing rooms with available slots that match the stage
-      const availableRoom = Array.from(this.gameRooms.values()).find(room =>
-        room.hasAvailableSlots() && 
-        !room.isGameInProgress() &&
-        (room.getConfig().stage === data.stage || room.getConfig().stage === null)
+      const availableRoom = Array.from(this.gameRooms.values()).find(
+        room =>
+          room.hasAvailableSlots() &&
+          !room.isGameInProgress() &&
+          (room.getConfig().stage === data.stage ||
+            room.getConfig().stage === null)
       );
 
       if (availableRoom) {
@@ -298,21 +300,25 @@ export class SocketManager {
         const addResult = availableRoom.addPlayer(socket);
         if (addResult.success) {
           targetRoom = availableRoom;
-          console.log(`Player ${socket.username} joined existing room ${availableRoom.getId()}`);
-          
+          console.log(
+            `Player ${socket.username} joined existing room ${availableRoom.getId()}`
+          );
+
           // If the room didn't have a stage set, set it now
           if (!availableRoom.getConfig().stage) {
             availableRoom.setStage(data.stage);
           }
-          
+
           // Apply character selection if provided
           if (data.character && socket.userId) {
             availableRoom.setPlayerCharacter(socket.userId, data.character);
-            console.log(`Applied character ${data.character} to ${socket.username} in existing room`);
+            console.log(
+              `Applied character ${data.character} to ${socket.username} in existing room`
+            );
           }
         }
       }
-      
+
       // If no suitable existing room found, create a new one
       if (!targetRoom) {
         const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -323,25 +329,27 @@ export class SocketManager {
           stockCount: 3,
           stage: data.stage,
         };
-        
+
         targetRoom = new ActualGameRoom(roomId, this, config);
         this.gameRooms.set(roomId, targetRoom);
-        
+
         // Add player to the new room
         const addResult = targetRoom.addPlayer(socket);
         if (!addResult.success) {
           socket.emit('error', { message: 'Failed to create room' });
           return;
         }
-        
+
         console.log(`Player ${socket.username} created new room ${roomId}`);
-        
+
         // Apply character selection if provided
         if (data.character && socket.userId) {
           targetRoom.setPlayerCharacter(socket.userId, data.character);
-          console.log(`Applied character ${data.character} to ${socket.username} in new room`);
+          console.log(
+            `Applied character ${data.character} to ${socket.username} in new room`
+          );
         }
-        
+
         // Notify client they joined a room
         socket.emit('roomJoined', { roomId });
       }
