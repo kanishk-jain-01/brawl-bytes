@@ -3,7 +3,7 @@
  * ----------
  * The main menu scene that serves as the game's home screen.
  * Features an animated background with twinkling stars, the game logo, and interactive buttons.
- * Includes play button (leads to character select), options button (future feature), and credits button.
+ * Includes play button (leads to character select) and options button (future feature).
  * All buttons have hover effects and smooth animations to enhance user experience.
  */
 
@@ -146,39 +146,17 @@ export class MenuScene extends Phaser.Scene {
       console.log('Options menu - Coming soon!');
     });
 
-    // Credits button
-    const creditsButton = this.add.image(
-      width / 2,
-      height / 2 + 210,
-      ASSET_KEYS.IMAGES.UI_BUTTON
-    );
-    creditsButton.setInteractive({ useHandCursor: true });
-    creditsButton.setScale(1.0);
-    creditsButton.setTint(0x95a5a6);
-
-    const creditsText = this.add.text(width / 2, height / 2 + 210, 'CREDITS', {
-      fontSize: '24px',
-      color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-    });
-    creditsText.setOrigin(0.5);
-
-    this.setupButtonInteractions(creditsButton, creditsText, () => {
-      // eslint-disable-next-line no-console
-      console.log('Credits - MVP by Brawl Bytes Team');
-    });
-
     // Logout button
     const logoutButton = this.add.image(
       width / 2,
-      height / 2 + 290,
+      height / 2 + 210,
       ASSET_KEYS.IMAGES.UI_BUTTON
     );
     logoutButton.setInteractive({ useHandCursor: true });
     logoutButton.setScale(1.0);
     logoutButton.setTint(0xe74c3c);
 
-    const logoutText = this.add.text(width / 2, height / 2 + 290, 'LOGOUT', {
+    const logoutText = this.add.text(width / 2, height / 2 + 210, 'LOGOUT', {
       fontSize: '24px',
       color: GAME_CONFIG.UI.COLORS.TEXT,
       fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
