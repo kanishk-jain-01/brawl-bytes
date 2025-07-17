@@ -199,7 +199,7 @@ export class SocketManager {
   }
 
   public static setPlayerReady(ready: boolean): void {
-    SocketManager.emit(SOCKET_EVENTS.PLAYER_READY, ready);
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_READY, { ready });
   }
 
   public static requestRoomState(): void {
