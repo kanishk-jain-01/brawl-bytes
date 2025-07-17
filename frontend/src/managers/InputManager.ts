@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getSocketManager } from '@/managers/SocketManager';
+import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { Player } from '../entities/Player';
 
 export interface InputState {
@@ -106,7 +106,7 @@ export class InputManager {
         inputType = 'jump';
       }
 
-      socketManager.emit('playerInput', {
+      SocketManager.emit('playerInput', {
         inputType,
         timestamp: Date.now(),
       });

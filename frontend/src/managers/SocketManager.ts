@@ -64,7 +64,7 @@ export class SocketManager {
   /**
    * Authenticate with the server
    */
-  public async authenticate(token: string): Promise<AuthResponse> {
+  public static async authenticate(token: string): Promise<AuthResponse> {
     const store = connectionStore.getState();
     const response = await store.authenticate(token);
 
@@ -85,7 +85,7 @@ export class SocketManager {
   /**
    * Check if socket is connected
    */
-  public isConnected(): boolean {
+  public static isConnected(): boolean {
     const store = connectionStore.getState();
     return store.isConnected();
   }
@@ -93,7 +93,7 @@ export class SocketManager {
   /**
    * Check if socket is authenticated
    */
-  public isAuthenticated(): boolean {
+  public static isAuthenticated(): boolean {
     const store = connectionStore.getState();
     return store.isAuthenticated;
   }
@@ -101,7 +101,7 @@ export class SocketManager {
   /**
    * Get current connection state
    */
-  public getConnectionState(): ConnectionState {
+  public static getConnectionState(): ConnectionState {
     const store = connectionStore.getState();
     return store.connectionState;
   }
@@ -109,7 +109,7 @@ export class SocketManager {
   /**
    * Emit an event to the server
    */
-  public emit(event: string, data?: any): void {
+  public static emit(event: string, data?: any): void {
     const store = connectionStore.getState();
     const { socket } = store;
 
@@ -170,72 +170,79 @@ export class SocketManager {
    * High-level game actions
    */
 
-  public joinQueue(): void {
-    this.emit(SOCKET_EVENTS.JOIN_QUEUE);
+  public static joinQueue(): void {
+    SocketManager.emit(SOCKET_EVENTS.JOIN_QUEUE);
   }
 
-  public leaveQueue(): void {
-    this.emit(SOCKET_EVENTS.LEAVE_QUEUE);
+  public static leaveQueue(): void {
+    SocketManager.emit(SOCKET_EVENTS.LEAVE_QUEUE);
   }
 
-  public createRoom(): void {
-    this.emit(SOCKET_EVENTS.CREATE_ROOM);
+  public static createRoom(): void {
+    SocketManager.emit(SOCKET_EVENTS.CREATE_ROOM);
   }
 
-  public joinRoom(roomId: string): void {
-    this.emit(SOCKET_EVENTS.JOIN_ROOM, roomId);
+  public static joinRoom(roomId: string): void {
+    SocketManager.emit(SOCKET_EVENTS.JOIN_ROOM, roomId);
   }
 
-  public leaveRoom(): void {
-    this.emit(SOCKET_EVENTS.LEAVE_ROOM);
+  public static leaveRoom(): void {
+    SocketManager.emit(SOCKET_EVENTS.LEAVE_ROOM);
     // Room state is now managed by connectionStore and lobbyStore
   }
 
-  public selectCharacter(character: string): void {
-    this.emit(SOCKET_EVENTS.SELECT_CHARACTER, character);
+  public static selectCharacter(character: string): void {
+    SocketManager.emit(SOCKET_EVENTS.SELECT_CHARACTER, character);
   }
 
-  public selectStage(stage: string): void {
-    this.emit(SOCKET_EVENTS.SELECT_STAGE, stage);
+  public static selectStage(stage: string): void {
+    SocketManager.emit(SOCKET_EVENTS.SELECT_STAGE, stage);
   }
 
-  public setPlayerReady(ready: boolean): void {
-    this.emit(SOCKET_EVENTS.PLAYER_READY, ready);
+  public static setPlayerReady(ready: boolean): void {
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_READY, ready);
   }
 
-  public startGame(): void {
-    this.emit(SOCKET_EVENTS.START_GAME);
+  public static startGame(): void {
+    SocketManager.emit(SOCKET_EVENTS.START_GAME);
   }
 
-  public requestRoomState(): void {
-    this.emit(SOCKET_EVENTS.REQUEST_ROOM_STATE);
+  public static requestRoomState(): void {
+    SocketManager.emit(SOCKET_EVENTS.REQUEST_ROOM_STATE);
   }
 
-  public sendPlayerInput(
+  public static sendPlayerInput(
     inputType: string,
     data?: any,
     sequence?: number
   ): void {
-    this.emit(SOCKET_EVENTS.PLAYER_INPUT, { inputType, data, sequence });
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_INPUT, {
+      inputType,
+      data,
+      sequence,
+    });
   }
 
-  public sendPlayerAttack(attackType: string, direction: any): void {
-    this.emit(SOCKET_EVENTS.PLAYER_ATTACK, { attackType, direction });
+  public static sendPlayerAttack(attackType: string, direction: any): void {
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_ATTACK, { attackType, direction });
   }
 
-  public sendPlayerJump(jumpType: string): void {
-    this.emit(SOCKET_EVENTS.PLAYER_INPUT, { inputType: 'jump', jumpType });
+  public static sendPlayerJump(jumpType: string): void {
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_INPUT, {
+      inputType: 'jump',
+      jumpType,
+    });
   }
 
-  public sendPlayerSpecial(specialType: string, data?: any): void {
-    this.emit(SOCKET_EVENTS.PLAYER_INPUT, {
+  public static sendPlayerSpecial(specialType: string, data?: any): void {
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_INPUT, {
       inputType: 'special',
       specialType,
       data,
     });
   }
 
-  public getSocket(): Socket | null {
+  public static getSocket(): Socket | null {
     const store = connectionStore.getState();
     return store.socket;
   }
@@ -415,7 +422,7 @@ export class SocketManager {
   /**
    * Auto-authentication with stored token
    */
-  public async autoAuthenticate(): Promise<boolean> {
+  public static async autoAuthenticate(): Promise<boolean> {
     const storedToken = SocketManager.getStoredToken();
 
     if (!storedToken) {
@@ -428,7 +435,7 @@ export class SocketManager {
     }
 
     try {
-      await this.authenticate(storedToken);
+      await SocketManager.authenticate(storedToken);
       return true;
     } catch {
       SocketManager.clearStoredToken();
@@ -452,7 +459,7 @@ export class SocketManager {
       throw new Error('Authentication token expired');
     }
 
-    const authResponse = await this.authenticate(authToken);
+    const authResponse = await SocketManager.authenticate(authToken);
 
     if (authResponse.success && token) {
       SocketManager.storeToken(token);

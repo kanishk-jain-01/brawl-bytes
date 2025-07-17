@@ -10,7 +10,7 @@
 
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
-import { getSocketManager } from '@/managers/SocketManager';
+import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { GAME_CONFIG, CharacterType, UI_COLORS } from '../utils/constants';
 
 export class CharacterSelectScene extends Phaser.Scene {
@@ -519,8 +519,8 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     // Emit character selection to server for multiplayer synchronization
     const socketManager = getSocketManager();
-    if (socketManager && socketManager.isAuthenticated()) {
-      socketManager.selectCharacter(this.selectedCharacter);
+    if (socketManager && SocketManager.isAuthenticated()) {
+      SocketManager.selectCharacter(this.selectedCharacter);
       console.log(
         `Emitted character selection to server: ${this.selectedCharacter}`
       );

@@ -18,6 +18,7 @@ import { GAME_CONFIG, initializeConstants, UI_COLORS } from '@/utils/constants';
 import {
   createSocketManager,
   DEFAULT_SOCKET_CONFIG,
+  SocketManager,
 } from '@/managers/SocketManager';
 import { getStoredToken } from '@/api/auth';
 
@@ -145,7 +146,7 @@ async function initializeGame(): Promise<Phaser.Game> {
         const stored = getStoredToken();
         if (stored) {
           try {
-            await socketManager.authenticate(stored);
+            await SocketManager.authenticate(stored);
             console.log('Socket authenticated with stored token');
           } catch (_err) {
             console.warn('Stored token invalid, clearing', _err);

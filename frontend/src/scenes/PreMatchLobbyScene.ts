@@ -13,7 +13,7 @@
  */
 
 import Phaser from 'phaser';
-import { getSocketManager } from '@/managers/SocketManager';
+import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import {
   lobbyStore,
   subscribeToLobby,
@@ -54,7 +54,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     );
 
     // Strict validation - fail if required data not loaded from database
-    this.validateGameData();
+    PreMatchLobbyScene.validateGameData();
 
     // Subscribe to lobby store changes
     this.setupStoreSubscription();
@@ -72,7 +72,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.initializeLobby();
   }
 
-  private validateGameData(): void {
+  private static validateGameData(): void {
     if (
       !GAME_CONFIG.CHARACTERS ||
       Object.keys(GAME_CONFIG.CHARACTERS).length === 0
@@ -116,7 +116,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private initializeLobby(): void {
-    if (!this.socketManager || !this.socketManager.isAuthenticated()) {
+    if (!this.socketManager || !SocketManager.isAuthenticated()) {
       console.error('Cannot start lobby: not authenticated');
       lobbyStore.getState().setError('Not authenticated');
       return;
@@ -126,7 +126,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     const connectionState = getConnectionState();
     if (connectionState.currentRoomId) {
       console.log('Already in room, requesting room state...');
-      this.socketManager.requestRoomState();
+      SocketManager.requestRoomState();
     } else {
       // Start matchmaking process
       this.startMatchmaking();
@@ -148,8 +148,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     lobbyStore.getState().joinQueue(preferences);
 
     // Emit to socket
-    if (this.socketManager?.getSocket()) {
-      this.socketManager.getSocket()?.emit('joinMatchmakingQueue', {
+    if (SocketManager.getSocket()) {
+      SocketManager.getSocket()?.emit('joinMatchmakingQueue', {
         gameMode: 'versus',
         preferredStage: selectedStage,
         preferredCharacter: selectedCharacter,
@@ -676,7 +676,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     setPlayerReady(newReadyState);
 
     // Send to server
-    this.socketManager.setPlayerReady(newReadyState);
+    SocketManager.setPlayerReady(newReadyState);
   }
 
   private startGame(): void {
@@ -696,7 +696,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }
 
     console.log('PreMatchLobbyScene: Starting game');
-    this.socketManager.startGame();
+    SocketManager.startGame();
   }
 
   private setupInputs(): void {
@@ -806,7 +806,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     console.log('PreMatchLobbyScene: Leaving lobby');
 
     if (this.socketManager) {
-      this.socketManager.leaveRoom();
+      SocketManager.leaveRoom();
     }
 
     // Clear lobby state

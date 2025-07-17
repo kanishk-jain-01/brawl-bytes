@@ -11,7 +11,7 @@
 import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
-import { getSocketManager } from '@/managers/SocketManager';
+import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import {
   GAME_CONFIG,
   CharacterType,
@@ -857,7 +857,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (currentTime - this.lastSyncTime < this.positionSyncRate) return;
 
     const socketManager = getSocketManager();
-    if (!socketManager || !socketManager.isConnected()) return;
+    if (!socketManager || !SocketManager.isConnected()) return;
 
     // Only sync if position or velocity has changed significantly
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -886,7 +886,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.inputSequence += 1;
 
     // Send position with sequence number for server reconciliation
-    socketManager.sendPlayerInput(
+    SocketManager.sendPlayerInput(
       'move',
       { position, velocity },
       this.inputSequence
@@ -904,7 +904,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (!socketManager) return;
 
     const direction = this.flipX ? -1 : 1;
-    socketManager.sendPlayerAttack(attackType, direction);
+    SocketManager.sendPlayerAttack(attackType, direction);
   }
 
   public syncInputAction(inputType: 'jump' | 'special', data?: any): void {
@@ -916,9 +916,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.inputSequence += 1;
 
     if (inputType === 'jump') {
-      socketManager.sendPlayerJump(data?.jumpType || 'single');
+      SocketManager.sendPlayerJump(data?.jumpType || 'single');
     } else if (inputType === 'special') {
-      socketManager.sendPlayerSpecial(data?.specialType || 'default', data);
+      SocketManager.sendPlayerSpecial(data?.specialType || 'default', data);
     }
   }
 
