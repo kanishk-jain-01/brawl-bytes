@@ -82,6 +82,10 @@ export class SocketManager {
         this.handleLeaveRoom(socket);
       });
 
+      socket.on('playerQuit', () => {
+        this.handlePlayerQuit(socket);
+      });
+
       // Handle matchmaking events
       socket.on('joinMatchmakingQueue', (preferences?: MatchPreferences) => {
         this.joinMatchmakingQueue(socket, preferences);
@@ -808,6 +812,55 @@ export class SocketManager {
         this.gameRooms.delete(roomId);
       }
     });
+  }
+
+  private handlePlayerQuit(socket: AuthenticatedSocket): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    // Find the GameRoom this player is in
+    const targetRoom = Array.from(this.gameRooms.values()).find(gameRoom =>
+      gameRoom.hasPlayer(socket.userId!)
+    );
+
+    if (!targetRoom) {
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    console.log(
+      `Player ${socket.username} quitting from room ${targetRoom.getId()}`
+    );
+
+    // Handle player quit (includes match forfeit logic if game is in progress)
+    const result = targetRoom.handlePlayerQuit(socket.userId);
+
+    if (result.success) {
+      socket.emit('playerQuitSuccess', {
+        roomId: targetRoom.getId(),
+        message: 'Successfully quit game',
+      });
+
+      // If room is now empty, clean it up
+      if (targetRoom.isEmpty()) {
+        console.log(
+          `Room ${targetRoom.getId()} is empty after quit, cleaning up`
+        );
+        targetRoom.broadcastToRoom('roomCleanedUp', {
+          reason: 'all_players_left',
+          roomId: targetRoom.getId(),
+        });
+        targetRoom.cleanup();
+        this.gameRooms.delete(targetRoom.getId());
+      } else {
+        // Broadcast updated lobby state to remaining players
+        this.broadcastLobbyState(targetRoom);
+      }
+    } else {
+      socket.emit('error', { message: result.error || 'Failed to quit game' });
+    }
   }
 
   private handleLeaveRoom(socket: AuthenticatedSocket): void {

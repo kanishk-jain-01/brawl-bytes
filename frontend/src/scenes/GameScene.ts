@@ -10,7 +10,7 @@
 
 import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
-import { getSocketManager } from '@/managers/SocketManager';
+import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { getConnectionState } from '@/state/connectionStore';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
@@ -27,6 +27,7 @@ import {
 } from '../managers/NetworkManager';
 import { CombatManager } from '../managers/CombatManager';
 import { GameStateManager, MatchEndReason } from '../managers/GameStateManager';
+import { QuitConfirmationModal } from '../components/QuitConfirmationModal';
 
 export class GameScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -60,6 +61,9 @@ export class GameScene extends Phaser.Scene {
   private combatManager: CombatManager | null = null;
 
   private gameStateManager: GameStateManager | null = null;
+
+  // Quit confirmation modal
+  private quitModal: QuitConfirmationModal | null = null;
 
   constructor() {
     super({ key: GAME_CONFIG.SCENE_KEYS.GAME });
@@ -385,7 +389,7 @@ export class GameScene extends Phaser.Scene {
   private initializeManagers(): void {
     // Initialize input manager
     this.inputManager = new InputManager(this);
-    this.inputManager.setupEscapeHandler(() => this.returnToCharacterSelect());
+    this.inputManager.setupEscapeHandler(() => this.handleEscapePressed());
 
     // Initialize UI manager
     this.uiManager = new UIManager(this);
@@ -410,6 +414,8 @@ export class GameScene extends Phaser.Scene {
     const networkHandlers: NetworkEventHandlers = {
       onPlayerJoined: data => this.handlePlayerJoined(data),
       onPlayerLeft: data => this.handlePlayerLeft(data),
+      onPlayerQuit: data => this.handlePlayerQuit(data),
+      onMatchEnd: data => this.handleMatchEnd(data),
       onGameEvent: data => this.handleGameEvent(data),
       onGamePaused: data => this.gameStateManager?.pauseGame(data),
       onGameResumed: data => this.gameStateManager?.resumeGame(data),
@@ -504,9 +510,47 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private handleEscapePressed(): void {
+    // Don't show modal if one is already visible
+    if (this.quitModal?.isVisible()) {
+      return;
+    }
+
+    const isInMatch = this.gameStateManager?.isGameStarted() || false;
+
+    this.quitModal = new QuitConfirmationModal({
+      isInMatch,
+      onConfirm: () => this.confirmQuit(isInMatch),
+      onCancel: () => {
+        // Modal automatically hides itself
+        this.quitModal = null;
+      },
+    });
+
+    this.quitModal.show();
+  }
+
+  private confirmQuit(isInMatch: boolean): void {
+    console.log('GameScene: Player confirmed quit, isInMatch:', isInMatch);
+
+    if (isInMatch) {
+      // Send quit signal to server for match forfeit
+      SocketManager.emit('playerQuit');
+    }
+
+    // Return to appropriate scene
+    this.returnToCharacterSelect();
+  }
+
   private returnToCharacterSelect(): void {
     // eslint-disable-next-line no-console
     console.log('GameScene: Returning to character select');
+
+    // Clean up modal if it exists
+    if (this.quitModal) {
+      this.quitModal.hide();
+      this.quitModal = null;
+    }
 
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -578,6 +622,87 @@ export class GameScene extends Phaser.Scene {
         this.players.splice(index, 1);
       }
     }
+  }
+
+  private handlePlayerQuit(data: {
+    playerId: string;
+    username: string;
+    remainingPlayers: number;
+  }): void {
+    console.log(
+      `Player quit: ${data.username} (${data.playerId}), remaining: ${data.remainingPlayers}`
+    );
+
+    // Show notification that player quit (fallback to console if no notification system)
+    console.log(`Player quit: ${data.username} quit the match`);
+
+    // Remove the player from the local players list if they exist
+    const playerIndex = this.players.findIndex(
+      p => p.playerId === data.playerId
+    );
+    if (playerIndex !== -1) {
+      const player = this.players[playerIndex];
+      player.destroy();
+      this.players.splice(playerIndex, 1);
+    }
+
+    // Also remove via network manager
+    const remotePlayer = this.networkManager?.removeRemotePlayer(data.playerId);
+    if (remotePlayer) {
+      const index = this.players.indexOf(remotePlayer);
+      if (index > -1) {
+        this.players.splice(index, 1);
+      }
+    }
+  }
+
+  private handleMatchEnd(data: {
+    winnerId?: string;
+    winnerUsername?: string;
+    endReason: string;
+    matchDuration: number;
+  }): void {
+    console.log('Match ended:', data);
+
+    // Determine match end reason
+    let reason: MatchEndReason;
+    switch (data.endReason) {
+      case 'knockout':
+        reason = 'elimination';
+        break;
+      case 'timeout':
+        reason = 'timer';
+        break;
+      case 'forfeit':
+      case 'disconnect':
+        reason = 'elimination'; // Treat forfeit/disconnect as elimination
+        break;
+      default:
+        reason = 'elimination';
+    }
+
+    // Find winner player object
+    let winner: Player | undefined;
+    if (data.winnerId) {
+      winner = this.players.find(p => p.playerId === data.winnerId);
+      
+      // If winner not found in current players (e.g., they quit), 
+      // create a temporary winner object to identify local vs remote winner
+      if (!winner) {
+        const connectionState = getConnectionState();
+        const isLocalWinner = data.winnerId === connectionState.userId;
+        
+        // Create a minimal winner object to indicate if local player won
+        winner = {
+          isLocalPlayer: isLocalWinner,
+          playerId: data.winnerId,
+          getCharacterData: () => ({ name: data.winnerUsername || 'Unknown' })
+        } as Player;
+      }
+    }
+
+    // End the match
+    this.endMatch(reason, winner);
   }
 
   private handleGameEvent(data: any): void {
@@ -652,6 +777,12 @@ export class GameScene extends Phaser.Scene {
     if (this.connectionStatusDisplay) {
       this.connectionStatusDisplay.destroy();
       this.connectionStatusDisplay = null;
+    }
+
+    // Clean up quit modal if it exists
+    if (this.quitModal) {
+      this.quitModal.hide();
+      this.quitModal = null;
     }
 
     // Cleanup managers

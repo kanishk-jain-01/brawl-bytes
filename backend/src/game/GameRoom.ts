@@ -9,6 +9,8 @@ import {
   type StageData,
 } from './PhysicsSystem';
 import { GameConstantsService } from '../services/GameConstantsService';
+import { MatchRepository } from '../database/repositories/MatchRepository';
+import { PlayerStatsService } from '../services/PlayerStatsService';
 
 export enum GameState {
   WAITING = 'waiting',
@@ -143,6 +145,11 @@ export class GameRoom {
   private physicsSystem: PhysicsSystem;
 
   private physicsUpdateInterval: NodeJS.Timeout | null = null;
+
+  // Match tracking
+  private matchId: string | null = null;
+
+  private matchStartTime: Date | null = null;
 
   // Disconnect handling configuration
   private readonly RECONNECTION_GRACE_PERIOD: number;
@@ -355,6 +362,84 @@ export class GameRoom {
     return { success: true };
   }
 
+  public handlePlayerQuit(userId: string): {
+    success: boolean;
+    error?: string;
+  } {
+    const player = this.players.get(userId);
+    if (!player) {
+      return { success: false, error: 'Player not found in room' };
+    }
+
+    console.log(`Player ${player.username} quit from room ${this.id}`);
+
+    // If game is in progress, handle as forfeit
+    if (
+      this.gameState === GameState.PLAYING ||
+      this.gameState === GameState.PAUSED
+    ) {
+      this.handleMatchQuit(userId);
+    }
+
+    // Remove the player
+    const removeResult = this.removePlayer(userId);
+    return removeResult;
+  }
+
+  private async handleMatchQuit(userId: string): Promise<void> {
+    const quittingPlayer = this.players.get(userId);
+    if (!quittingPlayer) return;
+
+    const remainingPlayers = Array.from(this.players.values()).filter(
+      p => p.userId !== userId && p.state !== PlayerState.DISCONNECTED
+    );
+
+    console.log(
+      `Match quit: ${quittingPlayer.username}, remaining players: ${remainingPlayers.length}`
+    );
+
+    // Update match participant record with quit
+    if (this.matchId) {
+      try {
+        await MatchRepository.updateParticipant(this.matchId, userId, {
+          leftAt: new Date(),
+        });
+      } catch (error) {
+        console.error('Error updating match participant on quit:', error);
+      }
+    }
+
+    // Check if match should end
+    if (remainingPlayers.length <= 1) {
+      // End the match
+      const winner = remainingPlayers.length === 1 ? remainingPlayers[0] : null;
+
+      const results: GameResults = {
+        winnerId: winner?.userId,
+        winnerUsername: winner?.username,
+        loserId: userId,
+        loserUsername: quittingPlayer.username,
+        endReason: 'forfeit',
+        finalScores: {},
+        matchDuration: this.matchStartTime
+          ? Date.now() - this.matchStartTime.getTime()
+          : 0,
+        endedAt: new Date(),
+      };
+
+      await this.endMatchWithResults(results);
+      this.broadcastToRoom('matchEnd', results);
+    } else {
+      // Match continues with remaining players
+      this.broadcastToRoom('playerQuit', {
+        playerId: userId,
+        username: quittingPlayer.username,
+        remainingPlayers: remainingPlayers.length,
+        matchContinues: true,
+      });
+    }
+  }
+
   public removePlayer(userId: string): {
     success: boolean;
     player?: GameRoomPlayer;
@@ -407,8 +492,12 @@ export class GameRoom {
       }
     }
 
-    // Reset game state if needed
-    if (this.gameState === GameState.PLAYING && this.players.size < 2) {
+    // Reset game state if needed (but don't end match here if it was a quit)
+    if (
+      this.gameState === GameState.PLAYING &&
+      this.players.size < 2 &&
+      !this.matchId
+    ) {
       this.gameState = GameState.WAITING;
       this.broadcastToRoom('gameEnded', {
         reason: 'insufficient_players',
@@ -645,33 +734,62 @@ export class GameRoom {
     return { canStart: true };
   }
 
-  public startGame(): { success: boolean; error?: string } {
+  public async startGame(): Promise<{ success: boolean; error?: string }> {
     const canStart = this.canStartGame();
     if (!canStart.canStart) {
       return { success: false, error: canStart.reason || 'Cannot start game' };
     }
 
-    this.gameState = GameState.STARTING;
-    this.updateActivity();
+    try {
+      // Create match record
+      const match = await MatchRepository.createMatch({
+        matchType: this.config.gameMode === 'ranked' ? 'ranked' : 'casual',
+        stageId: (this.config.stage || 'battle_arena').toLowerCase(),
+        maxPlayers: this.config.maxPlayers,
+      });
 
-    // Set all players to playing state
-    this.players.forEach(player => {
-      // eslint-disable-next-line no-param-reassign
-      player.state = PlayerState.PLAYING;
-    });
+      this.matchId = match.id;
+      this.matchStartTime = new Date();
 
-    // Transition to playing after a short delay (simulating countdown)
-    setTimeout(() => {
-      if (this.gameState === GameState.STARTING) {
-        this.gameState = GameState.PLAYING;
-        this.updateActivity();
+      // Add all players as participants
+      const addParticipantPromises = Array.from(this.players.values()).map(
+        player =>
+          MatchRepository.addParticipant({
+            matchId: this.matchId!,
+            userId: player.userId,
+            characterId: (player.character || 'dash').toLowerCase(),
+          })
+      );
+      await Promise.all(addParticipantPromises);
 
-        // Start physics updates when game begins
-        this.startPhysicsUpdate();
-      }
-    }, 3000); // 3 second countdown
+      // Start the match in database
+      await MatchRepository.startMatch(this.matchId);
 
-    return { success: true };
+      this.gameState = GameState.STARTING;
+      this.updateActivity();
+
+      // Set all players to playing state
+      this.players.forEach(player => {
+        // eslint-disable-next-line no-param-reassign
+        player.state = PlayerState.PLAYING;
+      });
+
+      // Transition to playing after a short delay (simulating countdown)
+      setTimeout(() => {
+        if (this.gameState === GameState.STARTING) {
+          this.gameState = GameState.PLAYING;
+          this.updateActivity();
+
+          // Start physics updates when game begins
+          this.startPhysicsUpdate();
+        }
+      }, 3000); // 3 second countdown
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error starting match:', error);
+      return { success: false, error: 'Failed to create match record' };
+    }
   }
 
   public pauseGame(): { success: boolean; error?: string } {
@@ -705,6 +823,116 @@ export class GameRoom {
     this.updateActivity();
 
     return { success: true };
+  }
+
+  public async endMatchWithResults(
+    results: GameResults
+  ): Promise<{ success: boolean; error?: string }> {
+    if (
+      this.gameState !== GameState.PLAYING &&
+      this.gameState !== GameState.PAUSED
+    ) {
+      return { success: false, error: 'No active game to end' };
+    }
+
+    try {
+      // End match in database if we have a match ID
+      if (this.matchId) {
+        await MatchRepository.endMatch(
+          this.matchId,
+          results.winnerId || null,
+          results
+        );
+
+        // Calculate placement and update participant records
+        const participants = Array.from(this.players.values()).map(
+          (player, index) => {
+            let placement: number;
+            if (player.userId === results.winnerId) {
+              placement = 1;
+            } else if (player.userId === results.loserId) {
+              placement = this.players.size;
+            } else {
+              placement = index + 2; // Simplified placement logic
+            }
+
+            return {
+              userId: player.userId,
+              placement,
+              damageDealt: 0, // Would come from physics system
+              damageTaken: 0, // Would come from physics system
+              kills: 0, // Would come from physics system
+              deaths: player.userId === results.loserId ? 1 : 0,
+            };
+          }
+        );
+
+        // Process match completion and update player stats
+        const matchDurationSeconds = Math.floor(results.matchDuration / 1000);
+        await PlayerStatsService.processMatchCompletion(
+          this.matchId,
+          results.winnerId || null,
+          participants,
+          matchDurationSeconds
+        );
+
+        // Update individual participant records
+        const updatePromises = participants.map(async participant => {
+          const result = await PlayerStatsService.processMatchCompletion(
+            this.matchId!,
+            results.winnerId || null,
+            [participant],
+            matchDurationSeconds
+          );
+
+          if (result.length > 0) {
+            const playerResult = result[0];
+            await MatchRepository.updateParticipant(
+              this.matchId!,
+              participant.userId,
+              {
+                placement: participant.placement,
+                damageDealt: participant.damageDealt,
+                damageTaken: participant.damageTaken,
+                kills: participant.kills,
+                deaths: participant.deaths,
+                ratingChange: playerResult.ratingChange,
+                experienceGained: playerResult.experienceGained,
+                coinsEarned: playerResult.coinsEarned,
+              }
+            );
+          }
+        });
+        await Promise.all(updatePromises);
+      }
+
+      // End the game locally
+      this.gameState = GameState.ENDED;
+      this.updateActivity();
+
+      // Stop physics updates
+      this.stopPhysicsUpdate();
+
+      // Reset player states to connected
+      this.players.forEach(player => {
+        if (player.state !== PlayerState.DISCONNECTED) {
+          // eslint-disable-next-line no-param-reassign
+          player.state = PlayerState.CONNECTED;
+        }
+      });
+
+      // Store results
+      this.lastGameResults = results;
+
+      // Reset match tracking
+      this.matchId = null;
+      this.matchStartTime = null;
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error ending match:', error);
+      return { success: false, error: 'Failed to record match results' };
+    }
   }
 
   public endGame(results?: GameResults): { success: boolean; error?: string } {
@@ -961,7 +1189,7 @@ export class GameRoom {
     this.updateActivity();
   }
 
-  public handleGameEvent(event: GameEvent): void {
+  public async handleGameEvent(event: GameEvent): Promise<void> {
     if (this.gameState !== GameState.PLAYING) {
       return;
     }
@@ -981,10 +1209,10 @@ export class GameRoom {
         this.handlePlayerHit(event.data);
         break;
       case 'player_ko':
-        this.handlePlayerKO(event.data);
+        await this.handlePlayerKO(event.data);
         break;
       case 'match_timeout':
-        this.handleMatchTimeout();
+        await this.handleMatchTimeout();
         break;
       default:
         break;
@@ -999,7 +1227,7 @@ export class GameRoom {
     // This would integrate with the physics system
   }
 
-  private handlePlayerKO(data: any): void {
+  private async handlePlayerKO(data: any): Promise<void> {
     const { playerId } = data;
 
     // Check if this results in a match end
@@ -1017,16 +1245,18 @@ export class GameRoom {
         loserUsername: this.players.get(playerId)?.username,
         endReason: 'knockout',
         finalScores: {}, // Would be populated with actual scores
-        matchDuration: Date.now() - this.createdAt.getTime(),
+        matchDuration: this.matchStartTime
+          ? Date.now() - this.matchStartTime.getTime()
+          : 0,
         endedAt: new Date(),
       };
 
-      this.endGame(results);
+      await this.endMatchWithResults(results);
       this.broadcastToRoom('matchEnd', results);
     }
   }
 
-  private handleMatchTimeout(): void {
+  private async handleMatchTimeout(): Promise<void> {
     // Handle match ending due to timeout
     const results: GameResults = {
       endReason: 'timeout',
@@ -1035,7 +1265,7 @@ export class GameRoom {
       endedAt: new Date(),
     };
 
-    this.endGame(results);
+    await this.endMatchWithResults(results);
     this.broadcastToRoom('matchEnd', results);
   }
 

@@ -21,6 +21,7 @@ export const SOCKET_EVENTS = {
   JOIN_QUEUE: 'joinQueue',
   LEAVE_QUEUE: 'leaveQueue',
   LEAVE_ROOM: 'leaveRoom',
+  PLAYER_QUIT: 'playerQuit',
   SELECT_CHARACTER: 'selectCharacter',
   SELECT_STAGE: 'selectStage',
   PLAYER_READY: 'playerReady',
@@ -44,6 +45,8 @@ export const SOCKET_EVENTS = {
   GAME_STATE_UPDATE: 'gameStateUpdate',
   PLAYER_UPDATE: 'playerUpdate',
   MATCH_ENDED: 'matchEnded',
+  MATCH_END: 'matchEnd',
+  PLAYER_QUIT_SUCCESS: 'playerQuitSuccess',
   ERROR: 'error',
 
   // Real-time gameplay events (bidirectional)

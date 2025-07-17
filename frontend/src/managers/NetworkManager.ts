@@ -6,6 +6,17 @@ import { Player } from '../entities/Player';
 export interface NetworkEventHandlers {
   onPlayerJoined: (data: { playerId: string; username: string }) => void;
   onPlayerLeft: (data: { playerId: string }) => void;
+  onPlayerQuit: (data: {
+    playerId: string;
+    username: string;
+    remainingPlayers: number;
+  }) => void;
+  onMatchEnd: (data: {
+    winnerId?: string;
+    winnerUsername?: string;
+    endReason: string;
+    matchDuration: number;
+  }) => void;
   onGameEvent: (data: any) => void;
   onGamePaused: (data: {
     reason: string;
@@ -100,6 +111,19 @@ export class NetworkManager {
 
     socketManager.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data: any) => {
       this.handlers.onPlayerReconnected(data);
+    });
+
+    // Listen for quit-related events
+    socketManager.on('playerQuit', (data: any) => {
+      this.handlers.onPlayerQuit(data);
+    });
+
+    socketManager.on(SOCKET_EVENTS.MATCH_END, (data: any) => {
+      this.handlers.onMatchEnd(data);
+    });
+
+    socketManager.on(SOCKET_EVENTS.PLAYER_QUIT_SUCCESS, (data: any) => {
+      console.log('Player quit successful:', data);
     });
 
     console.log('NetworkManager: Event listeners set up');
