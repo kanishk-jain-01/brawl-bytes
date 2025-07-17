@@ -30,6 +30,12 @@ export class CharacterSelectScene extends Phaser.Scene {
     // eslint-disable-next-line no-console
     console.log('CharacterSelectScene: Starting character selection');
 
+    // Reset scene state when entering/re-entering
+    this.selectedCharacter = null;
+    this.characterCards = [];
+    this.confirmButton = null;
+    this.backButton = null;
+
     this.createBackground();
     this.createTitle();
     this.createCharacterGrid();
@@ -255,7 +261,15 @@ export class CharacterSelectScene extends Phaser.Scene {
     const characters = Object.keys(GAME_CONFIG.CHARACTERS);
 
     this.characterCards.forEach((card, index) => {
+      // Safely get the background element (first child should be the background rectangle)
       const background = card.list[0] as Phaser.GameObjects.Rectangle;
+      
+      // Validate that we have a proper background element
+      if (!background || typeof background.setFillStyle !== 'function') {
+        console.warn(`CharacterSelectScene: Invalid background element at card index ${index}`);
+        return;
+      }
+
       const characterKey = characters[index] as CharacterType;
 
       if (characterKey === selectedKey) {
@@ -373,6 +387,12 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     const background = this.confirmButton
       .list[0] as Phaser.GameObjects.Rectangle;
+
+    // Validate that we have a proper background element
+    if (!background || typeof background.setFillStyle !== 'function') {
+      console.warn('CharacterSelectScene: Invalid confirm button background element');
+      return;
+    }
 
     if (this.selectedCharacter) {
       this.confirmButton.setAlpha(1);
