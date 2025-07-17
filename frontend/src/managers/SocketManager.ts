@@ -263,6 +263,19 @@ export class SocketManager {
       if (response.success && response.userId) {
         // Update lobby store local player connection status
         lobbyStore.getState().setLocalPlayerData({ isConnected: true });
+
+        // Proactively resync the room state in case we reloaded the page
+        SocketManager.requestRoomState();
+      }
+    });
+
+    // Handle automatic reconnection helper from the server
+    socket.on('automaticReconnection', (data: any) => {
+      if (data.success && data.gameRoom) {
+        // Persist the room ID so scenes know where we are
+        connectionStore.getState().setRoomId(data.gameRoom);
+        // Ask the server for the current authoritative room state
+        SocketManager.requestRoomState();
       }
     });
 

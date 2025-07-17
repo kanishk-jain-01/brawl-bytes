@@ -160,8 +160,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     }
   }
 
-
-
   private createBackground(): void {
     const { width, height } = this.cameras.main;
 

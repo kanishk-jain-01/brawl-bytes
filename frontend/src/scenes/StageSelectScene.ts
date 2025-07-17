@@ -546,8 +546,13 @@ export class StageSelectScene extends Phaser.Scene {
     if (socketManager && SocketManager.isAuthenticated()) {
       // Get the selected character from global state
       const { selectedCharacter } = getState();
-      SocketManager.selectStage(this.selectedStage, selectedCharacter || undefined);
-      console.log(`Emitted stage selection to server: ${this.selectedStage}, character: ${selectedCharacter}`);
+      SocketManager.selectStage(
+        this.selectedStage,
+        selectedCharacter || undefined
+      );
+      console.log(
+        `Emitted stage selection to server: ${this.selectedStage}, character: ${selectedCharacter}`
+      );
     }
 
     // Transition to PreMatchLobby
