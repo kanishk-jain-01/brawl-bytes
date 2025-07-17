@@ -413,6 +413,16 @@ export class MatchmakingQueue {
 
       MatchmakingQueue.notifyMatchFound(matchFoundEvent);
 
+      // Broadcast initial lobby state immediately after match creation
+      setTimeout(() => {
+        if (this.socketManager) {
+          const targetRoom = (this.socketManager as any).getGameRoom(roomId);
+          if (targetRoom) {
+            (this.socketManager as any).broadcastLobbyState(targetRoom);
+          }
+        }
+      }, 100); // Small delay to ensure socket rooms are properly joined
+
       // Broadcast updated queue count
       this.broadcastQueueUpdate();
 
@@ -444,13 +454,15 @@ export class MatchmakingQueue {
       });
     });
 
-    // Start countdown notifications
-    MatchmakingQueue.startMatchCountdown(matchEvent);
+    // No countdown - let players ready up in lobby
+    // MatchmakingQueue.startMatchCountdown(matchEvent);
   }
 
   /**
    * Start countdown notifications for match preparation
+   * Currently disabled - players ready up in lobby instead
    */
+  /*
   private static startMatchCountdown(matchEvent: MatchFoundEvent): void {
     const countdownTimes = [5000, 3000, 1000]; // 5s, 3s, 1s before start
 
@@ -477,6 +489,7 @@ export class MatchmakingQueue {
       });
     }, 10000);
   }
+  */
 
   /**
    * Send queue status update to a specific player

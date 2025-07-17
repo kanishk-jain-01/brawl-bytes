@@ -86,7 +86,7 @@ export class SocketManager {
       });
 
       socket.on('leaveRoom', () => {
-        // Legacy leaveRoom method removed - handled by GameRoom disconnect system
+        this.handleLeaveRoom(socket);
       });
 
       // Handle matchmaking events
@@ -432,7 +432,7 @@ export class SocketManager {
     }
   }
 
-  private broadcastLobbyState(gameRoom: ActualGameRoom): void {
+  public broadcastLobbyState(gameRoom: ActualGameRoom): void {
     const players = gameRoom.getPlayers();
     const config = gameRoom.getConfig();
 
@@ -454,7 +454,10 @@ export class SocketManager {
       selectedStage: config.stage || null,
       maxPlayers: config.maxPlayers,
       allPlayersReady: gameRoom.areAllPlayersReady(),
-      canStartGame: gameRoom.areAllPlayersReady() && gameRoom.isFull(),
+      canStartGame:
+        gameRoom.areAllPlayersReady() &&
+        gameRoom.isFull() &&
+        config.stage !== null,
     };
 
     gameRoom.broadcastToRoom('lobbyState', lobbyState);
@@ -693,12 +696,19 @@ export class SocketManager {
       `Socket rooms for ${socket.username}:`,
       Array.from(socket.rooms)
     );
-    // Broadcast current lobby state to the requesting player
+
+    // Send room state directly to the requesting player
+    const roomState = targetRoom.getRoomState();
+    socket.emit('roomStateSync', roomState);
+
+    // Also broadcast to ensure all players are synced
     this.broadcastLobbyState(targetRoom);
   }
 
   public cleanupDisconnectedPlayers(): void {
     this.matchmakingQueue.cleanupDisconnectedPlayers();
+
+    const roomsToDelete: string[] = [];
 
     // Cleanup disconnected players from GameRooms
     this.gameRooms.forEach((gameRoom, roomId) => {
@@ -721,10 +731,68 @@ export class SocketManager {
 
       // Remove empty rooms
       if (gameRoom.isEmpty()) {
-        console.log(`Removing empty GameRoom: ${roomId}`);
+        console.log(`Marking empty GameRoom for removal: ${roomId}`);
+        roomsToDelete.push(roomId);
+      }
+    });
+
+    // Clean up empty rooms
+    roomsToDelete.forEach(roomId => {
+      const gameRoom = this.gameRooms.get(roomId);
+      if (gameRoom) {
+        // Notify any lingering connections
+        gameRoom.broadcastToRoom('roomCleanedUp', {
+          reason: 'empty_room',
+          roomId,
+        });
         gameRoom.cleanup();
         this.gameRooms.delete(roomId);
       }
     });
+  }
+
+  private handleLeaveRoom(socket: AuthenticatedSocket): void {
+    if (!socket.userId) {
+      socket.emit('error', { message: 'Must be authenticated' });
+      return;
+    }
+
+    // Find the GameRoom this player is in
+    const targetRoom = Array.from(this.gameRooms.values()).find(gameRoom =>
+      gameRoom.hasPlayer(socket.userId!)
+    );
+
+    if (!targetRoom) {
+      socket.emit('error', { message: 'Not in a game room' });
+      return;
+    }
+
+    console.log(`Player ${socket.username} leaving room ${targetRoom.getId()}`);
+
+    // Remove player from room
+    const result = targetRoom.removePlayer(socket.userId);
+
+    if (result.success) {
+      socket.emit('leftRoom', {
+        roomId: targetRoom.getId(),
+        message: 'Successfully left room',
+      });
+
+      // If room is now empty, clean it up
+      if (targetRoom.isEmpty()) {
+        console.log(`Room ${targetRoom.getId()} is empty, cleaning up`);
+        targetRoom.broadcastToRoom('roomCleanedUp', {
+          reason: 'all_players_left',
+          roomId: targetRoom.getId(),
+        });
+        targetRoom.cleanup();
+        this.gameRooms.delete(targetRoom.getId());
+      } else {
+        // Broadcast updated lobby state to remaining players
+        this.broadcastLobbyState(targetRoom);
+      }
+    } else {
+      socket.emit('error', { message: 'Failed to leave room' });
+    }
   }
 }

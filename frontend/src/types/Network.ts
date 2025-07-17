@@ -70,6 +70,10 @@ export const SOCKET_EVENTS = {
   ROOM_STATE_SYNC: 'roomStateSync',
   GAME_STARTING: 'gameStarting',
   GAME_STATE_SYNC: 'gameStateSync',
+  LOBBY_STATE: 'lobbyState',
+  ROOM_CLEANED_UP: 'roomCleanedUp',
+  HOST_CHANGED: 'hostChanged',
+  LEFT_ROOM: 'leftRoom',
 
   // Detailed combat/gameplay events
   PLAYER_HIT: 'playerHit',
@@ -88,7 +92,6 @@ export const SOCKET_EVENTS = {
   // Room management (client → server)
   CREATE_ROOM: 'createRoom',
   REQUEST_ROOM_STATE: 'requestRoomState',
-  START_GAME: 'startGame',
 } as const;
 
 /**

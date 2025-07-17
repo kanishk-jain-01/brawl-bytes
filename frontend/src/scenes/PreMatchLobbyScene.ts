@@ -34,8 +34,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
   private readyButton: Phaser.GameObjects.Container | null = null;
 
-  private startButton: Phaser.GameObjects.Container | null = null;
-
   private leaveButton: Phaser.GameObjects.Container | null = null;
 
   private countdownText: Phaser.GameObjects.Text | null = null;
@@ -59,7 +57,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.playerCards = [];
     this.stageDisplay = null;
     this.readyButton = null;
-    this.startButton = null;
     this.leaveButton = null;
     this.countdownText = null;
     this.statusText = null;
@@ -123,6 +120,17 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       this.socketManager.on('gameStarted', (data: any) => {
         console.log('PreMatchLobbyScene: Received gameStarted event:', data);
         this.transitionToGame(data);
+      });
+
+      // Listen for host change events
+      this.socketManager.on('hostChanged', (data: any) => {
+        console.log('PreMatchLobbyScene: Host changed:', data);
+        if (data.newHostId) {
+          const connectionState = getConnectionState();
+          if (data.newHostId === connectionState.userId) {
+            lobbyStore.getState().setStatusMessage('You are now the host!');
+          }
+        }
       });
     }
   }
@@ -275,7 +283,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
   private createControlButtons(): void {
     this.createReadyButton();
-    this.createStartButton();
     this.createLeaveButton();
   }
 
@@ -318,56 +325,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
         duration: 100,
       });
     });
-  }
-
-  private createStartButton(): void {
-    this.startButton = this.add.container(
-      this.cameras.main.width - 200,
-      this.cameras.main.height - 80
-    );
-
-    const startBg = this.add.rectangle(0, 0, 140, 50, 0x95a5a6);
-    startBg.setStrokeStyle(2, 0xbdc3c7);
-    this.startButton.add(startBg);
-
-    const startText = this.add
-      .text(0, 0, 'START GAME', {
-        fontSize: '18px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    this.startButton.add(startText);
-
-    startBg.setInteractive();
-    startBg.on('pointerdown', () => this.startGame());
-    startBg.on('pointerover', () => {
-      const { canStartGame } = useRoom();
-      if (canStartGame) {
-        startBg.setFillStyle(0x27ae60);
-        this.tweens.add({
-          targets: this.startButton,
-          scaleX: 1.1,
-          scaleY: 1.1,
-          duration: 100,
-        });
-      }
-    });
-    startBg.on('pointerout', () => {
-      const { canStartGame } = useRoom();
-      const color = canStartGame ? 0x27ae60 : 0x95a5a6;
-      startBg.setFillStyle(color);
-      this.tweens.add({
-        targets: this.startButton,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 100,
-      });
-    });
-
-    // Initially hidden/disabled
-    this.startButton.setAlpha(0.5);
   }
 
   private createLeaveButton(): void {
@@ -629,11 +586,9 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private updateControlButtons(): void {
-    if (!this.readyButton || !this.startButton) return;
+    if (!this.readyButton) return;
 
-    const { currentRoom, canStartGame } = useRoom();
     const { localPlayer } = useLocalPlayer();
-    const connectionState = getConnectionState();
 
     // Update ready button - with safety checks
     const readyBg = this.readyButton.list[0] as Phaser.GameObjects.Rectangle;
@@ -653,28 +608,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
         readyText.setText('READY');
       }
     }
-
-    // Update start button - with safety checks
-    const startBg = this.startButton.list[0] as Phaser.GameObjects.Rectangle;
-
-    if (startBg && typeof startBg.setFillStyle === 'function') {
-      if (canStartGame) {
-        this.startButton.setAlpha(1);
-        startBg.setFillStyle(0x27ae60);
-      } else {
-        this.startButton.setAlpha(0.5);
-        startBg.setFillStyle(0x95a5a6);
-      }
-    }
-
-    // Show/hide start button based on host status
-    const localPlayerId = connectionState.userId;
-    const localPlayerInRoom = currentRoom.players.find(
-      p => p.id === localPlayerId
-    );
-    const isHost = localPlayerInRoom?.isHost || false;
-
-    this.startButton.setVisible(isHost);
   }
 
   private updateStatusText(): void {
@@ -743,26 +676,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     SocketManager.setPlayerReady(newReadyState);
   }
 
-  private startGame(): void {
-    if (!this.socketManager) return;
-
-    const { canStartGame } = useRoom();
-    const connectionState = getConnectionState();
-    const { currentRoom } = useRoom();
-    const localPlayerId = connectionState.userId;
-    const localPlayerInRoom = currentRoom.players.find(
-      p => p.id === localPlayerId
-    );
-    const isHost = localPlayerInRoom?.isHost || false;
-
-    if (!canStartGame || !isHost) {
-      return;
-    }
-
-    console.log('PreMatchLobbyScene: Starting game');
-    SocketManager.startGame();
-  }
-
   private setupInputs(): void {
     // ESC key to leave lobby
     this.input.keyboard?.addKey('ESC').on('down', () => {
@@ -772,22 +685,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     // Space key to toggle ready
     this.input.keyboard?.addKey('SPACE').on('down', () => {
       this.toggleReady();
-    });
-
-    // Enter key to start game (if host and all ready)
-    this.input.keyboard?.addKey('ENTER').on('down', () => {
-      const { canStartGame } = useRoom();
-      const connectionState = getConnectionState();
-      const { currentRoom } = useRoom();
-      const localPlayerId = connectionState.userId;
-      const localPlayerInRoom = currentRoom.players.find(
-        p => p.id === localPlayerId
-      );
-      const isHost = localPlayerInRoom?.isHost || false;
-
-      if (canStartGame && isHost) {
-        this.startGame();
-      }
     });
   }
 
@@ -897,7 +794,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     this.playerCards = [];
     this.stageDisplay = null;
     this.readyButton = null;
-    this.startButton = null;
     this.leaveButton = null;
     this.countdownText = null;
     this.statusText = null;

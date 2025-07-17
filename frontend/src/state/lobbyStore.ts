@@ -113,7 +113,6 @@ interface LobbyStore {
 
   // Computed getters
   allPlayersReady: () => boolean;
-  canStartGame: () => boolean;
   getLocalPlayer: () => LobbyPlayer | null;
   getRoomStatus: () => {
     playerCount: number;
@@ -213,16 +212,6 @@ export const lobbyStore = createStore<LobbyStore>()(
         return (
           currentRoom.players.length >= 2 &&
           currentRoom.players.every(player => player.isReady)
-        );
-      },
-
-      canStartGame: () => {
-        const { currentRoom, allPlayersReady } = get();
-        return (
-          currentRoom.players.length >= 2 &&
-          allPlayersReady() &&
-          currentRoom.selectedStage !== null &&
-          currentRoom.isHost
         );
       },
 
@@ -373,6 +362,7 @@ export const lobbyStore = createStore<LobbyStore>()(
               inQueue: false, // No longer in queue if we have room data
             },
             isLoading: false,
+            statusMessage: 'Room loaded successfully',
           }),
           false,
           'updateFromServerState'
@@ -623,7 +613,6 @@ export const useRoom = () => {
   return {
     currentRoom: state.currentRoom,
     allPlayersReady: state.allPlayersReady(),
-    canStartGame: state.canStartGame(),
     getRoomStatus: state.getRoomStatus(),
     setRoomData: state.setRoomData,
     selectStage: state.selectStage,

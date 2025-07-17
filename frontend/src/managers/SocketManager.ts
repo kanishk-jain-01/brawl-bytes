@@ -187,8 +187,15 @@ export class SocketManager {
   }
 
   public static leaveRoom(): void {
+    console.log('SocketManager: Leaving room');
     SocketManager.emit(SOCKET_EVENTS.LEAVE_ROOM);
-    // Room state is now managed by connectionStore and lobbyStore
+
+    // Clear local state immediately for responsive UI
+    const store = connectionStore.getState();
+    const lobbyStoreState = lobbyStore.getState();
+
+    store.setRoomId(null);
+    lobbyStoreState.clearRoom();
   }
 
   public static selectCharacter(character: string): void {
@@ -201,10 +208,6 @@ export class SocketManager {
 
   public static setPlayerReady(ready: boolean): void {
     SocketManager.emit(SOCKET_EVENTS.PLAYER_READY, ready);
-  }
-
-  public static startGame(): void {
-    SocketManager.emit(SOCKET_EVENTS.START_GAME);
   }
 
   public static requestRoomState(): void {
@@ -271,6 +274,32 @@ export class SocketManager {
       }
     });
 
+    // Handle lobby state event - critical for initial sync
+    socket.on('lobbyState', (data: any) => {
+      console.log('SocketManager: Received lobbyState event:', data);
+      const lobbyStoreState = lobbyStore.getState();
+
+      // Convert lobby state to room state format
+      const roomStateData: RoomStateData = {
+        roomId: data.roomId,
+        gameState: 'waiting',
+        players: data.players.map((p: any) => ({
+          userId: p.userId,
+          username: p.username,
+          state: p.ready ? 'ready' : 'connected',
+          character: p.character,
+          isHost: p.isHost,
+        })),
+        config: {
+          maxPlayers: data.maxPlayers || 2,
+          gameMode: 'versus',
+          stage: data.selectedStage,
+        },
+      };
+
+      lobbyStoreState.updateFromServerState(roomStateData);
+    });
+
     socket.on(SOCKET_EVENTS.ROOM_JOINED, (data: any) => {
       if (data.roomId) {
         store.setRoomId(data.roomId);
@@ -280,14 +309,34 @@ export class SocketManager {
     });
 
     socket.on(SOCKET_EVENTS.PLAYER_LEFT, (data: any) => {
+      console.log('SocketManager: Player left:', data);
+      const currentUserId = store.userId;
+
       // Clear room if we left
-      if (data.playerId === store.authToken) {
+      if (data.playerId === currentUserId) {
         store.setRoomId(null);
         lobbyStore.getState().clearRoom();
       } else {
         // Remove other player from lobby
         lobbyStore.getState().removePlayer(data.playerId);
       }
+    });
+
+    // Handle room cleanup event
+    socket.on('roomCleanedUp', (data: any) => {
+      console.log('SocketManager: Room cleaned up:', data);
+      store.setRoomId(null);
+      lobbyStore.getState().clearRoom();
+      lobbyStore
+        .getState()
+        .setError(`Room was closed: ${data.reason || 'unknown reason'}`);
+    });
+
+    // Handle left room confirmation
+    socket.on('leftRoom', (data: any) => {
+      console.log('SocketManager: Left room confirmed:', data);
+      store.setRoomId(null);
+      lobbyStore.getState().clearRoom();
     });
 
     // Lobby-specific event handlers
@@ -351,6 +400,11 @@ export class SocketManager {
         lobbyStore.getState().setMatchmakingData({ inQueue: false });
         lobbyStore.getState().setRoomData({ roomId: data.roomId });
         lobbyStore.getState().setStatusMessage('Match found! Joining room...');
+
+        // Request room state after a short delay to ensure server has finished setup
+        setTimeout(() => {
+          SocketManager.requestRoomState();
+        }, 250);
       }
     });
 

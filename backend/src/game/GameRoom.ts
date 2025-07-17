@@ -327,6 +327,20 @@ export class GameRoom {
     socket.join(this.id);
     console.log(`Player ${socket.username} joined Socket.io room ${this.id}`);
 
+    // Notify other players
+    this.broadcastToOthers(socket.userId, 'playerJoined', {
+      playerId: socket.userId,
+      username: socket.username,
+      roomId: this.id,
+    });
+
+    // Send room state to new player immediately
+    const roomState = this.getRoomState();
+    socket.emit('roomStateSync', roomState);
+
+    // Broadcast updated lobby state to all players
+    this.socketManager.broadcastLobbyState(this);
+
     return { success: true };
   }
 
@@ -376,6 +390,9 @@ export class GameRoom {
           newHostUsername: newHost.username,
           previousHostId: userId,
         });
+
+        // Broadcast updated lobby state to reflect host change
+        this.socketManager.broadcastLobbyState(this);
       }
     }
 
@@ -389,12 +406,17 @@ export class GameRoom {
     }
 
     // Notify remaining players
-    this.broadcastToRoom('playerRemoved', {
+    this.broadcastToRoom('playerLeft', {
       playerId: userId,
       username: player.username,
-      reason: 'timeout_or_excessive_disconnects',
+      reason: 'left_room',
       remainingPlayers: this.players.size,
     });
+
+    // Broadcast updated lobby state
+    if (this.players.size > 0) {
+      this.socketManager.broadcastLobbyState(this);
+    }
 
     return { success: true, player };
   }
