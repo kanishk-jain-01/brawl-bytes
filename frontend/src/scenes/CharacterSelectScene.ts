@@ -18,8 +18,6 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   private characterCards: Phaser.GameObjects.Container[] = [];
 
-  private previewContainer: Phaser.GameObjects.Container | null = null;
-
   private confirmButton: Phaser.GameObjects.Container | null = null;
 
   private backButton: Phaser.GameObjects.Container | null = null;
@@ -35,7 +33,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.createBackground();
     this.createTitle();
     this.createCharacterGrid();
-    this.createPreviewArea();
+    // this.createPreviewArea(); // Removed Character Preview box
     this.createNavigationButtons();
     this.setupInputs();
   }
@@ -249,7 +247,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Update visual selection
     this.updateCardSelection(characterKey);
     this.selectedCharacter = characterKey;
-    this.updatePreview();
+    // this.updatePreview(); // Removed preview update since preview area is removed
     this.updateConfirmButton();
   }
 
@@ -276,90 +274,6 @@ export class CharacterSelectScene extends Phaser.Scene {
     const index = this.characterCards.indexOf(container);
     if (index === -1) return null;
     return Object.keys(GAME_CONFIG.CHARACTERS)[index] as CharacterType;
-  }
-
-  private createPreviewArea(): void {
-    this.previewContainer = this.add.container(this.cameras.main.centerX, 450);
-
-    const previewBg = this.add.rectangle(0, 0, 400, 150, 0x34495e);
-    previewBg.setStrokeStyle(2, 0x3498db);
-    this.previewContainer.add(previewBg);
-
-    const previewTitle = this.add
-      .text(0, -50, 'Character Preview', {
-        fontSize: '20px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    this.previewContainer.add(previewTitle);
-
-    const instructionText = this.add
-      .text(0, 0, 'Select a character to view details', {
-        fontSize: '16px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-      })
-      .setOrigin(0.5);
-    this.previewContainer.add(instructionText);
-
-    this.previewContainer.setVisible(true);
-  }
-
-  private updatePreview(): void {
-    if (!this.previewContainer || !this.selectedCharacter) return;
-
-    // Clear existing preview content (except background and title)
-    while (this.previewContainer.list.length > 2) {
-      this.previewContainer.list.pop()?.destroy();
-    }
-
-    const character = GAME_CONFIG.CHARACTERS[this.selectedCharacter];
-
-    // Character stats display
-    const statsText = this.add
-      .text(
-        0,
-        -10,
-        `${character.name}\n\n` +
-          `Speed: ${character.speed}\n` +
-          `Health: ${character.health}\n` +
-          `Attack Damage: ${character.attackDamage}\n` +
-          `Weight: ${character.weight}`,
-        {
-          fontSize: '14px',
-          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-          color: GAME_CONFIG.UI.COLORS.TEXT,
-          align: 'center',
-        }
-      )
-      .setOrigin(0.5);
-    this.previewContainer.add(statsText);
-
-    // Character description
-    const descriptions: Record<CharacterType, string> = {
-      FAST_LIGHTWEIGHT: 'Quick and agile fighter with high mobility',
-      BALANCED_ALLROUNDER: 'Well-rounded fighter with balanced stats',
-      HEAVY_HITTER: 'Powerful fighter with high damage output',
-    };
-
-    const descText = this.add
-      .text(
-        0,
-        40,
-        this.selectedCharacter ? descriptions[this.selectedCharacter] : '',
-        {
-          fontSize: '12px',
-          fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-          align: 'center',
-          wordWrap: { width: 350 },
-        }
-      )
-      .setOrigin(0.5);
-    this.previewContainer.add(descText);
   }
 
   private createNavigationButtons(): void {

@@ -18,8 +18,6 @@ export class StageSelectScene extends Phaser.Scene {
 
   private stageCards: Phaser.GameObjects.Container[] = [];
 
-  private previewContainer: Phaser.GameObjects.Container | null = null;
-
   private confirmButton: Phaser.GameObjects.Container | null = null;
 
   private backButton: Phaser.GameObjects.Container | null = null;
@@ -48,7 +46,6 @@ export class StageSelectScene extends Phaser.Scene {
     this.createBackground();
     this.createTitle();
     this.createStageGrid();
-    this.createPreviewArea();
     this.createNavigationButtons();
     this.setupInputs();
   }
@@ -339,7 +336,6 @@ export class StageSelectScene extends Phaser.Scene {
     // Update visual selection
     this.updateCardSelection(stageKey);
     this.selectedStage = stageKey;
-    this.updatePreview();
     this.updateConfirmButton();
   }
 
@@ -366,78 +362,6 @@ export class StageSelectScene extends Phaser.Scene {
     const index = this.stageCards.indexOf(container);
     if (index === -1) return null;
     return Object.keys(GAME_CONFIG.STAGES)[index] as StageType;
-  }
-
-  private createPreviewArea(): void {
-    this.previewContainer = this.add.container(this.cameras.main.centerX, 450);
-
-    const previewBg = this.add.rectangle(0, 0, 500, 180, 0x34495e);
-    previewBg.setStrokeStyle(2, 0xe74c3c);
-    this.previewContainer.add(previewBg);
-
-    const previewTitle = this.add
-      .text(0, -70, 'Stage Preview', {
-        fontSize: '20px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    this.previewContainer.add(previewTitle);
-
-    const instructionText = this.add
-      .text(0, 0, 'Select a stage to view details', {
-        fontSize: '16px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-      })
-      .setOrigin(0.5);
-    this.previewContainer.add(instructionText);
-
-    this.previewContainer.setVisible(true);
-  }
-
-  private updatePreview(): void {
-    if (!this.previewContainer || !this.selectedStage) return;
-
-    // Clear existing preview content (except background and title)
-    while (this.previewContainer.list.length > 2) {
-      this.previewContainer.list.pop()?.destroy();
-    }
-
-    const stage = GAME_CONFIG.STAGES[this.selectedStage];
-
-    // Stage details display
-    const detailsText = this.add
-      .text(
-        0,
-        -20,
-        `${stage.name}\n\n` +
-          `Difficulty: ${stage.difficulty}\n` +
-          `Platforms: ${stage.platforms ? stage.platforms.length : 0}\n` +
-          `Hazards: ${stage.hazards ? stage.hazards.length : 0}`,
-        {
-          fontSize: '14px',
-          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-          color: GAME_CONFIG.UI.COLORS.TEXT,
-          align: 'center',
-        }
-      )
-      .setOrigin(0.5);
-    this.previewContainer.add(detailsText);
-
-    // Stage description
-    const descText = this.add
-      .text(0, 50, stage.description, {
-        fontSize: '12px',
-        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-        wordWrap: { width: 450 },
-      })
-      .setOrigin(0.5);
-    this.previewContainer.add(descText);
   }
 
   private createNavigationButtons(): void {
