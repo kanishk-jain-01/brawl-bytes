@@ -24,7 +24,7 @@ import {
 } from '@/state/lobbyStore';
 import { getConnectionState } from '@/state/connectionStore';
 import { GAME_CONFIG } from '../utils/constants';
-import { updateState, getState } from '../state/GameState';
+import { updateState } from '../state/GameState';
 import { MatchPlayer } from '../types/GameState';
 
 export class PreMatchLobbyScene extends Phaser.Scene {
@@ -142,63 +142,25 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       return;
     }
 
-    // Check if we're already in a room
+    // Check if we're already in a room (created by stage selection)
     const connectionState = getConnectionState();
     if (connectionState.currentRoomId) {
       console.log('Already in room, requesting room state...');
       SocketManager.requestRoomState();
     } else {
-      // Start matchmaking process
-      this.startMatchmaking();
+      // Wait for room creation from stage selection
+      // The backend should have created a room when stage was selected
+      console.log('Waiting for room state from server...');
+      lobbyStore.getState().setStatusMessage('Creating room...');
+
+      // Request room state in case it was created but not communicated
+      setTimeout(() => {
+        SocketManager.requestRoomState();
+      }, 500);
     }
   }
 
-  private startMatchmaking(): void {
-    console.log('Starting matchmaking from lobby...');
 
-    const { selectedStage, selectedCharacter } = getState();
-
-    // Join matchmaking queue using lobby store
-    const preferences = {
-      gameMode: 'versus' as const,
-      preferredCharacter: selectedCharacter || undefined,
-      preferredStage: selectedStage || undefined,
-    };
-
-    lobbyStore.getState().joinQueue(preferences);
-
-    // Emit to socket
-    if (SocketManager.getSocket()) {
-      SocketManager.getSocket()?.emit('joinMatchmakingQueue', {
-        gameMode: 'versus',
-        preferredStage: selectedStage,
-        preferredCharacter: selectedCharacter,
-      });
-    } else {
-      console.error('Socket not available for matchmaking');
-      lobbyStore.getState().setError('Socket not available');
-    }
-
-    // Show matchmaking status
-    this.showMatchmakingStatus();
-  }
-
-  private showMatchmakingStatus(): void {
-    // The UI will be updated through store subscription
-    // Add visual feedback for matchmaking
-    if (this.statusText) {
-      this.statusText.setText('Searching for opponent...');
-
-      // Add animation
-      this.tweens.add({
-        targets: this.statusText,
-        alpha: 0.5,
-        duration: 1000,
-        yoyo: true,
-        repeat: -1,
-      });
-    }
-  }
 
   private createBackground(): void {
     const { width, height } = this.cameras.main;

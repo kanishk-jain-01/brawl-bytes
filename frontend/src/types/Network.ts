@@ -20,7 +20,6 @@ export const SOCKET_EVENTS = {
   AUTHENTICATE: 'authenticate',
   JOIN_QUEUE: 'joinQueue',
   LEAVE_QUEUE: 'leaveQueue',
-  JOIN_ROOM: 'joinRoom',
   LEAVE_ROOM: 'leaveRoom',
   SELECT_CHARACTER: 'selectCharacter',
   SELECT_STAGE: 'selectStage',
@@ -90,7 +89,6 @@ export const SOCKET_EVENTS = {
   GAME_STARTING_CLIENT: 'gameStarting',
 
   // Room management (client → server)
-  CREATE_ROOM: 'createRoom',
   REQUEST_ROOM_STATE: 'requestRoomState',
 } as const;
 

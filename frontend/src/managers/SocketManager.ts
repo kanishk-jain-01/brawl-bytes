@@ -178,14 +178,6 @@ export class SocketManager {
     SocketManager.emit(SOCKET_EVENTS.LEAVE_QUEUE);
   }
 
-  public static createRoom(): void {
-    SocketManager.emit(SOCKET_EVENTS.CREATE_ROOM);
-  }
-
-  public static joinRoom(roomId: string): void {
-    SocketManager.emit(SOCKET_EVENTS.JOIN_ROOM, roomId);
-  }
-
   public static leaveRoom(): void {
     console.log('SocketManager: Leaving room');
     SocketManager.emit(SOCKET_EVENTS.LEAVE_ROOM);
@@ -202,8 +194,8 @@ export class SocketManager {
     SocketManager.emit(SOCKET_EVENTS.SELECT_CHARACTER, character);
   }
 
-  public static selectStage(stage: string): void {
-    SocketManager.emit(SOCKET_EVENTS.SELECT_STAGE, stage);
+  public static selectStage(stage: string, character?: string): void {
+    SocketManager.emit(SOCKET_EVENTS.SELECT_STAGE, { stage, character });
   }
 
   public static setPlayerReady(ready: boolean): void {

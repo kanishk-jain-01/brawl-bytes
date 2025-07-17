@@ -34,6 +34,13 @@ export class SocketManager {
     this.setupSocketHandlers();
   }
 
+  /**
+   * Get all active game rooms
+   */
+  public getActiveRooms(): ActualGameRoom[] {
+    return Array.from(this.gameRooms.values());
+  }
+
   public getIO(): Server {
     return this.io;
   }
@@ -70,20 +77,6 @@ export class SocketManager {
       });
 
       // Handle room operations
-      // Legacy room creation/joining removed - clients should use matchmaking queue
-      socket.on('createRoom', () => {
-        socket.emit('roomError', {
-          message:
-            'Direct room creation deprecated. Use joinMatchmakingQueue instead.',
-        });
-      });
-
-      socket.on('joinRoom', (_roomId: string) => {
-        socket.emit('roomError', {
-          message:
-            'Direct room joining deprecated. Use joinMatchmakingQueue instead.',
-        });
-      });
 
       socket.on('leaveRoom', () => {
         this.handleLeaveRoom(socket);
@@ -146,14 +139,14 @@ export class SocketManager {
         );
       });
 
-      socket.on('playerMove', _data => {
+      socket.on('playerMove', () => {
         // Legacy playerMove handler removed - use modern GameRoom playerInput system
         console.warn(
           'Legacy playerMove event received - clients should use playerInput events'
         );
       });
 
-      socket.on('playerAttack', _data => {
+      socket.on('playerAttack', () => {
         // Legacy playerAttack handler removed - use modern GameRoom system
         console.warn(
           'Legacy playerAttack event received - clients should use modern attack system'
@@ -278,7 +271,7 @@ export class SocketManager {
 
   private handleSelectStage(
     socket: AuthenticatedSocket,
-    data: { stage: string }
+    data: { stage: string; character?: string }
   ): void {
     if (!socket.userId) {
       socket.emit('error', { message: 'Must be authenticated' });
@@ -286,28 +279,86 @@ export class SocketManager {
     }
 
     // Find the GameRoom this player is in
-    const targetRoom =
+    let targetRoom =
       Array.from(this.gameRooms.values()).find(gameRoom =>
         gameRoom.hasPlayer(socket.userId!)
       ) || null;
 
+    // If not in a room, try to find an existing room first, then create if needed
     if (!targetRoom) {
-      socket.emit('error', { message: 'Not in a game room' });
-      return;
-    }
+      // First, check if there are existing rooms with available slots that match the stage
+      const availableRoom = Array.from(this.gameRooms.values()).find(room =>
+        room.hasAvailableSlots() && 
+        !room.isGameInProgress() &&
+        (room.getConfig().stage === data.stage || room.getConfig().stage === null)
+      );
 
-    // Check if player is host (only host can select stage)
-    const player = targetRoom.getPlayer(socket.userId);
-    if (!player || !player.isHost) {
-      socket.emit('error', { message: 'Only host can select stage' });
-      return;
-    }
+      if (availableRoom) {
+        // Join existing room
+        const addResult = availableRoom.addPlayer(socket);
+        if (addResult.success) {
+          targetRoom = availableRoom;
+          console.log(`Player ${socket.username} joined existing room ${availableRoom.getId()}`);
+          
+          // If the room didn't have a stage set, set it now
+          if (!availableRoom.getConfig().stage) {
+            availableRoom.setStage(data.stage);
+          }
+          
+          // Apply character selection if provided
+          if (data.character && socket.userId) {
+            availableRoom.setPlayerCharacter(socket.userId, data.character);
+            console.log(`Applied character ${data.character} to ${socket.username} in existing room`);
+          }
+        }
+      }
+      
+      // If no suitable existing room found, create a new one
+      if (!targetRoom) {
+        const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        const config = {
+          maxPlayers: 2,
+          gameMode: 'versus',
+          timeLimit: 300,
+          stockCount: 3,
+          stage: data.stage,
+        };
+        
+        targetRoom = new ActualGameRoom(roomId, this, config);
+        this.gameRooms.set(roomId, targetRoom);
+        
+        // Add player to the new room
+        const addResult = targetRoom.addPlayer(socket);
+        if (!addResult.success) {
+          socket.emit('error', { message: 'Failed to create room' });
+          return;
+        }
+        
+        console.log(`Player ${socket.username} created new room ${roomId}`);
+        
+        // Apply character selection if provided
+        if (data.character && socket.userId) {
+          targetRoom.setPlayerCharacter(socket.userId, data.character);
+          console.log(`Applied character ${data.character} to ${socket.username} in new room`);
+        }
+        
+        // Notify client they joined a room
+        socket.emit('roomJoined', { roomId });
+      }
+    } else {
+      // Check if player is host (only host can select stage)
+      const player = targetRoom.getPlayer(socket.userId);
+      if (!player || !player.isHost) {
+        socket.emit('error', { message: 'Only host can select stage' });
+        return;
+      }
 
-    // Set stage in the game room
-    const result = targetRoom.setStage(data.stage);
-    if (!result.success) {
-      socket.emit('error', { message: result.error });
-      return;
+      // Set stage in the existing game room
+      const result = targetRoom.setStage(data.stage);
+      if (!result.success) {
+        socket.emit('error', { message: result.error });
+        return;
+      }
     }
 
     // Broadcast stage selection to all players in the room
@@ -393,7 +444,7 @@ export class SocketManager {
     // 2. All players must be ready AND the room must be full
     if (gameRoom.areAllPlayersReady() && gameRoom.isFull()) {
       const players = gameRoom.getPlayers();
-      const config = gameRoom.getConfig();
+      const roomConfig = gameRoom.getConfig();
 
       // Log active game rooms count
       console.log(`Active game rooms: ${this.gameRooms.size}`);
@@ -403,7 +454,7 @@ export class SocketManager {
         message: 'All players are ready! Starting game...',
         timestamp: Date.now(),
         roomId: gameRoom.getId(),
-        stage: config.stage,
+        stage: roomConfig.stage,
         players: players.map(player => ({
           userId: player.userId,
           username: player.username,
@@ -411,10 +462,10 @@ export class SocketManager {
           isHost: player.isHost,
         })),
         gameConfig: {
-          maxPlayers: config.maxPlayers,
-          gameMode: config.gameMode,
-          timeLimit: config.timeLimit,
-          stockCount: config.stockCount,
+          maxPlayers: roomConfig.maxPlayers,
+          gameMode: roomConfig.gameMode,
+          timeLimit: roomConfig.timeLimit,
+          stockCount: roomConfig.stockCount,
         },
       };
 
@@ -427,7 +478,7 @@ export class SocketManager {
       // Start the game
       gameRoom.startGame();
       console.log(
-        `Game started in room ${gameRoom.getId()} with stage: ${config.stage}`
+        `Game started in room ${gameRoom.getId()} with stage: ${roomConfig.stage}`
       );
     }
   }

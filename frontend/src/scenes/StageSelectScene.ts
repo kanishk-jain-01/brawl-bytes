@@ -9,7 +9,7 @@
  */
 
 import Phaser from 'phaser';
-import { updateState } from '@/state/GameState';
+import { updateState, getState } from '@/state/GameState';
 import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { GAME_CONFIG, StageType } from '../utils/constants';
 
@@ -541,11 +541,13 @@ export class StageSelectScene extends Phaser.Scene {
     // Persist selected stage to global state
     updateState({ selectedStage: this.selectedStage });
 
-    // Emit stage selection to server for multiplayer synchronization
+    // Emit stage selection to server - this will create a room immediately
     const socketManager = getSocketManager();
     if (socketManager && SocketManager.isAuthenticated()) {
-      SocketManager.selectStage(this.selectedStage);
-      console.log(`Emitted stage selection to server: ${this.selectedStage}`);
+      // Get the selected character from global state
+      const { selectedCharacter } = getState();
+      SocketManager.selectStage(this.selectedStage, selectedCharacter || undefined);
+      console.log(`Emitted stage selection to server: ${this.selectedStage}, character: ${selectedCharacter}`);
     }
 
     // Transition to PreMatchLobby

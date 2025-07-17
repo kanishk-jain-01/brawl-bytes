@@ -218,6 +218,17 @@ export class GameRoom {
     return this.config.maxPlayers;
   }
 
+  public hasAvailableSlots(): boolean {
+    return this.players.size < this.config.maxPlayers;
+  }
+
+  public isGameInProgress(): boolean {
+    return (
+      this.gameState === GameState.PLAYING ||
+      this.gameState === GameState.STARTING
+    );
+  }
+
   public isFull(): boolean {
     return this.players.size >= this.config.maxPlayers;
   }

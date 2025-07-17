@@ -252,8 +252,8 @@ export class MatchmakingQueue {
    * Attempt to create matches from queued players
    */
   private attemptMatching(): void {
-    if (this.queue.size < this.matchSize) {
-      return; // Not enough players for a match
+    if (this.queue.size === 0) {
+      return; // No players in queue
     }
 
     const queuedPlayers = Array.from(this.queue.values());
@@ -261,12 +261,70 @@ export class MatchmakingQueue {
     // Sort by queue time (first come, first served for now)
     queuedPlayers.sort((a, b) => a.queuedAt.getTime() - b.queuedAt.getTime());
 
-    // Find compatible players
-    const matches = this.findMatches(queuedPlayers);
+    // First, try to fill existing rooms that have available slots
+    const filledRooms = this.fillAvailableRooms(queuedPlayers);
 
-    matches.forEach(match => {
-      this.createMatch(match);
+    // Remove players who were added to existing rooms
+    filledRooms.forEach(playerId => {
+      this.queue.delete(playerId);
     });
+
+    // Then, create new matches with remaining players
+    const remainingPlayers = queuedPlayers.filter(
+      p => !filledRooms.includes(p.userId)
+    );
+    if (remainingPlayers.length >= this.matchSize) {
+      const matches = this.findMatches(remainingPlayers);
+      matches.forEach(match => {
+        this.createMatch(match);
+      });
+    }
+  }
+
+  /**
+   * Try to fill existing rooms that have available slots
+   */
+  private fillAvailableRooms(queuedPlayers: QueuedPlayer[]): string[] {
+    const filledPlayerIds: string[] = [];
+
+    if (!this.socketManager) {
+      return filledPlayerIds;
+    }
+
+    // Get all active game rooms from the SocketManager
+    const gameRooms = this.socketManager.getActiveRooms();
+
+    gameRooms.forEach(room => {
+      if (room.hasAvailableSlots() && !room.isGameInProgress()) {
+        // Try to add a player to this room
+        const availablePlayer = queuedPlayers.find(
+          p =>
+            !filledPlayerIds.includes(p.userId) &&
+            this.arePlayersCompatible([p])
+        );
+
+        if (availablePlayer) {
+          const addResult = room.addPlayer(availablePlayer.socket);
+          if (addResult.success) {
+            filledPlayerIds.push(availablePlayer.userId);
+
+            // Apply preferred character if provided
+            if (availablePlayer.preferences?.preferredCharacter) {
+              room.setPlayerCharacter(
+                availablePlayer.userId,
+                availablePlayer.preferences.preferredCharacter
+              );
+            }
+
+            console.log(
+              `Added player ${availablePlayer.username} to existing room ${room.getId()}`
+            );
+          }
+        }
+      }
+    });
+
+    return filledPlayerIds;
   }
 
   /**
