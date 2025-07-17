@@ -36,6 +36,8 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
   private startButton: Phaser.GameObjects.Container | null = null;
 
+  private leaveButton: Phaser.GameObjects.Container | null = null;
+
   private countdownText: Phaser.GameObjects.Text | null = null;
 
   private statusText: Phaser.GameObjects.Text | null = null;
@@ -52,6 +54,16 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     console.log(
       'PreMatchLobbyScene: Starting pre-match lobby with Zustand store'
     );
+
+    // Reset scene state when entering/re-entering
+    this.playerCards = [];
+    this.stageDisplay = null;
+    this.readyButton = null;
+    this.startButton = null;
+    this.leaveButton = null;
+    this.countdownText = null;
+    this.statusText = null;
+    this.unsubscribeLobby = null;
 
     // Strict validation - fail if required data not loaded from database
     PreMatchLobbyScene.validateGameData();
@@ -264,6 +276,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private createControlButtons(): void {
     this.createReadyButton();
     this.createStartButton();
+    this.createLeaveButton();
   }
 
   private createReadyButton(): void {
@@ -355,6 +368,48 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Initially hidden/disabled
     this.startButton.setAlpha(0.5);
+  }
+
+  private createLeaveButton(): void {
+    this.leaveButton = this.add.container(
+      this.cameras.main.width - 300,
+      this.cameras.main.height - 80
+    );
+
+    const leaveBg = this.add.rectangle(0, 0, 140, 50, 0xe74c3c);
+    leaveBg.setStrokeStyle(2, 0xc0392b);
+    this.leaveButton.add(leaveBg);
+
+    const leaveText = this.add
+      .text(0, 0, 'LEAVE LOBBY', {
+        fontSize: '16px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    this.leaveButton.add(leaveText);
+
+    leaveBg.setInteractive();
+    leaveBg.on('pointerdown', () => this.leaveLobby());
+    leaveBg.on('pointerover', () => {
+      leaveBg.setFillStyle(0xc0392b);
+      this.tweens.add({
+        targets: this.leaveButton,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 100,
+      });
+    });
+    leaveBg.on('pointerout', () => {
+      leaveBg.setFillStyle(0xe74c3c);
+      this.tweens.add({
+        targets: this.leaveButton,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 100,
+      });
+    });
   }
 
   private createStatusArea(): void {
@@ -580,27 +635,36 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     const { localPlayer } = useLocalPlayer();
     const connectionState = getConnectionState();
 
-    // Update ready button
+    // Update ready button - with safety checks
     const readyBg = this.readyButton.list[0] as Phaser.GameObjects.Rectangle;
     const readyText = this.readyButton.list[1] as Phaser.GameObjects.Text;
 
-    if (localPlayer.isReady) {
-      readyBg.setFillStyle(0x27ae60);
-      readyText.setText('NOT READY');
-    } else {
-      readyBg.setFillStyle(0x7f8c8d);
-      readyText.setText('READY');
+    if (
+      readyBg &&
+      typeof readyBg.setFillStyle === 'function' &&
+      readyText &&
+      typeof readyText.setText === 'function'
+    ) {
+      if (localPlayer.isReady) {
+        readyBg.setFillStyle(0x27ae60);
+        readyText.setText('NOT READY');
+      } else {
+        readyBg.setFillStyle(0x7f8c8d);
+        readyText.setText('READY');
+      }
     }
 
-    // Update start button
+    // Update start button - with safety checks
     const startBg = this.startButton.list[0] as Phaser.GameObjects.Rectangle;
 
-    if (canStartGame) {
-      this.startButton.setAlpha(1);
-      startBg.setFillStyle(0x27ae60);
-    } else {
-      this.startButton.setAlpha(0.5);
-      startBg.setFillStyle(0x95a5a6);
+    if (startBg && typeof startBg.setFillStyle === 'function') {
+      if (canStartGame) {
+        this.startButton.setAlpha(1);
+        startBg.setFillStyle(0x27ae60);
+      } else {
+        this.startButton.setAlpha(0.5);
+        startBg.setFillStyle(0x95a5a6);
+      }
     }
 
     // Show/hide start button based on host status
@@ -805,12 +869,38 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private leaveLobby(): void {
     console.log('PreMatchLobbyScene: Leaving lobby');
 
+    // Clean up subscriptions first
+    if (this.unsubscribeLobby) {
+      this.unsubscribeLobby();
+      this.unsubscribeLobby = null;
+    }
+
+    // Clean up socket event listeners
     if (this.socketManager) {
+      this.socketManager.off('gameStarted');
       SocketManager.leaveRoom();
     }
 
-    // Clear lobby state
+    // Clear lobby state completely
     lobbyStore.getState().clearRoom();
+
+    // Clear any game state that might be lingering
+    updateState({
+      selectedCharacter: null,
+      selectedStage: null,
+      roomId: undefined,
+      gameStartData: null,
+      matchState: undefined,
+    });
+
+    // Reset UI elements
+    this.playerCards = [];
+    this.stageDisplay = null;
+    this.readyButton = null;
+    this.startButton = null;
+    this.leaveButton = null;
+    this.countdownText = null;
+    this.statusText = null;
 
     // Return to menu
     this.cameras.main.fadeOut(300, 0, 0, 0);

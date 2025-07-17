@@ -351,10 +351,12 @@ export class StageSelectScene extends Phaser.Scene {
     this.stageCards.forEach((card, index) => {
       // Safely get the background element (first child should be the background rectangle)
       const background = card.list[0] as Phaser.GameObjects.Rectangle;
-      
+
       // Validate that we have a proper background element
       if (!background || typeof background.setFillStyle !== 'function') {
-        console.warn(`StageSelectScene: Invalid background element at card index ${index}`);
+        console.warn(
+          `StageSelectScene: Invalid background element at card index ${index}`
+        );
         return;
       }
 
@@ -478,7 +480,9 @@ export class StageSelectScene extends Phaser.Scene {
 
     // Validate that we have a proper background element
     if (!background || typeof background.setFillStyle !== 'function') {
-      console.warn('StageSelectScene: Invalid confirm button background element');
+      console.warn(
+        'StageSelectScene: Invalid confirm button background element'
+      );
       return;
     }
 
