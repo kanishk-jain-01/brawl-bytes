@@ -219,13 +219,16 @@ export class PreMatchLobbyScene extends Phaser.Scene {
         // Start playing
         clearingVideo.play(true); // Loop the video
 
-        // Add subtle overlay for better text readability
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
+        // Add subtle overlay for better text readability (translucent)
+        this.add.rectangle(
+          width / 2,
+          height / 2,
+          width,
+          height,
+          0x000000,
+          0.25
+        );
 
-        // Add some visual elements for better structure
-        this.add
-          .rectangle(width / 2, 80, width - 40, 100, 0x000000, 0.4)
-          .setStrokeStyle(2, 0xf39c12);
         return;
       }
     } catch (error) {
@@ -237,11 +240,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
 
     // Fallback to original gradient background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
-
-    // Add some visual elements
-    this.add
-      .rectangle(width / 2, 80, width - 40, 100, 0x16213e)
-      .setStrokeStyle(2, 0x0f3460);
   }
 
   private createTitle(): void {
@@ -256,7 +254,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private createPlayerArea(): void {
-    const playerAreaY = 180;
+    const playerAreaY = 160;
 
     // Title for player area
     this.add
@@ -270,12 +268,12 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private createStageDisplay(): void {
-    const stageY = 420;
+    const stageY = 480;
 
     this.stageDisplay = this.add.container(this.cameras.main.centerX, stageY);
 
-    // Stage display background
-    const stageBg = this.add.rectangle(0, 0, 400, 120, 0x34495e);
+    // Stage display background - using translucent design
+    const stageBg = this.add.rectangle(0, 0, 400, 120, 0x2c3e50, 0.7);
     stageBg.setStrokeStyle(2, 0x27ae60);
     this.stageDisplay.add(stageBg);
 
@@ -310,7 +308,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private createReadyButton(): void {
     this.readyButton = this.add.container(200, this.cameras.main.height - 80);
 
-    const readyBg = this.add.rectangle(0, 0, 140, 50, 0x7f8c8d);
+    const readyBg = this.add.rectangle(0, 0, 140, 50, 0x7f8c8d, 0.7);
     readyBg.setStrokeStyle(2, 0x95a5a6);
     this.readyButton.add(readyBg);
 
@@ -328,6 +326,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     readyBg.on('pointerdown', () => this.toggleReady());
     readyBg.on('pointerover', () => {
       readyBg.setFillStyle(0x95a5a6);
+      readyBg.setAlpha(0.9);
       this.tweens.add({
         targets: this.readyButton,
         scaleX: 1.1,
@@ -339,6 +338,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       const { localPlayer } = useLocalPlayer();
       const color = localPlayer.isReady ? 0x27ae60 : 0x7f8c8d;
       readyBg.setFillStyle(color);
+      readyBg.setAlpha(0.7);
       this.tweens.add({
         targets: this.readyButton,
         scaleX: 1,
@@ -354,7 +354,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       this.cameras.main.height - 80
     );
 
-    const leaveBg = this.add.rectangle(0, 0, 140, 50, 0xe74c3c);
+    const leaveBg = this.add.rectangle(0, 0, 140, 50, 0xe74c3c, 0.7);
     leaveBg.setStrokeStyle(2, 0xc0392b);
     this.leaveButton.add(leaveBg);
 
@@ -372,6 +372,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     leaveBg.on('pointerdown', () => this.leaveLobby());
     leaveBg.on('pointerover', () => {
       leaveBg.setFillStyle(0xc0392b);
+      leaveBg.setAlpha(0.9);
       this.tweens.add({
         targets: this.leaveButton,
         scaleX: 1.1,
@@ -381,6 +382,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     });
     leaveBg.on('pointerout', () => {
       leaveBg.setFillStyle(0xe74c3c);
+      leaveBg.setAlpha(0.7);
       this.tweens.add({
         targets: this.leaveButton,
         scaleX: 1,
@@ -432,7 +434,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     const startX =
       this.cameras.main.centerX -
       ((players.length - 1) * (cardWidth + spacing)) / 2;
-    const cardY = 280;
+    const cardY = 260; // Adjusted from 280 to account for moved player area
 
     players.forEach((player, index) => {
       const x = startX + index * (cardWidth + spacing);
@@ -456,8 +458,9 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
 
-    // Card background - different colors for ready/not ready
+    // Card background - using translucent design with better opacity
     const bgColor = player.isReady ? 0x27ae60 : 0x2c3e50;
+    const bgAlpha = 0.7; // Translucent background
     let borderColor: number;
     if (player.isHost) {
       borderColor = 0xf39c12;
@@ -467,7 +470,7 @@ export class PreMatchLobbyScene extends Phaser.Scene {
       borderColor = 0x7f8c8d;
     }
 
-    const cardBg = this.add.rectangle(0, 0, width, height, bgColor);
+    const cardBg = this.add.rectangle(0, 0, width, height, bgColor, bgAlpha);
     cardBg.setStrokeStyle(3, borderColor);
     container.add(cardBg);
 
@@ -628,9 +631,11 @@ export class PreMatchLobbyScene extends Phaser.Scene {
     ) {
       if (localPlayer.isReady) {
         readyBg.setFillStyle(0x27ae60);
+        readyBg.setAlpha(0.7); // Maintain translucency
         readyText.setText('NOT READY');
       } else {
         readyBg.setFillStyle(0x7f8c8d);
+        readyBg.setAlpha(0.7); // Maintain translucency
         readyText.setText('READY');
       }
     }
