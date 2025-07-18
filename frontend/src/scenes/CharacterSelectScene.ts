@@ -45,7 +45,74 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    // Create dark background
+    const { width, height } = this.cameras.main;
+
+    // Try to create ancient colosseum video background
+    try {
+      const colosseumVideo = this.add.video(
+        width / 2,
+        height / 2,
+        'ancient_colosseum'
+      );
+      if (colosseumVideo) {
+        // Set depth first
+        colosseumVideo.setDepth(-1);
+        colosseumVideo.setOrigin(0.5, 0.5); // Center the video
+
+        // Wait for video metadata to load
+        colosseumVideo.on('loadeddata', () => {
+          // Get video's native dimensions
+          const videoElement = colosseumVideo.video;
+          if (!videoElement) {
+            console.warn('Video element is null, cannot get dimensions');
+            return;
+          }
+
+          const { videoWidth } = videoElement;
+          const { videoHeight } = videoElement;
+
+          console.log(
+            `Colosseum video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`
+          );
+
+          // Calculate aspect ratios
+          const videoAspect = videoWidth / videoHeight;
+          const screenAspect = width / height;
+
+          let newWidth;
+          let newHeight;
+
+          if (videoAspect > screenAspect) {
+            // Video is wider - fit to height
+            newHeight = height;
+            newWidth = height * videoAspect;
+          } else {
+            // Video is taller - fit to width
+            newWidth = width;
+            newHeight = width / videoAspect;
+          }
+
+          // Apply the calculated size
+          colosseumVideo.setDisplaySize(newWidth, newHeight);
+
+          console.log(`Applied colosseum video size: ${newWidth}x${newHeight}`);
+        });
+
+        // Start playing
+        colosseumVideo.play(true); // Loop the video
+
+        // Add subtle overlay for better text readability
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
+        return;
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to load colosseum video background, falling back to gradient:',
+        error
+      );
+    }
+
+    // Fallback to dark background with animated pattern
     this.add.rectangle(
       this.cameras.main.centerX,
       this.cameras.main.centerY,

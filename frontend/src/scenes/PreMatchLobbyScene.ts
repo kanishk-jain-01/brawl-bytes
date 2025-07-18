@@ -163,7 +163,79 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private createBackground(): void {
     const { width, height } = this.cameras.main;
 
-    // Gradient background
+    // Try to create jungle clearing video background
+    try {
+      const clearingVideo = this.add.video(
+        width / 2,
+        height / 2,
+        'jungle_clearing'
+      );
+      if (clearingVideo) {
+        // Set depth first
+        clearingVideo.setDepth(-1);
+        clearingVideo.setOrigin(0.5, 0.5); // Center the video
+
+        // Wait for video metadata to load
+        clearingVideo.on('loadeddata', () => {
+          // Get video's native dimensions
+          const videoElement = clearingVideo.video;
+          if (!videoElement) {
+            console.warn('Video element is null, cannot get dimensions');
+            return;
+          }
+
+          const { videoWidth } = videoElement;
+          const { videoHeight } = videoElement;
+
+          console.log(
+            `Jungle clearing video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`
+          );
+
+          // Calculate aspect ratios
+          const videoAspect = videoWidth / videoHeight;
+          const screenAspect = width / height;
+
+          let newWidth;
+          let newHeight;
+
+          if (videoAspect > screenAspect) {
+            // Video is wider - fit to height
+            newHeight = height;
+            newWidth = height * videoAspect;
+          } else {
+            // Video is taller - fit to width
+            newWidth = width;
+            newHeight = width / videoAspect;
+          }
+
+          // Apply the calculated size
+          clearingVideo.setDisplaySize(newWidth, newHeight);
+
+          console.log(
+            `Applied jungle clearing video size: ${newWidth}x${newHeight}`
+          );
+        });
+
+        // Start playing
+        clearingVideo.play(true); // Loop the video
+
+        // Add subtle overlay for better text readability
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
+
+        // Add some visual elements for better structure
+        this.add
+          .rectangle(width / 2, 80, width - 40, 100, 0x000000, 0.4)
+          .setStrokeStyle(2, 0xf39c12);
+        return;
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to load jungle clearing video background, falling back to gradient:',
+        error
+      );
+    }
+
+    // Fallback to original gradient background
     this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
 
     // Add some visual elements

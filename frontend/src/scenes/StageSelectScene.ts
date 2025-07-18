@@ -57,7 +57,77 @@ export class StageSelectScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    // Create dark background
+    const { width, height } = this.cameras.main;
+
+    // Try to create map table video background
+    try {
+      const mapTableVideo = this.add.video(width / 2, height / 2, 'map_table');
+      if (mapTableVideo) {
+        // Set depth first
+        mapTableVideo.setDepth(-1);
+        mapTableVideo.setOrigin(0.5, 0.5); // Center the video
+
+        // Wait for video metadata to load
+        mapTableVideo.on('loadeddata', () => {
+          // Get video's native dimensions
+          const videoElement = mapTableVideo.video;
+          if (!videoElement) {
+            console.warn('Video element is null, cannot get dimensions');
+            return;
+          }
+
+          const { videoWidth } = videoElement;
+          const { videoHeight } = videoElement;
+
+          console.log(
+            `Map table video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`
+          );
+
+          // Calculate aspect ratios
+          const videoAspect = videoWidth / videoHeight;
+          const screenAspect = width / height;
+
+          let newWidth;
+          let newHeight;
+
+          if (videoAspect > screenAspect) {
+            // Video is wider - fit to height
+            newHeight = height;
+            newWidth = height * videoAspect;
+          } else {
+            // Video is taller - fit to width
+            newWidth = width;
+            newHeight = width / videoAspect;
+          }
+
+          // Apply the calculated size
+          mapTableVideo.setDisplaySize(newWidth, newHeight);
+
+          console.log(`Applied map table video size: ${newWidth}x${newHeight}`);
+        });
+
+        // Start playing
+        mapTableVideo.play(true); // Loop the video
+
+        // Add subtle overlay for better text readability
+        this.add.rectangle(
+          width / 2,
+          height / 2,
+          width,
+          height,
+          0x000000,
+          0.25
+        );
+        return;
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to load map table video background, falling back to gradient:',
+        error
+      );
+    }
+
+    // Fallback to dark background with animated pattern
     this.add.rectangle(
       this.cameras.main.centerX,
       this.cameras.main.centerY,

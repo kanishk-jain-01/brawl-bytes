@@ -158,6 +158,27 @@ export class BootScene extends Phaser.Scene {
       noAudio: false,
     });
 
+    // Load ancient colosseum video background for character select
+    this.load.video({
+      key: 'ancient_colosseum',
+      url: '/assets/backgrounds/ancient-colosseum.mp4',
+      noAudio: false,
+    });
+
+    // Load map table video background for stage select
+    this.load.video({
+      key: 'map_table',
+      url: '/assets/backgrounds/map-table.mp4',
+      noAudio: false,
+    });
+
+    // Load jungle clearing video background for lobby
+    this.load.video({
+      key: 'jungle_clearing',
+      url: '/assets/backgrounds/jungle-clearing.mp4',
+      noAudio: false,
+    });
+
     // Load player placeholder
     this.load.image(
       'player_placeholder',
