@@ -131,6 +131,36 @@ export class PhysicsSystem {
   }
 
   /**
+   * Get random spawn point based on stage data
+   */
+  public getRandomSpawnPoint(): { x: number; y: number } {
+    if (!this.stageData) {
+      throw new Error('Stage data not set for spawn calculations');
+    }
+
+    const { platforms } = this.stageData;
+
+    // Find the main platform (lowest Y value platform, assuming y increases downward)
+    const mainPlatform = platforms.reduce(
+      (lowest: any, platform: any) =>
+        platform.y > lowest.y ? platform : lowest,
+      platforms[0]
+    );
+
+    // Generate spawn points based on main platform (generate at least 2, up to 4 for safety)
+    const spawnPoints = [
+      { x: mainPlatform.x - 100, y: mainPlatform.y - 100 }, // Left side
+      { x: mainPlatform.x + 100, y: mainPlatform.y - 100 }, // Right side
+      { x: mainPlatform.x - 150, y: mainPlatform.y - 100 }, // Further left
+      { x: mainPlatform.x + 150, y: mainPlatform.y - 100 }, // Further right
+    ];
+
+    // Pick a random one
+    const randomIndex = Math.floor(Math.random() * spawnPoints.length);
+    return spawnPoints[randomIndex];
+  }
+
+  /**
    * Validate a player's movement update
    */
   public async validateMovement(
@@ -368,9 +398,13 @@ export class PhysicsSystem {
       target.health = 100; // Reset health for next stock
       target.accumulatedDamage = 0;
 
-      // Reset position to spawn point
-      target.position = { x: 0, y: 0 };
+      // Reset position to random spawn point
+      target.position = this.getRandomSpawnPoint();
       target.velocity = { x: 0, y: 0 };
+
+      // Grant respawn invulnerability (longer duration)
+      target.isInvulnerable = true;
+      target.lastInvulnerabilityStart = timestamp;
     }
 
     return { success: true, newState: target };
@@ -412,7 +446,7 @@ export class PhysicsSystem {
           // eslint-disable-next-line no-param-reassign
           state.health = 100;
           // eslint-disable-next-line no-param-reassign
-          state.position = { x: 0, y: 0 };
+          state.position = this.getRandomSpawnPoint();
           // eslint-disable-next-line no-param-reassign
           state.velocity = { x: 0, y: 0 };
           // eslint-disable-next-line no-param-reassign

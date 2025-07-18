@@ -811,6 +811,14 @@ export class GameRoom {
         player.state = PlayerState.PLAYING;
       });
 
+      // Set stage data for physics system
+      if (this.config.stage) {
+        const stageConfig = await GameRoom.getStageConfiguration(
+          this.config.stage
+        );
+        this.physicsSystem.setStageData(stageConfig);
+      }
+
       // Transition to playing after a short delay (simulating countdown)
       setTimeout(() => {
         if (this.gameState === GameState.STARTING) {
