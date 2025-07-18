@@ -142,7 +142,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.isLocalPlayer = config.isLocalPlayer;
 
     this.character = getCharacterStats(this.characterType as string);
-    console.log('🎮 Character loaded:', this.characterType, this.character);
 
     // Strict validation - database constants must be loaded
     if (!GAME_CONFIG.GAME.MAX_STOCKS) {
@@ -210,7 +209,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       REX: () => UI_COLORS.CHARACTER_REX(),
       TITAN: () => UI_COLORS.CHARACTER_TITAN(),
       NINJA: () => UI_COLORS.CHARACTER_NINJA(),
-      // Legacy support for old character type names
       FAST_LIGHTWEIGHT: () => UI_COLORS.CHARACTER_DASH(),
       BALANCED_ALLROUNDER: () => UI_COLORS.CHARACTER_REX(),
       HEAVY_HITTER: () => UI_COLORS.CHARACTER_TITAN(),
@@ -741,9 +739,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const spawnEvent = { x: 0, y: 0 };
     this.scene.events.emit('getSpawnPoint', spawnEvent);
 
-    // Use spawn point if provided, otherwise use default
-    const spawnX = spawnEvent.x || this.scene.physics.world.bounds.width / 2;
-    const spawnY = spawnEvent.y || this.scene.physics.world.bounds.height - 200;
+    // Use spawn point - must be provided by scene
+    if (spawnEvent.x === 0 && spawnEvent.y === 0) {
+      throw new Error('Scene must provide spawn point coordinates');
+    }
+    const spawnX = spawnEvent.x;
+    const spawnY = spawnEvent.y;
 
     this.setPosition(spawnX, spawnY);
     this.setVelocity(0, 0);
@@ -943,7 +944,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       timestamp: Date.now(),
     };
 
-    // Use modern playerInput system instead of legacy playerAttack
     SocketManager.emit(SOCKET_EVENTS.PLAYER_INPUT, attackData);
   }
 
@@ -956,9 +956,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.inputSequence += 1;
 
     if (inputType === 'jump') {
-      SocketManager.sendPlayerJump(data?.jumpType || 'single');
+      if (!data?.jumpType) {
+        throw new Error('Jump type is required for jump input');
+      }
+      SocketManager.sendPlayerJump(data.jumpType);
     } else if (inputType === 'special') {
-      SocketManager.sendPlayerSpecial(data?.specialType || 'default', data);
+      if (!data?.specialType) {
+        throw new Error('Special type is required for special input');
+      }
+      SocketManager.sendPlayerSpecial(data.specialType, data);
     }
   }
 

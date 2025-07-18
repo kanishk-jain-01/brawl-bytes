@@ -20,8 +20,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
 
-  // Inject process.env.NODE_ENV so legacy checks like
-  // `process.env.NODE_ENV === 'development'` don't crash in the browser.
+  // Inject process.env.NODE_ENV for browser compatibility
   define: {
     'process.env.NODE_ENV': JSON.stringify(mode),
   },

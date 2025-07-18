@@ -442,9 +442,9 @@ export async function loadStages(): Promise<void> {
       GAME_CONFIG.STAGES[stage.id.toUpperCase()] = {
         name: stage.name,
         description: stage.description,
-        difficulty: stage.config.difficulty || 'Medium',
+        difficulty: stage.config.difficulty,
         platforms: stage.config.platforms,
-        hazards: stage.config.hazards || [],
+        hazards: stage.config.hazards,
         backgroundColor: stage.config.background_colors,
       };
     });

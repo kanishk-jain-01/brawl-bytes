@@ -32,7 +32,13 @@ export interface SocketConfig {
  * Default socket configuration
  */
 export const DEFAULT_SOCKET_CONFIG: SocketConfig = {
-  url: (import.meta.env?.VITE_SOCKET_URL as string) || 'http://localhost:3001',
+  url: (() => {
+    const url = import.meta.env?.VITE_SOCKET_URL as string;
+    if (!url) {
+      throw new Error('VITE_SOCKET_URL environment variable is required');
+    }
+    return url;
+  })(),
   autoConnect: false,
   reconnection: true,
   reconnectionAttempts: 5,
@@ -281,7 +287,6 @@ export class SocketManager {
 
     // Handle lobby state event - critical for initial sync
     socket.on('lobbyState', (data: any) => {
-      console.log('SocketManager: Received lobbyState event:', data);
       const lobbyStoreState = lobbyStore.getState();
 
       // Convert lobby state to room state format
@@ -296,7 +301,7 @@ export class SocketManager {
           isHost: p.isHost,
         })),
         config: {
-          maxPlayers: data.maxPlayers || 2,
+          maxPlayers: data.maxPlayers,
           gameMode: 'versus',
           stage: data.selectedStage,
         },
@@ -389,11 +394,10 @@ export class SocketManager {
     });
 
     socket.on(SOCKET_EVENTS.QUEUE_JOINED, (data: any) => {
-      console.log('SocketManager: Queue joined:', data);
       lobbyStore.getState().setMatchmakingData({
         inQueue: true,
-        queuePosition: data.position || 0,
-        estimatedWaitTime: data.estimatedWaitTime || 30,
+        queuePosition: data.position,
+        estimatedWaitTime: data.estimatedWaitTime,
       });
       lobbyStore.getState().setStatusMessage('Searching for opponent...');
     });

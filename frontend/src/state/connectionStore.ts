@@ -446,8 +446,8 @@ export const connectionStore = createStore<ConnectionStore>()(
             attempts: reconnectAttempts,
             attempt: reconnectAttempts, // alias for attempts
             maxAttempts: maxReconnectAttempts,
-            nextAttemptIn: 0, // TODO: Could be calculated if needed
-            totalDowntime: 0, // TODO: Could be tracked if needed
+            nextAttemptIn: 0,
+            totalDowntime: 0,
           },
           lastDisconnectReason: lastError?.message,
         };

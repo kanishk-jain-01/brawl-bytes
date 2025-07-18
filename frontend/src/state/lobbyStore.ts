@@ -330,8 +330,6 @@ export const lobbyStore = createStore<LobbyStore>()(
       },
 
       updateFromServerState: (serverData: RoomStateData) => {
-        console.log('LobbyStore: Updating from server state:', serverData);
-
         const players: LobbyPlayer[] = serverData.players.map(player => ({
           id: player.userId,
           username: player.username,

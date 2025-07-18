@@ -39,7 +39,6 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.createBackground();
     this.createTitle();
     this.createCharacterGrid();
-    // this.createPreviewArea(); // Removed Character Preview box
     this.createNavigationButtons();
     this.setupInputs();
   }
@@ -320,7 +319,6 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Update visual selection
     this.updateCardSelection(characterKey);
     this.selectedCharacter = characterKey;
-    // this.updatePreview(); // Removed preview update since preview area is removed
     this.updateConfirmButton();
   }
 

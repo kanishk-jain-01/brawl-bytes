@@ -191,12 +191,26 @@ export class GameRoom {
     this.lastActivity = new Date();
     this.hostId = null;
 
-    // Set disconnect handling configuration from config
-    this.RECONNECTION_GRACE_PERIOD =
-      this.config.reconnectionGracePeriod || 30000;
-    this.MAX_RECONNECTION_TIME = this.config.maxReconnectionTime || 120000;
-    this.MAX_DISCONNECT_COUNT = this.config.maxDisconnectCount || 5;
-    this.AUTO_CLEANUP_ON_TIMEOUT = this.config.autoCleanupOnTimeout ?? true;
+    // Set disconnect handling configuration from config - fail if not provided
+    if (!this.config.reconnectionGracePeriod) {
+      throw new Error(
+        'reconnectionGracePeriod is required in game configuration'
+      );
+    }
+    if (!this.config.maxReconnectionTime) {
+      throw new Error('maxReconnectionTime is required in game configuration');
+    }
+    if (!this.config.maxDisconnectCount) {
+      throw new Error('maxDisconnectCount is required in game configuration');
+    }
+    if (this.config.autoCleanupOnTimeout === undefined) {
+      throw new Error('autoCleanupOnTimeout is required in game configuration');
+    }
+
+    this.RECONNECTION_GRACE_PERIOD = this.config.reconnectionGracePeriod;
+    this.MAX_RECONNECTION_TIME = this.config.maxReconnectionTime;
+    this.MAX_DISCONNECT_COUNT = this.config.maxDisconnectCount;
+    this.AUTO_CLEANUP_ON_TIMEOUT = this.config.autoCleanupOnTimeout;
 
     // Initialize physics system with constants service
     const prisma = new PrismaClient();
@@ -755,14 +769,19 @@ export class GameRoom {
   public async startGame(): Promise<{ success: boolean; error?: string }> {
     const canStart = this.canStartGame();
     if (!canStart.canStart) {
-      return { success: false, error: canStart.reason || 'Cannot start game' };
+      if (!canStart.reason) {
+        throw new Error(
+          'canStart must provide a reason when canStart is false'
+        );
+      }
+      return { success: false, error: canStart.reason };
     }
 
     try {
       // Create match record
       const match = await MatchRepository.createMatch({
         matchType: this.config.gameMode === 'ranked' ? 'ranked' : 'casual',
-        stageId: (this.config.stage || 'battle_arena').toLowerCase(),
+        stageId: this.config.stage!.toLowerCase(),
         maxPlayers: this.config.maxPlayers,
       });
 
@@ -1192,11 +1211,13 @@ export class GameRoom {
       console.log(
         `[MOVE_REJECT] user=${userId} reason=${validationResult.reason}`
       );
-      if (correctedState) {
-        const finalPosition = correctedState.position ||
-          player.position || { x: 0, y: 0 };
-        const finalVelocity = correctedState.velocity ||
-          player.velocity || { x: 0, y: 0 };
+      if (
+        correctedState &&
+        correctedState.position &&
+        correctedState.velocity
+      ) {
+        const finalPosition = correctedState.position;
+        const finalVelocity = correctedState.velocity;
 
         player.socket.emit('positionCorrection', {
           position: finalPosition,
@@ -1341,7 +1362,8 @@ export class GameRoom {
   private async initializeStagePhysics(stageName: string): Promise<void> {
     try {
       // Create stage data based on stage name from database
-      const stageData: StageData = await this.getStageConfiguration(stageName);
+      const stageData: StageData =
+        await GameRoom.getStageConfiguration(stageName);
       this.physicsSystem.setStageData(stageData);
       console.log(`GameRoom: Initialized stage physics for ${stageName}`);
     } catch (error) {
@@ -1352,7 +1374,9 @@ export class GameRoom {
     }
   }
 
-  private async getStageConfiguration(stageName: string): Promise<StageData> {
+  private static async getStageConfiguration(
+    stageName: string
+  ): Promise<StageData> {
     try {
       // Fetch stage data from database
       const prisma = new PrismaClient();
@@ -1401,13 +1425,15 @@ export class GameRoom {
     y: number;
   }> {
     // Get spawn points similar to frontend logic
-    const stageConfig = await this.getStageConfiguration(
-      this.config.stage || 'battle_arena'
-    );
+    if (!this.config.stage) {
+      throw new Error('Stage configuration is required for spawn calculations');
+    }
+    const stageConfig = await GameRoom.getStageConfiguration(this.config.stage);
 
     // Find the main platform (lowest Y value platform)
-    const mainPlatform = stageConfig.platforms.reduce((lowest, platform) =>
-      platform.y > lowest.y ? platform : lowest
+    const mainPlatform = stageConfig.platforms.reduce(
+      (lowest: any, platform: any) =>
+        platform.y > lowest.y ? platform : lowest
     );
 
     // Generate spawn points based on main platform

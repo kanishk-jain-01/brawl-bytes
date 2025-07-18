@@ -166,12 +166,7 @@ export class SocketManager {
         await targetRoom.handleGameEvent(eventData);
       });
 
-      socket.on('playerMove', () => {
-        // Legacy playerMove handler removed - use modern GameRoom playerInput system
-        console.warn(
-          'Legacy playerMove event received - clients should use playerInput events'
-        );
-      });
+      // Legacy playerMove handler removed - use modern GameRoom playerInput system
 
       socket.on('disconnect', reason => {
         this.handleDisconnect(socket, reason);
@@ -247,8 +242,7 @@ export class SocketManager {
 
   // Legacy createRoom method removed - use matchmaking queue instead
 
-  // Legacy room management methods removed - all functionality moved to GameRoom/matchmaking system
-  // Players should use joinMatchmakingQueue, and movement/attacks are handled via the modern GameRoom system
+  // Room management handled via GameRoom/matchmaking system
 
   private handleSelectCharacter(
     socket: AuthenticatedSocket,

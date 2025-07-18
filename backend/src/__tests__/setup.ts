@@ -22,9 +22,7 @@ const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
 beforeAll(() => {
-  // Optionally silence console output during tests
-  // console.log = jest.fn();
-  // console.error = jest.fn();
+  // Console output during tests handled by Jest configuration
 });
 
 afterAll(() => {

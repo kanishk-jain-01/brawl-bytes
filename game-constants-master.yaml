@@ -289,6 +289,8 @@ game:
   max_players: 4
   min_players: 2
   sudden_death_time: 60000
+  default_max_players: 2
+  default_time_limit: 300  # 5 minutes in seconds
   victory_conditions:
     - "last_player_standing"
     - "most_stocks_remaining"
@@ -335,6 +337,106 @@ network:
   heartbeat_interval: 30000
   connection_timeout: 10000
   max_reconnect_attempts: 3
+  
+# SOCKET EVENTS
+# All WebSocket event names centralized
+socket_events:
+  # Authentication
+  authenticate: 'authenticate'
+  authenticated: 'authenticated'
+  
+  # Game events
+  player_input: 'playerInput'
+  player_joined: 'playerJoined'
+  player_left: 'playerLeft'
+  match_end: 'matchEnd'
+  match_found: 'matchFound'
+  
+  # Room events
+  room_joined: 'roomJoined'
+  lobby_state: 'lobbyState'
+  queue_joined: 'queueJoined'
+  
+  # Error events
+  error: 'error'
+  disconnect: 'disconnect'
+  
+# ERROR MESSAGES
+# Standardized error messages
+error_messages:
+  # Authentication errors
+  must_be_authenticated: 'Must be authenticated'
+  invalid_credentials: 'Invalid credentials'
+  invalid_token: 'Invalid token'
+  invalid_email_format: 'Invalid email format'
+  
+  # Game room errors
+  not_in_game_room: 'Not in a game room'
+  stage_must_be_selected: 'Stage must be selected'
+  cannot_start_game: 'Cannot start game'
+  
+  # Configuration errors
+  reconnection_grace_period_required: 'reconnectionGracePeriod is required in game configuration'
+  max_reconnection_time_required: 'maxReconnectionTime is required in game configuration'
+  max_disconnect_count_required: 'maxDisconnectCount is required in game configuration'
+  auto_cleanup_on_timeout_required: 'autoCleanupOnTimeout is required in game configuration'
+  corrected_state_position_required: 'Corrected state must have a position'
+  corrected_state_velocity_required: 'Corrected state must have a velocity'
+  canstart_reason_required: 'canStart must provide a reason when canStart is false'
+  spawn_point_required: 'Scene must provide spawn point coordinates'
+  jump_type_required: 'Jump type is required for jump input'
+  special_type_required: 'Special type is required for special input'
+  socket_url_required: 'VITE_SOCKET_URL environment variable is required'
+  
+# API ENDPOINTS
+# All API endpoint paths
+api_endpoints:
+  base_url: 'http://localhost:3001'
+  frontend_url: 'http://localhost:3000'
+  
+  # API routes
+  constants: '/api/constants'
+  characters: '/api/characters'
+  stages: '/api/stages'
+  
+  # Auth routes
+  register: '/register'
+  login: '/login'
+  refresh: '/refresh'
+  profile: '/profile'
+  
+  # Game routes
+  game_constants_root: '/'
+  game_constants_category: '/:category'
+  game_constants_name: '/:category/:name'
+  
+# ASSET PATHS
+# All asset file paths
+asset_paths:
+  # Video backgrounds
+  jungle_canopy: '/assets/backgrounds/jungle-canopy.mp4'
+  ancient_colosseum: '/assets/backgrounds/ancient-colosseum.mp4'
+  map_table: '/assets/backgrounds/map-table.mp4'
+  jungle_clearing: '/assets/backgrounds/jungle-clearing.mp4'
+  
+# ENVIRONMENT VARIABLES
+# All environment variable names
+env_vars:
+  jwt_secret: 'JWT_SECRET'
+  node_env: 'NODE_ENV'
+  port: 'PORT'
+  frontend_url: 'FRONTEND_URL'
+  socket_url: 'VITE_SOCKET_URL'
+  
+# DATABASE MAPPING
+# Database table and column names
+database:
+  table_mappings:
+    created_at: 'created_at'
+    updated_at: 'updated_at'
+    user_id: 'user_id'
+    character_id: 'character_id'
+    stage_id: 'stage_id'
 
 # SERVER VALIDATION
 # Anti-cheat and movement validation tolerances
@@ -387,3 +489,92 @@ server:
   max_players_per_room: 4
   room_timeout: 300000  # 5 minutes
   cleanup_interval: 60000  # 1 minute
+  reconnection_grace_period: 30000  # 30 seconds
+  max_reconnection_time: 120000  # 2 minutes
+  max_disconnect_count: 5
+  auto_cleanup_on_timeout: true
+  cache_duration: 60000  # 1 minute
+  
+# MAGIC NUMBERS AND CONSTANTS
+# Previously hardcoded values now centralized
+magic_numbers:
+  # Player spawn and physics
+  default_spawn_position:
+    x: 1000
+    y: 1000
+  default_health: 100
+  default_stocks: 3
+  ground_detection_threshold: 0
+  
+  # Attack and combat
+  attack_hitbox:
+    width: 80
+    height: 60
+  attack_feedback_delay: 100
+  damage_shake_duration: 200
+  fall_animation_duration: 300
+  knockback_force:
+    y: -150
+  
+  # UI and visual
+  reconciliation_threshold: 5
+  drag_multiplier: 1000
+  body_offset:
+    x: 5
+    y: 5
+  sprite_origin:
+    x: 0.5
+    y: 1.0
+  alpha_invulnerable: 0.5
+  
+  # Stage selection UI
+  stage_card:
+    width: 240
+    height: 320
+    spacing: 40
+    start_y: 250
+  grid_spacing: 50
+  title_y_position: 80
+  stroke_width: 4
+  shadow_offset: 2
+  ui_depth: 1000
+  notification_depth: 999
+  ui_positioning_offset: 20
+  ui_rectangle_height: 100
+  ui_rectangle_color: 0x333333
+  ui_rectangle_alpha: 0.9
+  
+  # Timing and intervals
+  countdown_duration: 3000
+  timer_delay: 1000
+  fade_animation_duration: 300
+  grace_period_buffer: 1000
+  
+  # Physics update rates
+  physics_update_rate: 60  # FPS
+  physics_interval: 16.67  # 1000/60
+  
+  # Player statistics
+  base_experience: 50
+  duration_bonus_max_minutes: 10
+  duration_bonus_multiplier: 2
+  base_coins: 25
+  experience_coin_multiplier: 0.5
+  elo_k_factor: 32
+  default_expected_score: 0.5
+  elo_rating_divisor: 400
+  level_calculation_divisor: 100
+  
+  # Rank thresholds
+  rank_thresholds:
+    diamond: 2000
+    platinum: 1700
+    gold: 1400
+    silver: 1100
+    bronze: 800
+    
+  # Grid line styling
+  grid_line:
+    width: 1
+    color: 0xe74c3c
+    alpha: 0.1
