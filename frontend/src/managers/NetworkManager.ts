@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from '@/types/Network';
 import { DamageType } from '@/types';
+import type { DamageInfo } from '@/types';
 import { getSocketManager } from '@/managers/SocketManager';
 import { Player } from '../entities/Player';
 
@@ -299,16 +300,26 @@ export class NetworkManager {
     targetPlayerId: string;
     damage: number;
     knockback: any;
+    damageType?: string;
+    isCritical?: boolean;
   }): void {
     const targetPlayer = this.remotePlayers.get(data.targetPlayerId);
     if (!targetPlayer) return;
 
-    // Apply damage and knockback effects
-    targetPlayer.takeDamage({
+    // Create damage info for visual effects
+    const damageInfo: DamageInfo = {
       amount: data.damage,
-      type: DamageType.PHYSICAL,
+      type: (data.damageType as DamageType) || DamageType.PHYSICAL,
+      knockback: data.knockback,
+      isCritical: data.isCritical || false,
       source: 'remote_player',
-    });
+    };
+
+    // Apply visual hit effect (flutter animation + tint)
+    targetPlayer.applyVisibleHitEffect(damageInfo);
+
+    // Apply damage and knockback effects
+    targetPlayer.takeDamage(damageInfo);
   }
 
   public handleRemotePlayerKO(data: { targetPlayerId: string }): void {

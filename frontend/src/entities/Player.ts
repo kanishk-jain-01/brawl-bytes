@@ -41,6 +41,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private invulnerabilityTimer: Phaser.Time.TimerEvent | null = null;
 
+  // Separate flutter animation state (visual-only, doesn't affect gameplay)
+  private isFluttering: boolean = false;
+
+  private flutterTimer: Phaser.Time.TimerEvent | null = null;
+
   // Damage system
   private damageMultiplier: number = 1.0;
 
@@ -237,8 +242,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.baseScaleX = scaleX;
     this.baseScaleY = scaleY;
 
-    // Remove tinting to show actual sprite (comment out for now)
-    // this.setTint(this.getCharacterColor());
+    // Keep sprites in natural colors (no tinting applied)
+    this.clearTint();
 
     // Set origin for proper positioning
     this.setOrigin(0.5, 1);
@@ -472,8 +477,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateInvulnerability(): void {
-    if (this.isInvulnerable) {
-      // Flash effect during invulnerability
+    // Handle both actual invulnerability and visual flutter effects
+    if (this.isInvulnerable || this.isFluttering) {
+      // Flash effect during invulnerability or flutter animation
       this.setAlpha(
         this.scene.time.now % GAME_CONFIG.TIMING.FLASH_INTERVAL <
           GAME_CONFIG.TIMING.FLASH_INTERVAL / 2
@@ -702,10 +708,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Sync attack with other players
     this.syncAttack('basic');
 
-    // Visual feedback
+    // Visual feedback - use scale effect instead of problematic tinting
+    const originalScaleX = this.scaleX;
+    const originalScaleY = this.scaleY;
+
+    // Brief white flash with quick scale bounce
     this.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => {
-      this.setTint(this.getCharacterColor());
+    this.setScale(originalScaleX * 1.1, originalScaleY * 1.05);
+
+    this.scene.time.delayedCall(50, () => {
+      // Reset to natural sprite colors (no tint)
+      this.clearTint();
+      this.setScale(originalScaleX, originalScaleY);
     });
   }
 
@@ -920,7 +934,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setTint(tintColor);
     this.scene.time.delayedCall(shakeDuration, () => {
-      this.setTint(this.getCharacterColor());
+      // Reset to natural sprite colors (no tint)
+      this.clearTint();
     });
   }
 
@@ -968,7 +983,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Reset visual state
     this.setVisible(true);
-    this.setTint(this.getCharacterColor());
+    this.clearTint(); // Reset to natural sprite colors
     this.setAlpha(1);
 
     // Re-enable physics
@@ -1026,7 +1041,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(
       GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION,
       () => {
-        this.setTint(this.getCharacterColor());
+        // Reset to natural sprite colors (no tint)
+        this.clearTint();
       }
     );
 
@@ -1510,6 +1526,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.invulnerabilityTimer.remove();
     }
 
+    if (this.flutterTimer) {
+      this.flutterTimer.remove();
+    }
+
     if (this.currentTween) {
       this.currentTween.stop();
       this.currentTween = null;
@@ -1525,5 +1545,44 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // Add getter for facing direction
   public getFacingDirection(): 'left' | 'right' {
     return this.facingDirection;
+  }
+
+  /**
+   * Trigger hit flutter animation for visual feedback
+   * This creates the same invulnerability-like flashing effect without actual invulnerability
+   * Used to show hit feedback to attackers
+   */
+  public triggerHitFlutterAnimation(duration: number = 500): void {
+    // Enable visual flutter effect (doesn't affect gameplay invulnerability)
+    this.isFluttering = true;
+
+    // Clear any existing flutter timer
+    if (this.flutterTimer) {
+      this.flutterTimer.remove();
+    }
+
+    // Set up flutter animation timer
+    this.flutterTimer = this.scene.time.delayedCall(duration, () => {
+      // Stop flutter effect
+      this.isFluttering = false;
+
+      // Reset alpha if no actual invulnerability is active
+      if (!this.isInvulnerable) {
+        this.setAlpha(1);
+      }
+    });
+  }
+
+  /**
+   * Apply hit effect that's visible to all players (attacker and victim)
+   * This should be called when this player gets hit to show the effect on all screens
+   */
+  public applyVisibleHitEffect(damageInfo: DamageInfo): void {
+    // Apply the visual damage feedback (tint flash)
+    this.applyDamageVisualFeedback(damageInfo);
+
+    // Apply the flutter animation for a short duration
+    const flutterDuration = damageInfo.isCritical ? 800 : 500;
+    this.triggerHitFlutterAnimation(flutterDuration);
   }
 }

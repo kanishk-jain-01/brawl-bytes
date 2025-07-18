@@ -101,6 +101,9 @@ export class CombatManager {
       source: `attack_${attacker.playerId}`,
     };
 
+    // Apply visual hit effect to victim (visible to both attacker and victim)
+    victim.applyVisibleHitEffect(attackDamage);
+
     // Only apply damage if victim is local player (each client handles their own damage)
     if (victim.isLocalPlayer) {
       victim.takeDamage(attackDamage);
