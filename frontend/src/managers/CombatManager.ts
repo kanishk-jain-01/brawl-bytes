@@ -3,6 +3,7 @@ import { DamageType } from '@/types';
 import type { DamageInfo } from '@/types';
 import { Player } from '../entities/Player';
 import { GAME_CONFIG } from '../utils/constants';
+import { getSocketManager, SocketManager } from './SocketManager';
 
 export class CombatManager {
   private scene: Phaser.Scene;
@@ -100,8 +101,27 @@ export class CombatManager {
       source: `attack_${attacker.playerId}`,
     };
 
-    // Apply damage using new system
-    victim.takeDamage(attackDamage);
+    // Only apply damage if victim is local player (each client handles their own damage)
+    if (victim.isLocalPlayer) {
+      victim.takeDamage(attackDamage);
+    } else if (attacker.isLocalPlayer) {
+      // If we're the attacker hitting a remote player, send damage info to backend
+      const socketManager = getSocketManager();
+      if (socketManager) {
+        SocketManager.emit('gameEvent', {
+          type: 'player_hit',
+          data: {
+            attackerId: attacker.playerId,
+            targetId: victim.playerId,
+            damage: attackDamage.amount,
+            damageType: attackDamage.type,
+            knockback: attackDamage.knockback,
+            isCritical: attackDamage.isCritical,
+          },
+          timestamp: Date.now(),
+        });
+      }
+    }
 
     // Visual feedback (enhanced for critical hits)
     const shakeIntensity = isCritical ? 0.04 : 0.02;

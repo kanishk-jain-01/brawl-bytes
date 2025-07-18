@@ -96,11 +96,10 @@ export class InputManager {
     if (!socketManager) return;
 
     // Only broadcast significant input changes to reduce network traffic
-    if (inputState.attack || inputState.special || inputState.up) {
+    // Note: Attack inputs are handled by Player.syncAttack() method to include proper attack data
+    if (inputState.special || inputState.up) {
       let inputType: string;
-      if (inputState.attack) {
-        inputType = 'attack';
-      } else if (inputState.special) {
+      if (inputState.special) {
         inputType = 'special';
       } else {
         inputType = 'jump';

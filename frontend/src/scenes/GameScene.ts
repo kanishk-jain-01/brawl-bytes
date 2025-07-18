@@ -12,6 +12,8 @@ import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
 import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { getConnectionState } from '@/state/connectionStore';
+import type { DamageInfo } from '@/types';
+import { DamageType } from '@/types';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
 import { Stage } from '../entities/Stage';
@@ -685,18 +687,18 @@ export class GameScene extends Phaser.Scene {
     let winner: Player | undefined;
     if (data.winnerId) {
       winner = this.players.find(p => p.playerId === data.winnerId);
-      
-      // If winner not found in current players (e.g., they quit), 
+
+      // If winner not found in current players (e.g., they quit),
       // create a temporary winner object to identify local vs remote winner
       if (!winner) {
         const connectionState = getConnectionState();
         const isLocalWinner = data.winnerId === connectionState.userId;
-        
+
         // Create a minimal winner object to indicate if local player won
         winner = {
           isLocalPlayer: isLocalWinner,
           playerId: data.winnerId,
-          getCharacterData: () => ({ name: data.winnerUsername || 'Unknown' })
+          getCharacterData: () => ({ name: data.winnerUsername || 'Unknown' }),
         } as Player;
       }
     }
@@ -710,11 +712,35 @@ export class GameScene extends Phaser.Scene {
       case 'player_hit':
         this.networkManager?.handleRemotePlayerHit(data.data);
         break;
+      case 'player_hit_receive':
+        // This player should take damage from remote attacker
+        this.handleReceiveDamage(data.data);
+        break;
       case 'player_ko':
         this.networkManager?.handleRemotePlayerKO(data.data);
         break;
       default:
         console.log('Unknown game event:', data);
+    }
+  }
+
+  private handleReceiveDamage(data: {
+    attackerId: string;
+    damage: number;
+    damageType: string;
+    knockback: { x: number; y: number };
+    isCritical: boolean;
+  }): void {
+    if (this.player) {
+      const damageInfo: DamageInfo = {
+        amount: data.damage,
+        type: data.damageType as DamageType,
+        knockback: data.knockback,
+        isCritical: data.isCritical,
+        source: `remote_attack_${data.attackerId}`,
+      };
+
+      this.player.takeDamage(damageInfo);
     }
   }
 

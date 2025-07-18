@@ -132,7 +132,9 @@ export class NetworkManager {
   private handleRemotePlayerInput(data: {
     playerId: string;
     inputType: string;
-    data: any;
+    attackType?: string;
+    direction?: number;
+    data?: any;
   }): void {
     const remotePlayer = this.remotePlayers.get(data.playerId);
     if (!remotePlayer) return;
@@ -143,6 +145,15 @@ export class NetworkManager {
         break;
       case 'special':
         remotePlayer.applyRemoteAction('special');
+        break;
+      case 'attack':
+        // Debug: remote player attack received via modern system
+        console.log(
+          `[REMOTE_ATTACK_INPUT] from=${data.playerId} type=${data.attackType} dir=${data.direction}`
+        );
+        if (data.attackType && data.direction !== undefined) {
+          remotePlayer.applyRemoteAttack(data.attackType, data.direction);
+        }
         break;
       default:
         // Unknown input type, ignore
@@ -171,6 +182,11 @@ export class NetworkManager {
     direction: number;
     hitbox?: any;
   }): void {
+    // Debug: remote player attack received
+    console.log(
+      `[REMOTE_ATTACK] from=${data.playerId} type=${data.attackType} dir=${data.direction}`
+    );
+
     const remotePlayer = this.remotePlayers.get(data.playerId);
     if (!remotePlayer) return;
 

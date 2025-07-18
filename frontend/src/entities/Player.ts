@@ -11,7 +11,9 @@
 import Phaser from 'phaser';
 import type { DamageInfo, PlayerConfig } from '@/types';
 import { DamageType } from '@/types';
+import { SOCKET_EVENTS } from '@/types/Network';
 import { getSocketManager, SocketManager } from '@/managers/SocketManager';
+import { getConnectionState } from '@/state/connectionStore';
 import {
   GAME_CONFIG,
   CharacterType,
@@ -556,7 +558,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   public takeDamage(damageInfo: DamageInfo): void {
-    if (this.isInvulnerable || this.currentHealth <= 0) return;
+    if (
+      this.isInvulnerable ||
+      this.currentHealth <= 0 ||
+      this.currentStocks <= 0
+    ) {
+      return;
+    }
 
     // Calculate actual damage
     const actualDamage = this.calculateDamage(damageInfo);
@@ -767,7 +775,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       (this.body as Phaser.Physics.Arcade.Body).enable = false;
     }
 
-    // Emit defeat event
+    // Notify backend if this is the local player
+    if (this.isLocalPlayer) {
+      const socketManager = getSocketManager();
+      if (socketManager) {
+        // Get the actual user ID from connection state
+        const connectionState = getConnectionState();
+        const koEvent = {
+          type: 'player_ko',
+          data: { playerId: connectionState.userId },
+          timestamp: Date.now(),
+        };
+        SocketManager.emit('gameEvent', koEvent);
+      }
+    }
+
+    // Emit defeat event locally
     this.scene.events.emit('playerDefeated', this.playerId);
   }
 
@@ -903,8 +926,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const socketManager = getSocketManager();
     if (!socketManager) return;
 
+    this.inputSequence += 1;
     const direction = this.flipX ? -1 : 1;
-    SocketManager.sendPlayerAttack(attackType, direction);
+
+    const attackData = {
+      type: 'attack',
+      attackType,
+      direction,
+      sequence: this.inputSequence,
+      timestamp: Date.now(),
+    };
+
+    // Use modern playerInput system instead of legacy playerAttack
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_INPUT, attackData);
   }
 
   public syncInputAction(inputType: 'jump' | 'special', data?: any): void {

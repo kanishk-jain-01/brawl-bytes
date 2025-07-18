@@ -117,12 +117,6 @@ export class SocketManager {
       socket.on('playerInput', (inputData: any) => {
         if (!socket.userId) return;
 
-        // We only care about movement for now
-        if (inputData.inputType !== 'move') return;
-
-        const { position, velocity } = inputData.data || {};
-        const sequence = inputData.sequence || 0;
-
         // Find GameRoom containing this player
         const targetRoom = Array.from(this.gameRooms.values()).find(r =>
           r.hasPlayer(socket.userId!)
@@ -130,17 +124,46 @@ export class SocketManager {
 
         if (!targetRoom) return;
 
-        // Debug inbound movement
-        console.log(
-          `[MOVE_IN] user=${socket.userId} room=${targetRoom.getId()} seq=${sequence} pos=(${position?.x?.toFixed?.(1)},${position?.y?.toFixed?.(1)})`
+        // Handle different input types
+        if (inputData.inputType === 'move' || inputData.type === 'move') {
+          const { position, velocity } = inputData.data || {};
+          const sequence = inputData.sequence || 0;
+
+          // Debug inbound movement
+          console.log(
+            `[MOVE_IN] user=${socket.userId} room=${targetRoom.getId()} seq=${sequence} pos=(${position?.x?.toFixed?.(1)},${position?.y?.toFixed?.(1)})`
+          );
+
+          targetRoom.handlePlayerMove(
+            socket.userId!,
+            position,
+            velocity,
+            sequence
+          );
+        } else {
+          // Handle all other input types (attack, jump, special, etc.) through GameRoom
+          console.log(
+            `[INPUT_IN] user=${socket.userId} type=${inputData.inputType || inputData.type}`
+          );
+          targetRoom.handlePlayerInput(socket.userId!, inputData);
+        }
+      });
+
+      // Handle game events
+      socket.on('gameEvent', async (eventData: any) => {
+        if (!socket.userId) return;
+
+        // Find GameRoom containing this player
+        const targetRoom = Array.from(this.gameRooms.values()).find(r =>
+          r.hasPlayer(socket.userId!)
         );
 
-        targetRoom.handlePlayerMove(
-          socket.userId!,
-          position,
-          velocity,
-          sequence
-        );
+        if (!targetRoom) {
+          return;
+        }
+
+        // Forward event to GameRoom
+        await targetRoom.handleGameEvent(eventData);
       });
 
       socket.on('playerMove', () => {

@@ -1098,6 +1098,10 @@ export class GameRoom {
       inputType: inputData.type,
       data: inputData.data,
       sequence: inputData.sequence || 0,
+      ...(inputData.type === 'attack' && {
+        attackType: (inputData as any).attackType,
+        direction: (inputData as any).direction,
+      }),
     };
 
     // Broadcast to other players for client-side prediction
@@ -1221,10 +1225,28 @@ export class GameRoom {
     this.updateActivity();
   }
 
-  // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
-  private handlePlayerHit(_data: any): void {
-    // Process hit validation and damage calculation
-    // This would integrate with the physics system
+  private handlePlayerHit(data: any): void {
+    const { attackerId, targetId, damage, damageType, knockback, isCritical } =
+      data;
+
+    // Find the target player
+    const targetPlayer = this.players.get(targetId);
+    if (!targetPlayer) {
+      return;
+    }
+
+    // Send damage event to the target player's client
+    targetPlayer.socket.emit('gameEvent', {
+      type: 'player_hit_receive',
+      data: {
+        attackerId,
+        damage,
+        damageType,
+        knockback,
+        isCritical,
+      },
+      timestamp: Date.now(),
+    });
   }
 
   private async handlePlayerKO(data: any): Promise<void> {
@@ -1377,7 +1399,7 @@ export class GameRoom {
 
         // Check for KO
         if (damageResult.newState.stocks <= 0) {
-          this.handlePlayerKO({ playerId: attackData.targetId });
+          await this.handlePlayerKO({ playerId: attackData.targetId });
         }
       }
     } else {
