@@ -18,7 +18,6 @@ import {
   GAME_CONFIG,
   CharacterType,
   getCharacterStats,
-  UI_COLORS,
   ASSET_KEYS,
 } from '../utils/constants';
 
@@ -369,22 +368,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private setupEventListeners(): void {
     // Listen for physics events
     this.scene.physics.world.on('worldbounds', this.handleWorldBounds, this);
-  }
-
-  private getCharacterColor(): number {
-    // Map character IDs to UI color keys
-    const characterColorMap: Record<string, () => number> = {
-      DASH: () => UI_COLORS.CHARACTER_DASH(),
-      REX: () => UI_COLORS.CHARACTER_REX(),
-      TITAN: () => UI_COLORS.CHARACTER_TITAN(),
-      NINJA: () => UI_COLORS.CHARACTER_NINJA(),
-      FAST_LIGHTWEIGHT: () => UI_COLORS.CHARACTER_DASH(),
-      BALANCED_ALLROUNDER: () => UI_COLORS.CHARACTER_REX(),
-      HEAVY_HITTER: () => UI_COLORS.CHARACTER_TITAN(),
-    };
-
-    const colorFunction = characterColorMap[this.characterType];
-    return colorFunction ? colorFunction() : UI_COLORS.CHARACTER_REX();
   }
 
   private handleWorldBounds(): void {
