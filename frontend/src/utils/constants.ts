@@ -152,6 +152,11 @@ export const GAME_CONFIG = {
       WARNING: string;
       TEXT: string;
       TEXT_SECONDARY: string;
+      // Character colors for sprite tinting
+      CHARACTER_DASH: string;
+      CHARACTER_REX: string;
+      CHARACTER_TITAN: string;
+      CHARACTER_NINJA: string;
     };
     FONTS: {
       PRIMARY: string;
@@ -305,6 +310,11 @@ export function updateGameConfig(serverConstants: any): void {
       WARNING: serverConstants.ui.colors_warning,
       TEXT: serverConstants.ui.colors_text,
       TEXT_SECONDARY: serverConstants.ui.colors_text_secondary,
+      // Character colors for sprite tinting
+      CHARACTER_DASH: serverConstants.ui.colors_character_dash,
+      CHARACTER_REX: serverConstants.ui.colors_character_rex,
+      CHARACTER_TITAN: serverConstants.ui.colors_character_titan,
+      CHARACTER_NINJA: serverConstants.ui.colors_character_ninja,
     };
 
     GAME_CONFIG.UI.FONTS = {
@@ -565,4 +575,9 @@ export const UI_COLORS = {
   WARNING_HEX: () => getUIColorHex('WARNING'),
   TEXT_HEX: () => getUIColorHex('TEXT'),
   TEXT_SECONDARY_HEX: () => getUIColorHex('TEXT_SECONDARY'),
+  // Character colors for sprite tinting
+  CHARACTER_DASH: () => getUIColor('CHARACTER_DASH'),
+  CHARACTER_REX: () => getUIColor('CHARACTER_REX'),
+  CHARACTER_TITAN: () => getUIColor('CHARACTER_TITAN'),
+  CHARACTER_NINJA: () => getUIColor('CHARACTER_NINJA'),
 };

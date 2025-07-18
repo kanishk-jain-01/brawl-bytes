@@ -303,6 +303,11 @@ ui:
     text_secondary: "#bdc3c7"
     background: "#34495e"
     accent: "#9b59b6"
+    # Character type colors for sprite tinting
+    character_dash: "#27ae60"        # Green for fast/lightweight
+    character_rex: "#3498db"         # Blue for balanced/allrounder  
+    character_titan: "#e74c3c"       # Red for heavy/hitter
+    character_ninja: "#9b59b6"       # Purple for stealth
   
   fonts:
     primary: "Arial, sans-serif"
