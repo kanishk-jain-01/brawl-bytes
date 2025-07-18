@@ -191,7 +191,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     const startX =
       this.cameras.main.centerX -
       ((characters.length - 1) * (cardWidth + spacing)) / 2;
-    const startY = 250;
+    const startY = 320;
 
     characters.forEach(([key, character], index) => {
       const x = startX + index * (cardWidth + spacing);
@@ -289,7 +289,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     // Character name - enhanced styling for better readability
     const nameText = this.add
-      .text(0, hasCardImage ? 50 : 20, character.name, {
+      .text(0, hasCardImage ? 20 : -10, character.name, {
         fontSize: '28px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: '#ffffff',
