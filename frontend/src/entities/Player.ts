@@ -70,6 +70,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     | 'falling'
     | 'attacking' = 'idle';
 
+  private previousFacingDirection: 'left' | 'right' = 'right';
+
   private currentTween: Phaser.Tweens.Tween | null = null;
 
   // Store base scale factors for animations
@@ -321,14 +323,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         });
       }
 
-      // Use row 2 for jump (facing right as default)
-      if (!this.scene.anims.exists(`${animKey}_jump`)) {
+      // Create jump animations for both directions
+      // Jump right (row 2)
+      if (!this.scene.anims.exists(`${animKey}_jump_right`)) {
         this.scene.anims.create({
-          key: `${animKey}_jump`,
+          key: `${animKey}_jump_right`,
           frames: this.scene.anims.generateFrameNumbers(spriteKey, {
             start: 4,
             end: 7,
           }), // Row 2
+          frameRate: 10,
+          repeat: 0,
+        });
+      }
+
+      // Jump left (row 4)
+      if (!this.scene.anims.exists(`${animKey}_jump_left`)) {
+        this.scene.anims.create({
+          key: `${animKey}_jump_left`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 12,
+            end: 15,
+          }), // Row 4
           frameRate: 10,
           repeat: 0,
         });
@@ -413,11 +429,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.inputState.left) {
       body.setVelocityX(-this.character.speed);
       this.facingDirection = 'left';
-      this.setFlipX(true);
     } else if (this.inputState.right) {
       body.setVelocityX(this.character.speed);
       this.facingDirection = 'right';
-      this.setFlipX(false);
     }
 
     // Jumping
@@ -476,6 +490,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     const prevState = this.animationState;
+    const prevFacing = this.previousFacingDirection;
 
     // Determine new animation state
     if (this.isAttacking) {
@@ -492,9 +507,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.animationState = 'idle';
     }
 
-    // Apply visual effects if state changed
-    if (prevState !== this.animationState) {
+    // Apply visual effects if state OR direction changed
+    if (
+      prevState !== this.animationState ||
+      prevFacing !== this.facingDirection
+    ) {
       this.playAnimation(this.animationState);
+      this.previousFacingDirection = this.facingDirection;
     }
   }
 
@@ -551,8 +570,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             break;
           case 'jumping':
           case 'falling':
-            if (this.scene.anims.exists(`${animKey}_jump`)) {
-              this.play(`${animKey}_jump`);
+            if (this.scene.anims.exists(`${animKey}_jump_${direction}`)) {
+              this.play(`${animKey}_jump_${direction}`);
             }
             break;
           case 'attacking':
@@ -1176,7 +1195,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Update facing direction if provided
     if (facing) {
       this.facingDirection = facing;
-      this.setFlipX(facing === 'left');
     }
 
     // Immediate position update for instant visual feedback
@@ -1227,11 +1245,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Update facing based on explicit facing or direction
     if (facing) {
       this.facingDirection = facing;
-      this.setFlipX(facing === 'left');
     } else {
       // Fallback to direction-based facing
       this.facingDirection = direction < 0 ? 'left' : 'right';
-      this.setFlipX(direction < 0);
     }
 
     this.performAttack(); // Use existing attack method
@@ -1327,12 +1343,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.body) {
       const body = this.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(interpolatedVelX, interpolatedVelY);
-    }
-
-    // Update direction based on interpolated velocity for remote players
-    if (Math.abs(interpolatedVelX) > 5) {
-      // Only update direction if moving significantly
-      this.setFlipX(interpolatedVelX < 0); // Face left if moving left, right if moving right
     }
 
     // Clean up old states
