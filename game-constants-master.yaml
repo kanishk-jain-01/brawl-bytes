@@ -249,10 +249,10 @@ assets:
     background_stage1: "background_stage1"  # Future: jungle backgrounds
     background_stage2: "background_stage2"  # Future: jungle backgrounds
     background_stage3: "background_stage3"  # Future: jungle backgrounds
-    character_dash: "character_dash"  # Using jungle-themed placeholder
-    character_rex: "character_rex"  # Using jungle-themed placeholder
+    character_dash: "character_dash"  # Now uses dash_spritesheet.png
+    character_rex: "character_rex"  # Now uses rex_spritesheet.png
     character_titan: "character_titan"  # Using jungle-themed placeholder
-    character_ninja: "character_ninja"  # Using jungle-themed placeholder
+    character_ninja: "character_ninja"  # Now uses ninja_spritesheet.png
     platform: "platform"  # Keep existing
     ui_button: "ui_button"  # Using jungle-themed placeholder
     ui_button_hover: "ui_button_hover"  # Using jungle-themed placeholder
@@ -273,12 +273,12 @@ assets:
     sfx_defeat: "sfx_defeat"  # Keep existing
   
   spritesheets:
-    dash_sprites: "dash_sprites"
-    rex_sprites: "rex_sprites"
-    titan_sprites: "titan_sprites"
-    ninja_sprites: "ninja_sprites"
-    effects: "effects_sprites"
-    ui_elements: "ui_sprites"
+    dash_sprites: "dash_sprites"      # Using actual dash_spritesheet.png
+    rex_sprites: "rex_sprites"        # Using actual rex_spritesheet.png
+    titan_sprites: "titan_sprites"    # Using placeholder for now
+    ninja_sprites: "ninja_sprites"    # Using actual ninja_spritesheet.png
+    effects: "effects_sprites"        # Future: effects spritesheet
+    ui_elements: "ui_sprites"         # Future: UI elements spritesheet
 
 # GAME RULES
 # Match settings and gameplay parameters

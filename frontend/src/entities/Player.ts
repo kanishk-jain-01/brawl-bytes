@@ -19,6 +19,7 @@ import {
   CharacterType,
   getCharacterStats,
   UI_COLORS,
+  ASSET_KEYS,
 } from '../utils/constants';
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -70,6 +71,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     | 'attacking' = 'idle';
 
   private currentTween: Phaser.Tweens.Tween | null = null;
+
+  // Store base scale factors for animations
+  private baseScaleX: number = 1;
+
+  private baseScaleY: number = 1;
 
   // Input state (for local player)
   private inputState = {
@@ -134,8 +140,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private interpolationDelay: number = GAME_CONFIG.NETWORK.INTERPOLATION_DELAY; // ms
 
+  private static getCharacterSpriteKey(characterType: CharacterType): string {
+    // Fail-first approach: strict character sprite mapping
+    const spriteMapping: Record<string, string> = {
+      DASH: ASSET_KEYS.SPRITESHEETS.DASH_SPRITES,
+      REX: ASSET_KEYS.SPRITESHEETS.REX_SPRITES,
+      TITAN: ASSET_KEYS.IMAGES.CHARACTER_TITAN, // Still using image for titan
+      NINJA: ASSET_KEYS.SPRITESHEETS.NINJA_SPRITES,
+    };
+
+    const spriteKey = spriteMapping[characterType];
+    if (!spriteKey) {
+      throw new Error(
+        `No sprite asset configured for character type: ${characterType}`
+      );
+    }
+
+    return spriteKey;
+  }
+
   constructor(config: PlayerConfig) {
-    super(config.scene, config.x, config.y, 'player_placeholder');
+    // Fail-first approach: use character-specific sprite or throw error
+    const spriteKey = Player.getCharacterSpriteKey(config.characterType);
+    super(config.scene, config.x, config.y, spriteKey);
 
     this.characterType = config.characterType;
     this.playerId = config.playerId;
@@ -156,6 +183,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setupPhysics();
     this.setupVisuals();
+    this.setupAnimations();
     this.setupEventListeners();
 
     // Add to scene
@@ -187,14 +215,107 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private setupVisuals(): void {
     // Set display size and color based on character
-    this.setDisplaySize(
-      GAME_CONFIG.PLAYER.DISPLAY_SIZE.WIDTH,
-      GAME_CONFIG.PLAYER.DISPLAY_SIZE.HEIGHT
-    );
-    this.setTint(this.getCharacterColor());
+    const targetWidth = GAME_CONFIG.PLAYER.DISPLAY_SIZE.WIDTH;
+    const targetHeight = GAME_CONFIG.PLAYER.DISPLAY_SIZE.HEIGHT;
+
+    // Force the sprite to be exactly the target size
+    this.setDisplaySize(targetWidth, targetHeight);
+
+    // Also set scale as a backup (in case setDisplaySize isn't working)
+    const scaleX = targetWidth / this.width;
+    const scaleY = targetHeight / this.height;
+    this.setScale(scaleX, scaleY);
+
+    // Store base scale factors for animations
+    this.baseScaleX = scaleX;
+    this.baseScaleY = scaleY;
+
+    // Remove tinting to show actual sprite (comment out for now)
+    // this.setTint(this.getCharacterColor());
 
     // Set origin for proper positioning
     this.setOrigin(0.5, 1);
+  }
+
+  private setupAnimations(): void {
+    // Only create animations for spritesheet characters
+    if (this.characterType === 'TITAN') {
+      // Titan still uses single image, skip animation setup
+      return;
+    }
+
+    const animKey = this.characterType.toLowerCase();
+    const spriteKey = Player.getCharacterSpriteKey(this.characterType);
+    
+    console.log(`Setting up animations for ${this.characterType} with spriteKey: ${spriteKey}`);
+    
+    // Check if the texture exists
+    if (!this.scene.textures.exists(spriteKey)) {
+      console.error(`Texture ${spriteKey} not found! Cannot create animations.`);
+      return;
+    }
+
+    try {
+      // Spritesheet layout: 4 columns x 4 rows (16 frames total)
+      // Row 1 (frames 0-3): Facing camera (not used)
+      // Row 2 (frames 4-7): Facing right ✓
+      // Row 3 (frames 8-11): Facing away (not used)
+      // Row 4 (frames 12-15): Facing left ✓
+      
+      // Create animations for facing right (row 2)
+      if (!this.scene.anims.exists(`${animKey}_idle_right`)) {
+        this.scene.anims.create({
+          key: `${animKey}_idle_right`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 4 }), // First frame of row 2
+          frameRate: 8,
+          repeat: -1
+        });
+      }
+
+      if (!this.scene.anims.exists(`${animKey}_walk_right`)) {
+        this.scene.anims.create({
+          key: `${animKey}_walk_right`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 7 }), // Row 2
+          frameRate: 12,
+          repeat: -1
+        });
+      }
+
+      // Create animations for facing left (row 4)
+      if (!this.scene.anims.exists(`${animKey}_idle_left`)) {
+        this.scene.anims.create({
+          key: `${animKey}_idle_left`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 12, end: 12 }), // First frame of row 4
+          frameRate: 8,
+          repeat: -1
+        });
+      }
+
+      if (!this.scene.anims.exists(`${animKey}_walk_left`)) {
+        this.scene.anims.create({
+          key: `${animKey}_walk_left`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 12, end: 15 }), // Row 4
+          frameRate: 12,
+          repeat: -1
+        });
+      }
+
+      // Use row 2 for jump (facing right as default)
+      if (!this.scene.anims.exists(`${animKey}_jump`)) {
+        this.scene.anims.create({
+          key: `${animKey}_jump`,
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 7 }), // Row 2
+          frameRate: 10,
+          repeat: 0
+        });
+      }
+
+      // Set initial animation (facing right by default)
+      this.play(`${animKey}_idle_right`);
+      console.log(`Successfully created animations for ${this.characterType}`);
+    } catch (error) {
+      console.error(`Failed to create animations for ${this.characterType}:`, error);
+    }
   }
 
   private setupEventListeners(): void {
@@ -355,30 +476,71 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.currentTween = null;
     }
 
-    // Reset transform
-    this.setScale(1);
+    // Reset transform to base scale (not 1)
+    this.setScale(this.baseScaleX, this.baseScaleY);
     this.setRotation(0);
 
     // Apply state-specific animations
-    switch (newState) {
-      case 'idle':
-        this.playIdleAnimation();
-        break;
-      case 'walking':
-        this.playWalkingAnimation();
-        break;
-      case 'jumping':
-        this.playJumpingAnimation();
-        break;
-      case 'falling':
-        this.playFallingAnimation();
-        break;
-      case 'attacking':
-        this.playAttackingAnimation();
-        break;
-      default:
-        this.playIdleAnimation();
-        break;
+    if (this.characterType === 'TITAN') {
+      // Titan uses old tween animations
+      switch (newState) {
+        case 'idle':
+          this.playIdleAnimation();
+          break;
+        case 'walking':
+          this.playWalkingAnimation();
+          break;
+        case 'jumping':
+          this.playJumpingAnimation();
+          break;
+        case 'falling':
+          this.playFallingAnimation();
+          break;
+        case 'attacking':
+          this.playAttackingAnimation();
+          break;
+        default:
+          this.playIdleAnimation();
+          break;
+      }
+    } else {
+      // Use spritesheet animations with directional support
+      const animKey = this.characterType.toLowerCase();
+      const direction = this.flipX ? 'left' : 'right';
+      
+      try {
+        switch (newState) {
+          case 'idle':
+            if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
+              this.play(`${animKey}_idle_${direction}`);
+            }
+            break;
+          case 'walking':
+            if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
+              this.play(`${animKey}_walk_${direction}`);
+            }
+            break;
+          case 'jumping':
+          case 'falling':
+            if (this.scene.anims.exists(`${animKey}_jump`)) {
+              this.play(`${animKey}_jump`);
+            }
+            break;
+          case 'attacking':
+            // No attack animation available, use walking animation as feedback
+            if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
+              this.play(`${animKey}_walk_${direction}`);
+            }
+            break;
+          default:
+            if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
+              this.play(`${animKey}_idle_${direction}`);
+            }
+            break;
+        }
+      } catch (error) {
+        console.error(`Failed to play animation ${newState} for ${this.characterType}:`, error);
+      }
     }
   }
 
@@ -386,7 +548,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Gentle breathing effect
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: GAME_CONFIG.ANIMATION.BREATHING_SCALE.SCALE_Y,
+      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.BREATHING_SCALE.SCALE_Y,
       duration: GAME_CONFIG.ANIMATION.BREATHING_SCALE.DURATION,
       ease: 'Sine.easeInOut',
       yoyo: true,
@@ -398,7 +560,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Subtle bounce while walking
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: GAME_CONFIG.ANIMATION.HIT_EFFECT.SCALE_Y,
+      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.HIT_EFFECT.SCALE_Y,
       duration: GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION,
       ease: 'Sine.easeInOut',
       yoyo: true,
@@ -410,13 +572,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Stretch effect when jumping
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.SCALE_Y,
-      scaleX: 0.95,
+      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.SCALE_Y,
+      scaleX: this.baseScaleX * 0.95,
       duration: GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.DURATION,
       ease: 'Back.easeOut',
       yoyo: false,
       onComplete: () => {
-        this.setScale(1);
+        this.setScale(this.baseScaleX, this.baseScaleY);
       },
     });
   }
@@ -425,8 +587,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Compress effect when falling
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleY: 0.9,
-      scaleX: 1.1,
+      scaleY: this.baseScaleY * 0.9,
+      scaleX: this.baseScaleX * 1.1,
       duration: 300,
       ease: 'Sine.easeInOut',
       yoyo: false,
@@ -437,13 +599,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Scale up briefly for attack
     this.currentTween = this.scene.tweens.add({
       targets: this,
-      scaleX: 1.2,
-      scaleY: 1.1,
+      scaleX: this.baseScaleX * 1.2,
+      scaleY: this.baseScaleY * 1.1,
       duration: 100,
       ease: 'Back.easeOut',
       yoyo: true,
       onComplete: () => {
-        this.setScale(1);
+        this.setScale(this.baseScaleX, this.baseScaleY);
       },
     });
   }
@@ -984,6 +1146,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocity(velocity.x, velocity.y);
     }
 
+    // Update direction based on velocity for remote players
+    if (Math.abs(velocity.x) > 5) { // Only update direction if moving significantly
+      this.setFlipX(velocity.x < 0); // Face left if moving left, right if moving right
+    }
+
     // Try to add to interpolation buffer if scene timing is available
     if (this.scene && this.scene.time) {
       const currentTime = this.scene.time.now;
@@ -1111,6 +1278,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.body) {
       const body = this.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(interpolatedVelX, interpolatedVelY);
+    }
+
+    // Update direction based on interpolated velocity for remote players
+    if (Math.abs(interpolatedVelX) > 5) { // Only update direction if moving significantly
+      this.setFlipX(interpolatedVelX < 0); // Face left if moving left, right if moving right
     }
 
     // Clean up old states

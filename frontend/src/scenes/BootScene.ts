@@ -130,25 +130,29 @@ export class BootScene extends Phaser.Scene {
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAiIGZpbGw9IiM5NWE1YTYiLz4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUiIGZpbGw9IiM3ZjhlOGYiLz4KPC9zdmc+'
     );
 
-    // Load character images (use placeholder for now since jungle characters don't exist yet)
-    this.load.image(
-      ASSET_KEYS.IMAGES.CHARACTER_DASH,
-      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMjdhZTYwIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRBU0g8L3RleHQ+Cjwvc3ZnPg=='
+    // Load character spritesheets - 192x192 pixels, 4x4 grid = 48x48 per frame
+    this.load.spritesheet(
+      ASSET_KEYS.SPRITESHEETS.DASH_SPRITES,
+      '/assets/dash_spritesheet.png',
+      { frameWidth: 48, frameHeight: 48 }
     );
 
-    this.load.image(
-      ASSET_KEYS.IMAGES.CHARACTER_REX,
-      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzQ5OGRiIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJFWDwvdGV4dD4KPC9zdmc+'
+    this.load.spritesheet(
+      ASSET_KEYS.SPRITESHEETS.REX_SPRITES,
+      '/assets/rex_spritesheet.png',
+      { frameWidth: 48, frameHeight: 48 }
     );
 
+    this.load.spritesheet(
+      ASSET_KEYS.SPRITESHEETS.NINJA_SPRITES,
+      '/assets/ninja_spritesheet.png',
+      { frameWidth: 48, frameHeight: 48 }
+    );
+
+    // Keep titan as placeholder for now since no spritesheet provided
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_TITAN,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTc0YzNjIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VElUQU48L3RleHQ+Cjwvc3ZnPg=='
-    );
-
-    this.load.image(
-      ASSET_KEYS.IMAGES.CHARACTER_NINJA,
-      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjOWI1OWI2IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TklOSkE8L3RleHQ+Cjwvc3ZnPg=='
     );
 
     // Load jungle canopy video background (served from frontend to avoid CORS)
