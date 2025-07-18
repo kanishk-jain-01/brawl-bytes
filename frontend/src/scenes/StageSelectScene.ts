@@ -202,7 +202,7 @@ export class StageSelectScene extends Phaser.Scene {
     const startX =
       this.cameras.main.centerX -
       ((stages.length - 1) * (cardWidth + spacing)) / 2;
-    const startY = 250;
+    const startY = 320;
 
     stages.forEach(([key, stage], index) => {
       const x = startX + index * (cardWidth + spacing);
@@ -228,156 +228,104 @@ export class StageSelectScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
 
-    // Card background
-    const background = this.add.rectangle(0, 0, width, height, 0x2c3e50);
-    background.setStrokeStyle(2, 0xe74c3c);
+    // Check if this stage is coming soon
+    const isComingSoon =
+      stage.name === 'Floating Islands' || stage.name === 'Volcanic Chamber';
+
+    // Translucent card background - darker for coming soon stages
+    const backgroundColor = isComingSoon ? 0x1a1a1a : 0x2c3e50;
+    const backgroundAlpha = isComingSoon ? 0.5 : 0.7;
+    const background = this.add.rectangle(
+      0,
+      0,
+      width,
+      height,
+      backgroundColor,
+      backgroundAlpha
+    );
+    background.setStrokeStyle(2, isComingSoon ? 0x7f8c8d : 0xe74c3c);
     container.add(background);
 
-    // Stage preview area (using colored rectangle and basic platform preview)
-    const previewBg = this.add.rectangle(0, -80, width - 20, 120, 0x34495e);
-    previewBg.setStrokeStyle(1, 0xbdc3c7);
-    container.add(previewBg);
-
-    // Draw basic platform preview
-    this.drawPlatformPreview(container, stage, width - 20, 120);
-
-    // Difficulty indicator - use database-driven UI colors based on difficulty
-    let difficultyColor: number;
-    if (stage.difficulty === 'Easy') {
-      difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.SUCCESS.replace('#', '0x'),
-        16
-      );
-    } else if (stage.difficulty === 'Hard') {
-      difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.DANGER.replace('#', '0x'),
-        16
-      );
-    } else {
-      difficultyColor = parseInt(
-        GAME_CONFIG.UI.COLORS.WARNING.replace('#', '0x'),
-        16
-      );
-    }
-
-    // Strict validation - fail if UI colors not loaded from database
-    if (
-      !GAME_CONFIG.UI.COLORS.SUCCESS ||
-      !GAME_CONFIG.UI.COLORS.DANGER ||
-      !GAME_CONFIG.UI.COLORS.WARNING
-    ) {
-      throw new Error(
-        'UI colors not loaded from database constants. Cannot display stage difficulty.'
-      );
-    }
-    const difficultyBadge = this.add.rectangle(
-      width / 2 - 30,
-      -height / 2 + 20,
-      60,
-      20,
-      difficultyColor
-    );
-    difficultyBadge.setStrokeStyle(1, 0xffffff);
-    container.add(difficultyBadge);
-
-    const difficultyText = this.add
-      .text(width / 2 - 30, -height / 2 + 20, stage.difficulty, {
-        fontSize: '12px',
-        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    container.add(difficultyText);
-
-    // Stage name
+    // Stage name - centered vertically and horizontally
+    const nameColor = isComingSoon
+      ? GAME_CONFIG.UI.COLORS.TEXT_SECONDARY
+      : GAME_CONFIG.UI.COLORS.TEXT;
     const nameText = this.add
-      .text(0, 10, stage.name, {
+      .text(0, -40, stage.name, {
         fontSize: '24px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT,
+        color: nameColor,
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
     container.add(nameText);
 
-    // Stage description (truncated)
-    const truncatedDesc =
-      stage.description.length > 60
-        ? `${stage.description.substring(0, 60)}...`
-        : stage.description;
+    if (isComingSoon) {
+      // Coming soon text instead of description
+      const comingSoonText = this.add
+        .text(0, 0, 'COMING SOON', {
+          fontSize: '18px',
+          fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+          color: '#f39c12',
+          align: 'center',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5);
+      container.add(comingSoonText);
 
-    const descText = this.add
-      .text(0, 50, truncatedDesc, {
-        fontSize: '14px',
-        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-        wordWrap: { width: width - 20 },
-      })
-      .setOrigin(0.5);
-    container.add(descText);
+      // No difficulty for coming soon stages
+    } else {
+      // Stage description - centered and with better spacing
+      const truncatedDesc =
+        stage.description.length > 80
+          ? `${stage.description.substring(0, 80)}...`
+          : stage.description;
 
-    // Stage stats
-    const platformCount = stage.platforms ? stage.platforms.length : 0;
-    const hazardCount = stage.hazards ? stage.hazards.length : 0;
-    const statsText = this.add
-      .text(0, 90, `Platforms: ${platformCount}\nHazards: ${hazardCount}`, {
-        fontSize: '12px',
-        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
-        align: 'center',
-      })
-      .setOrigin(0.5);
-    container.add(statsText);
+      const descText = this.add
+        .text(0, 0, truncatedDesc, {
+          fontSize: '14px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          align: 'center',
+          wordWrap: { width: width - 40 },
+        })
+        .setOrigin(0.5);
+      container.add(descText);
 
-    // Make card interactive
-    background.setInteractive();
-    background.on('pointerdown', () => this.selectStage(stageKey));
-    background.on('pointerover', () => this.onCardHover(container, background));
-    background.on('pointerout', () =>
-      this.onCardHoverOut(container, background)
-    );
+      // Difficulty indicator - simple text below description
+      const difficultyText = this.add
+        .text(0, 50, stage.difficulty, {
+          fontSize: '14px',
+          fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          align: 'center',
+          fontStyle: 'italic',
+        })
+        .setOrigin(0.5);
+      container.add(difficultyText);
+    }
+
+    // Make card interactive only if not coming soon
+    if (!isComingSoon) {
+      background.setInteractive();
+      background.on('pointerdown', () => this.selectStage(stageKey));
+      background.on('pointerover', () =>
+        this.onCardHover(container, background)
+      );
+      background.on('pointerout', () =>
+        this.onCardHoverOut(container, background)
+      );
+    }
 
     return container;
-  }
-
-  private drawPlatformPreview(
-    container: Phaser.GameObjects.Container,
-    stage: (typeof GAME_CONFIG.STAGES)[StageType],
-    previewWidth: number,
-    previewHeight: number
-  ): void {
-    if (!stage.platforms || stage.platforms.length === 0) return;
-
-    // Scale platforms to fit preview area
-    const scaleX = previewWidth / 800; // Assuming 800px stage width
-    const scaleY = previewHeight / 600; // Assuming 600px stage height
-
-    stage.platforms.forEach(platform => {
-      const scaledX = platform.x * scaleX - previewWidth / 2;
-      const scaledY = platform.y * scaleY - previewHeight / 2;
-      const scaledWidth = platform.width * scaleX;
-      const scaledHeight = platform.height * scaleY;
-
-      const platformRect = this.add.rectangle(
-        scaledX,
-        scaledY - 80, // Offset for preview position
-        scaledWidth,
-        scaledHeight,
-        0x95a5a6
-      );
-      platformRect.setStrokeStyle(1, 0xffffff);
-      container.add(platformRect);
-    });
   }
 
   private onCardHover(
     container: Phaser.GameObjects.Container,
     background: Phaser.GameObjects.Rectangle
   ): void {
-    background.setFillStyle(0x34495e);
-    background.setStrokeStyle(2, 0xf39c12);
+    background.setAlpha(0.9);
+    background.setStrokeStyle(3, 0xf39c12);
 
     this.tweens.add({
       targets: container,
@@ -393,7 +341,7 @@ export class StageSelectScene extends Phaser.Scene {
     background: Phaser.GameObjects.Rectangle
   ): void {
     if (this.getStageFromContainer(container) !== this.selectedStage) {
-      background.setFillStyle(0x2c3e50);
+      background.setAlpha(0.7);
       background.setStrokeStyle(2, 0xe74c3c);
     }
 
@@ -434,9 +382,11 @@ export class StageSelectScene extends Phaser.Scene {
 
       if (stageKey === selectedKey) {
         background.setFillStyle(0x27ae60);
+        background.setAlpha(0.9);
         background.setStrokeStyle(3, 0x2ecc71);
       } else {
         background.setFillStyle(0x2c3e50);
+        background.setAlpha(0.7);
         background.setStrokeStyle(2, 0xe74c3c);
       }
     });
