@@ -258,17 +258,6 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   private createPlayerArea(): void {
     const playerAreaY = 180;
 
-    // Player area background
-    this.add
-      .rectangle(
-        this.cameras.main.centerX,
-        playerAreaY + 90,
-        this.cameras.main.width - 40,
-        200,
-        0x2c3e50
-      )
-      .setStrokeStyle(2, 0x34495e);
-
     // Title for player area
     this.add
       .text(this.cameras.main.centerX, playerAreaY - 20, 'PLAYERS', {
