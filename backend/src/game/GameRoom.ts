@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import {
-  AuthenticatedSocket,
   SocketManager,
 } from '../networking/SocketManager';
 import {
@@ -11,41 +10,13 @@ import {
 import { GameConstantsService } from '../services/GameConstantsService';
 import { MatchRepository } from '../database/repositories/MatchRepository';
 import { PlayerStatsService } from '../services/PlayerStatsService';
-
-export enum GameState {
-  WAITING = 'waiting',
-  STARTING = 'starting',
-  PLAYING = 'playing',
-  PAUSED = 'paused',
-  ENDED = 'ended',
-}
-
-export enum PlayerState {
-  CONNECTED = 'connected',
-  READY = 'ready',
-  PLAYING = 'playing',
-  DISCONNECTED = 'disconnected',
-}
-
-export interface GameRoomPlayer {
-  socket: AuthenticatedSocket;
-  userId: string;
-  username: string;
-  state: PlayerState;
-  character?: string | undefined;
-  joinedAt: Date;
-  isHost: boolean;
-  // Server-side player state for validation
-  position?: { x: number; y: number };
-  velocity?: { x: number; y: number };
-  lastSequence?: number;
-  lastUpdate?: number;
-  // Disconnect handling
-  disconnectedAt?: Date;
-  reconnectionTimeout?: NodeJS.Timeout;
-  disconnectCount?: number;
-  lastReconnectAt?: Date;
-}
+import { PlayerState, GameState } from '../types';
+import type {
+  GameRoomPlayer,
+  ProcessedPlayerInput,
+  PlayerInputData,
+  AuthenticatedSocket,
+} from '../types';
 
 export interface GameRoomConfig {
   maxPlayers: number;
@@ -86,20 +57,6 @@ export interface RoomState {
   createdAt: Date;
   lastActivity: Date;
   lastGameResults?: GameResults | undefined;
-}
-
-export interface PlayerInputData {
-  type: 'move' | 'attack' | 'jump' | 'special';
-  data: any;
-  sequence?: number;
-}
-
-export interface ProcessedPlayerInput {
-  playerId: string;
-  timestamp: number;
-  inputType: string;
-  data: any;
-  sequence: number;
 }
 
 export interface GameEvent {
@@ -1146,6 +1103,7 @@ export class GameRoom {
       ...(inputData.type === 'attack' && {
         attackType: (inputData as any).attackType,
         direction: (inputData as any).direction,
+        facing: (inputData as any).facing,
       }),
     };
 
@@ -1160,6 +1118,7 @@ export class GameRoom {
     userId: string,
     position: { x: number; y: number },
     velocity: { x: number; y: number },
+    facing?: 'left' | 'right',
     sequence?: number
   ): Promise<void> {
     const player = this.players.get(userId);
@@ -1192,24 +1151,32 @@ export class GameRoom {
       // eslint-disable-next-line no-param-reassign
       player.lastUpdate = currentTime;
 
+      // Store facing direction if provided
+      if (facing) {
+        // eslint-disable-next-line no-param-reassign
+        player.facing = facing;
+      }
+
       // Broadcast to other players
       this.broadcastToOthers(userId, 'playerMove', {
         playerId: userId,
         position,
         velocity,
+        facing,
         sequence,
         timestamp: currentTime,
       });
 
       // Debug: outgoing player movement
       console.log(
-        `[MOVE_OUT] room=${this.id} player=${userId} seq=${sequence ?? 0}`
+        `[MOVE_OUT] room=${this.id} player=${userId} facing=${facing} seq=${sequence ?? 0}`
       );
 
       // Send authoritative state back to client for reconciliation
       player.socket.emit('serverState', {
         position,
         velocity,
+        facing,
         sequence,
         timestamp: currentTime,
       });
@@ -1477,12 +1444,13 @@ export class GameRoom {
         player.socket.emit('serverState', {
           position: player.position,
           velocity: player.velocity || { x: 0, y: 0 },
+          facing: player.facing || 'right',
           sequence: 0,
           timestamp: Date.now(),
         });
 
         console.log(
-          `GameRoom: Sent initial position to ${player.username}: (${player.position.x}, ${player.position.y})`
+          `GameRoom: Sent initial position to ${player.username}: (${player.position.x}, ${player.position.y}) facing=${player.facing || 'right'}`
         );
       }
     });
@@ -1492,6 +1460,7 @@ export class GameRoom {
       playerId: player.userId,
       position: player.position || { x: 0, y: 0 },
       velocity: player.velocity || { x: 0, y: 0 },
+      facing: player.facing || 'right',
     }));
 
     this.broadcastToRoom('initialPlayerPositions', {

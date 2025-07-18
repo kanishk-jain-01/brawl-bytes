@@ -87,10 +87,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     special: false,
   };
 
+  // Add explicit facing direction state
+  private facingDirection: 'left' | 'right' = 'right';
+
   // Network synchronization
   private lastSyncPosition: { x: number; y: number } = { x: 0, y: 0 };
 
   private lastSyncVelocity: { x: number; y: number } = { x: 0, y: 0 };
+
+  private lastSyncFacing: 'left' | 'right' = 'right';
 
   private lastSyncTime: number = 0;
 
@@ -246,12 +251,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const animKey = this.characterType.toLowerCase();
     const spriteKey = Player.getCharacterSpriteKey(this.characterType);
-    
-    console.log(`Setting up animations for ${this.characterType} with spriteKey: ${spriteKey}`);
-    
+
+    console.log(
+      `Setting up animations for ${this.characterType} with spriteKey: ${spriteKey}`
+    );
+
     // Check if the texture exists
     if (!this.scene.textures.exists(spriteKey)) {
-      console.error(`Texture ${spriteKey} not found! Cannot create animations.`);
+      console.error(
+        `Texture ${spriteKey} not found! Cannot create animations.`
+      );
       return;
     }
 
@@ -261,23 +270,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       // Row 2 (frames 4-7): Facing right ✓
       // Row 3 (frames 8-11): Facing away (not used)
       // Row 4 (frames 12-15): Facing left ✓
-      
+
       // Create animations for facing right (row 2)
       if (!this.scene.anims.exists(`${animKey}_idle_right`)) {
         this.scene.anims.create({
           key: `${animKey}_idle_right`,
-          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 4 }), // First frame of row 2
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 4,
+            end: 4,
+          }), // First frame of row 2
           frameRate: 8,
-          repeat: -1
+          repeat: -1,
         });
       }
 
       if (!this.scene.anims.exists(`${animKey}_walk_right`)) {
         this.scene.anims.create({
           key: `${animKey}_walk_right`,
-          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 7 }), // Row 2
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 4,
+            end: 7,
+          }), // Row 2
           frameRate: 12,
-          repeat: -1
+          repeat: -1,
         });
       }
 
@@ -285,18 +300,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (!this.scene.anims.exists(`${animKey}_idle_left`)) {
         this.scene.anims.create({
           key: `${animKey}_idle_left`,
-          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 12, end: 12 }), // First frame of row 4
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 12,
+            end: 12,
+          }), // First frame of row 4
           frameRate: 8,
-          repeat: -1
+          repeat: -1,
         });
       }
 
       if (!this.scene.anims.exists(`${animKey}_walk_left`)) {
         this.scene.anims.create({
           key: `${animKey}_walk_left`,
-          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 12, end: 15 }), // Row 4
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 12,
+            end: 15,
+          }), // Row 4
           frameRate: 12,
-          repeat: -1
+          repeat: -1,
         });
       }
 
@@ -304,9 +325,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (!this.scene.anims.exists(`${animKey}_jump`)) {
         this.scene.anims.create({
           key: `${animKey}_jump`,
-          frames: this.scene.anims.generateFrameNumbers(spriteKey, { start: 4, end: 7 }), // Row 2
+          frames: this.scene.anims.generateFrameNumbers(spriteKey, {
+            start: 4,
+            end: 7,
+          }), // Row 2
           frameRate: 10,
-          repeat: 0
+          repeat: 0,
         });
       }
 
@@ -314,7 +338,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.play(`${animKey}_idle_right`);
       console.log(`Successfully created animations for ${this.characterType}`);
     } catch (error) {
-      console.error(`Failed to create animations for ${this.characterType}:`, error);
+      console.error(
+        `Failed to create animations for ${this.characterType}:`,
+        error
+      );
     }
   }
 
@@ -385,9 +412,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Horizontal movement
     if (this.inputState.left) {
       body.setVelocityX(-this.character.speed);
+      this.facingDirection = 'left';
       this.setFlipX(true);
     } else if (this.inputState.right) {
       body.setVelocityX(this.character.speed);
+      this.facingDirection = 'right';
       this.setFlipX(false);
     }
 
@@ -506,8 +535,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       // Use spritesheet animations with directional support
       const animKey = this.characterType.toLowerCase();
-      const direction = this.flipX ? 'left' : 'right';
-      
+      const direction = this.facingDirection;
+
       try {
         switch (newState) {
           case 'idle':
@@ -539,7 +568,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             break;
         }
       } catch (error) {
-        console.error(`Failed to play animation ${newState} for ${this.characterType}:`, error);
+        console.error(
+          `Failed to play animation ${newState} for ${this.characterType}:`,
+          error
+        );
       }
     }
   }
@@ -1051,7 +1083,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const socketManager = getSocketManager();
     if (!socketManager || !SocketManager.isConnected()) return;
 
-    // Only sync if position or velocity has changed significantly
+    // Only sync if position, velocity, or facing has changed significantly
     const body = this.body as Phaser.Physics.Arcade.Body;
     const positionChanged =
       Math.abs(this.x - this.lastSyncPosition.x) > 1 ||
@@ -1061,7 +1093,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       Math.abs(body.velocity.x - this.lastSyncVelocity.x) > 5 ||
       Math.abs(body.velocity.y - this.lastSyncVelocity.y) > 5;
 
-    if (positionChanged || velocityChanged) {
+    const facingChanged = this.facingDirection !== this.lastSyncFacing;
+
+    if (positionChanged || velocityChanged || facingChanged) {
       this.syncPosition();
       this.lastSyncTime = currentTime;
     }
@@ -1077,16 +1111,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.inputSequence += 1;
 
-    // Send position with sequence number for server reconciliation
+    // Send position with sequence number and facing direction for server reconciliation
     SocketManager.sendPlayerInput(
       'move',
-      { position, velocity },
+      { position, velocity, facing: this.facingDirection },
       this.inputSequence
     );
 
     // Update last sync values
     this.lastSyncPosition = { ...position };
     this.lastSyncVelocity = { ...velocity };
+    this.lastSyncFacing = this.facingDirection;
   }
 
   public syncAttack(attackType: string): void {
@@ -1096,12 +1131,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (!socketManager) return;
 
     this.inputSequence += 1;
-    const direction = this.flipX ? -1 : 1;
 
     const attackData = {
       type: 'attack',
       attackType,
-      direction,
+      direction: this.facingDirection === 'left' ? -1 : 1,
+      facing: this.facingDirection,
       sequence: this.inputSequence,
       timestamp: Date.now(),
     };
@@ -1133,9 +1168,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // Methods to handle remote player updates
   public applyRemotePosition(
     position: { x: number; y: number },
-    velocity: { x: number; y: number }
+    velocity: { x: number; y: number },
+    facing?: 'left' | 'right'
   ): void {
     if (this.isLocalPlayer) return;
+
+    // Update facing direction if provided
+    if (facing) {
+      this.facingDirection = facing;
+      this.setFlipX(facing === 'left');
+    }
 
     // Immediate position update for instant visual feedback
     this.setPosition(position.x, position.y);
@@ -1144,11 +1186,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(velocity.x, velocity.y);
-    }
-
-    // Update direction based on velocity for remote players
-    if (Math.abs(velocity.x) > 5) { // Only update direction if moving significantly
-      this.setFlipX(velocity.x < 0); // Face left if moving left, right if moving right
     }
 
     // Try to add to interpolation buffer if scene timing is available
@@ -1180,11 +1217,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  public applyRemoteAttack(_attackType: string, direction: number): void {
+  public applyRemoteAttack(
+    _attackType: string,
+    direction: number,
+    facing?: 'left' | 'right'
+  ): void {
     if (this.isLocalPlayer) return;
 
-    // Apply remote player attack animation and effects
-    this.setFlipX(direction < 0);
+    // Update facing based on explicit facing or direction
+    if (facing) {
+      this.facingDirection = facing;
+      this.setFlipX(facing === 'left');
+    } else {
+      // Fallback to direction-based facing
+      this.facingDirection = direction < 0 ? 'left' : 'right';
+      this.setFlipX(direction < 0);
+    }
+
     this.performAttack(); // Use existing attack method
   }
 
@@ -1281,7 +1330,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Update direction based on interpolated velocity for remote players
-    if (Math.abs(interpolatedVelX) > 5) { // Only update direction if moving significantly
+    if (Math.abs(interpolatedVelX) > 5) {
+      // Only update direction if moving significantly
       this.setFlipX(interpolatedVelX < 0); // Face left if moving left, right if moving right
     }
 
@@ -1460,5 +1510,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     super.destroy();
+  }
+
+  // Add getter for facing direction
+  public getFacingDirection(): 'left' | 'right' {
+    return this.facingDirection;
   }
 }

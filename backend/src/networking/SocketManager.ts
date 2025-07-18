@@ -1,12 +1,9 @@
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { MatchmakingQueue, MatchPreferences } from '../game/MatchmakingQueue';
-import { GameRoom as ActualGameRoom, PlayerState } from '../game/GameRoom';
-
-export interface AuthenticatedSocket extends Socket {
-  userId?: string;
-  username?: string;
-}
+import type { AuthenticatedSocket } from '../types';
+import { GameRoom as ActualGameRoom } from '../game/GameRoom';
+import { PlayerState } from '../types';
 
 export class SocketManager {
   private io: Server;
@@ -126,18 +123,19 @@ export class SocketManager {
 
         // Handle different input types
         if (inputData.inputType === 'move' || inputData.type === 'move') {
-          const { position, velocity } = inputData.data || {};
+          const { position, velocity, facing } = inputData.data || {};
           const sequence = inputData.sequence || 0;
 
           // Debug inbound movement
           console.log(
-            `[MOVE_IN] user=${socket.userId} room=${targetRoom.getId()} seq=${sequence} pos=(${position?.x?.toFixed?.(1)},${position?.y?.toFixed?.(1)})`
+            `[MOVE_IN] user=${socket.userId} room=${targetRoom.getId()} facing=${facing} seq=${sequence} pos=(${position?.x?.toFixed?.(1)},${position?.y?.toFixed?.(1)})`
           );
 
           targetRoom.handlePlayerMove(
             socket.userId!,
             position,
             velocity,
+            facing,
             sequence
           );
         } else {

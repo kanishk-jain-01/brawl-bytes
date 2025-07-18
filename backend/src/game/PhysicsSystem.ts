@@ -1,4 +1,4 @@
-import type { GameRoomPlayer } from './GameRoom';
+import type { GameRoomPlayer } from '../types';
 import {
   GameConstantsService,
   type PhysicsConstants,

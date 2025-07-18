@@ -1,5 +1,7 @@
 import {
   AuthenticatedSocket,
+} from '../types';
+import {
   SocketManager,
 } from '../networking/SocketManager';
 import { GameRoom, GameRoomConfig } from './GameRoom';

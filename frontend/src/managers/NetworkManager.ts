@@ -134,6 +134,7 @@ export class NetworkManager {
     inputType: string;
     attackType?: string;
     direction?: number;
+    facing?: 'left' | 'right';
     data?: any;
   }): void {
     const remotePlayer = this.remotePlayers.get(data.playerId);
@@ -149,10 +150,14 @@ export class NetworkManager {
       case 'attack':
         // Debug: remote player attack received via modern system
         console.log(
-          `[REMOTE_ATTACK_INPUT] from=${data.playerId} type=${data.attackType} dir=${data.direction}`
+          `[REMOTE_ATTACK_INPUT] from=${data.playerId} type=${data.attackType} dir=${data.direction} facing=${data.facing}`
         );
         if (data.attackType && data.direction !== undefined) {
-          remotePlayer.applyRemoteAttack(data.attackType, data.direction);
+          remotePlayer.applyRemoteAttack(
+            data.attackType,
+            data.direction,
+            data.facing
+          );
         }
         break;
       default:
@@ -165,15 +170,23 @@ export class NetworkManager {
     playerId: string;
     position: { x: number; y: number };
     velocity: { x: number; y: number };
+    facing?: 'left' | 'right';
+    sequence?: number;
+    timestamp: number;
   }): void {
-    // Debug: remote player movement received
-    console.log(
-      `[REMOTE_MOVE] from=${data.playerId} pos=(${data.position.x.toFixed(1)},${data.position.y.toFixed(1)})`
-    );
     const remotePlayer = this.remotePlayers.get(data.playerId);
     if (!remotePlayer) return;
 
-    remotePlayer.applyRemotePosition(data.position, data.velocity);
+    // Debug: remote player movement received
+    console.log(
+      `[REMOTE_MOVE] player=${data.playerId} pos=(${data.position.x.toFixed(
+        1
+      )}, ${data.position.y.toFixed(1)}) facing=${data.facing} seq=${
+        data.sequence ?? 0
+      }`
+    );
+
+    remotePlayer.applyRemotePosition(data.position, data.velocity, data.facing);
   }
 
   private handleServerState(data: {
@@ -204,6 +217,7 @@ export class NetworkManager {
       playerId: string;
       position: { x: number; y: number };
       velocity: { x: number; y: number };
+      facing?: 'left' | 'right';
     }>;
     timestamp: number;
   }): void {
@@ -217,11 +231,12 @@ export class NetworkManager {
       const remotePlayer = this.remotePlayers.get(playerData.playerId);
       if (remotePlayer) {
         console.log(
-          `NetworkManager: Setting initial position for ${playerData.playerId}: (${playerData.position.x}, ${playerData.position.y})`
+          `NetworkManager: Setting initial position for ${playerData.playerId}: (${playerData.position.x}, ${playerData.position.y}) facing=${playerData.facing}`
         );
         remotePlayer.applyRemotePosition(
           playerData.position,
-          playerData.velocity
+          playerData.velocity,
+          playerData.facing
         );
       }
     });
