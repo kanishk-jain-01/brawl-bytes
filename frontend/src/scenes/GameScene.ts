@@ -548,6 +548,9 @@ export class GameScene extends Phaser.Scene {
     // eslint-disable-next-line no-console
     console.log('GameScene: Returning to character select');
 
+    // Leave the current room to ensure fresh state for next match
+    SocketManager.emit('leaveRoom');
+
     // Clean up modal if it exists
     if (this.quitModal) {
       this.quitModal.hide();

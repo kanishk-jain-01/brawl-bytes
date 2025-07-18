@@ -913,20 +913,15 @@ export class GameRoom {
       // Stop physics updates
       this.stopPhysicsUpdate();
 
-      // Reset player states to connected
-      this.players.forEach(player => {
-        if (player.state !== PlayerState.DISCONNECTED) {
-          // eslint-disable-next-line no-param-reassign
-          player.state = PlayerState.CONNECTED;
-        }
-      });
-
-      // Store results
+      // Store results before resetting
       this.lastGameResults = results;
 
       // Reset match tracking
       this.matchId = null;
       this.matchStartTime = null;
+
+      // Reset room state (clears lobby state, character selections, stage)
+      this.resetRoom();
 
       return { success: true };
     } catch (error) {

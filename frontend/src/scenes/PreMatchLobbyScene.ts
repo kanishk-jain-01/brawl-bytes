@@ -351,6 +351,11 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private updatePlayerCards(): void {
+    // Guard: Don't update if scene isn't properly initialized
+    if (!this.cameras?.main?.centerX) {
+      return;
+    }
+
     // Clear existing cards
     this.playerCards.forEach(card => card.destroy());
     this.playerCards = [];
@@ -571,7 +576,10 @@ export class PreMatchLobbyScene extends Phaser.Scene {
   }
 
   private updateStatusText(): void {
-    if (!this.statusText) return;
+    // Guard: Don't update if statusText isn't properly initialized
+    if (!this.statusText || !this.scene.isActive()) {
+      return;
+    }
 
     const { statusMessage } = useLobbyUI();
     const { getRoomStatus } = useRoom();
