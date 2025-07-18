@@ -159,7 +159,7 @@ characters:
 stages:
   battle_arena:
     id: "battle_arena"
-    name: "Tropical Rainforest Arena"
+    name: "Rainforest Arena"
     description: "A lush jungle arena with wooden platforms and dense vegetation"
     difficulty: "Easy"
     config:
