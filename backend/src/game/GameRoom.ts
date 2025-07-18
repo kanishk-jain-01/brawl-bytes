@@ -338,7 +338,25 @@ export class GameRoom {
     );
     this.updateActivity();
 
-    // Initialize physics for the player
+    // Initialize physics for the player with position
+    const playerIndex = this.players.size - 1; // Get current index before adding
+
+    // Set initial position asynchronously after player is added
+    this.getPlayerSpawnPosition(playerIndex)
+      .then(initialPosition => {
+        // eslint-disable-next-line no-param-reassign
+        player.position = initialPosition;
+        console.log(
+          `GameRoom: Set initial position for ${player.username}: (${initialPosition.x}, ${initialPosition.y})`
+        );
+      })
+      .catch(error => {
+        console.error('Error setting initial player position:', error);
+        // Set fallback position
+        // eslint-disable-next-line no-param-reassign
+        player.position = { x: 1000, y: 1000 }; // Default spawn position
+      });
+
     this.physicsSystem.initializePlayer(player);
 
     // Join the socket.io room
@@ -780,6 +798,9 @@ export class GameRoom {
           this.gameState = GameState.PLAYING;
           this.updateActivity();
 
+          // Send initial positions to all players
+          this.sendInitialPositions();
+
           // Start physics updates when game begins
           this.startPhysicsUpdate();
         }
@@ -990,7 +1011,9 @@ export class GameRoom {
     this.config.stage = stage;
 
     // Initialize stage data in physics system
-    this.initializeStagePhysics(stage);
+    this.initializeStagePhysics(stage).catch(error => {
+      console.error('Error during stage physics initialization:', error);
+    });
     this.updateActivity();
 
     return { success: true };
@@ -1315,46 +1338,132 @@ export class GameRoom {
   }
 
   // Physics integration methods
-  private initializeStagePhysics(stageName: string): void {
-    // Create stage data based on stage name
-    // This would normally come from a stage configuration file
-    const stageData: StageData = this.getStageConfiguration(stageName);
-    this.physicsSystem.setStageData(stageData);
+  private async initializeStagePhysics(stageName: string): Promise<void> {
+    try {
+      // Create stage data based on stage name from database
+      const stageData: StageData = await this.getStageConfiguration(stageName);
+      this.physicsSystem.setStageData(stageData);
+      console.log(`GameRoom: Initialized stage physics for ${stageName}`);
+    } catch (error) {
+      console.error(
+        `Error initializing stage physics for ${stageName}:`,
+        error
+      );
+    }
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  private getStageConfiguration(stageName: string): StageData {
-    // Basic stage configurations - will be loaded from database later
-    const stageConfigurations: Record<string, StageData> = {
-      arena: {
-        platforms: [
-          { x: 0, y: 300, width: 1600, height: 50 }, // Main platform
-          { x: -600, y: 100, width: 300, height: 30 }, // Left platform
-          { x: 300, y: 100, width: 300, height: 30 }, // Right platform
-        ],
-        boundaries: {
-          left: -1000,
-          right: 1000,
-          top: -500,
-          bottom: 400,
-        },
-        hazards: [],
-      },
-      default: {
-        platforms: [
-          { x: 0, y: 200, width: 1000, height: 50 }, // Simple main platform
-        ],
-        boundaries: {
-          left: -600,
-          right: 600,
-          top: -200,
-          bottom: 300,
-        },
-        hazards: [],
-      },
-    };
+  private async getStageConfiguration(stageName: string): Promise<StageData> {
+    try {
+      // Fetch stage data from database
+      const prisma = new PrismaClient();
+      const stage = await prisma.stage.findUnique({
+        where: { id: stageName.toLowerCase() },
+      });
 
-    return stageConfigurations[stageName] || stageConfigurations.default;
+      if (stage && stage.config) {
+        const config = stage.config as any;
+        return {
+          platforms: config.platforms || [],
+          boundaries: {
+            left: -2000,
+            right: 2000,
+            top: -2000,
+            bottom: 1200,
+          },
+          hazards: config.hazards || [],
+        };
+      }
+    } catch (error) {
+      console.error(
+        `Error loading stage configuration for ${stageName}:`,
+        error
+      );
+    }
+
+    // Fallback configuration if database fetch fails
+    console.warn(`Using fallback stage configuration for ${stageName}`);
+    return {
+      platforms: [
+        { x: 1000, y: 1100, width: 10, height: 1 }, // Default main platform matching YAML
+      ],
+      boundaries: {
+        left: -2000,
+        right: 2000,
+        top: -2000,
+        bottom: 1200,
+      },
+      hazards: [],
+    };
+  }
+
+  private async getPlayerSpawnPosition(playerIndex: number): Promise<{
+    x: number;
+    y: number;
+  }> {
+    // Get spawn points similar to frontend logic
+    const stageConfig = await this.getStageConfiguration(
+      this.config.stage || 'battle_arena'
+    );
+
+    // Find the main platform (lowest Y value platform)
+    const mainPlatform = stageConfig.platforms.reduce((lowest, platform) =>
+      platform.y > lowest.y ? platform : lowest
+    );
+
+    // Generate spawn points based on main platform
+    const spawnPoints = [
+      { x: mainPlatform.x - 100, y: mainPlatform.y - 100 }, // Left side
+      { x: mainPlatform.x + 100, y: mainPlatform.y - 100 }, // Right side
+    ];
+
+    // Add more spawn points if needed for more players
+    if (playerIndex >= spawnPoints.length) {
+      const additionalOffset = (playerIndex - spawnPoints.length + 1) * 50;
+      return {
+        x:
+          mainPlatform.x +
+          (playerIndex % 2 === 0
+            ? -150 - additionalOffset
+            : 150 + additionalOffset),
+        y: mainPlatform.y - 100,
+      };
+    }
+
+    return spawnPoints[playerIndex];
+  }
+
+  private sendInitialPositions(): void {
+    console.log(
+      `GameRoom: Sending initial positions to all players in room ${this.id}`
+    );
+
+    // Send each player their position state
+    this.players.forEach(player => {
+      if (player.position) {
+        player.socket.emit('serverState', {
+          position: player.position,
+          velocity: player.velocity || { x: 0, y: 0 },
+          sequence: 0,
+          timestamp: Date.now(),
+        });
+
+        console.log(
+          `GameRoom: Sent initial position to ${player.username}: (${player.position.x}, ${player.position.y})`
+        );
+      }
+    });
+
+    // Also broadcast initial player positions to all players for remote player positioning
+    const initialPositions = Array.from(this.players.values()).map(player => ({
+      playerId: player.userId,
+      position: player.position || { x: 0, y: 0 },
+      velocity: player.velocity || { x: 0, y: 0 },
+    }));
+
+    this.broadcastToRoom('initialPlayerPositions', {
+      players: initialPositions,
+      timestamp: Date.now(),
+    });
   }
 
   public async handleAttack(attackData: AttackData): Promise<void> {

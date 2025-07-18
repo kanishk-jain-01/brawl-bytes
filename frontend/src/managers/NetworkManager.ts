@@ -121,6 +121,11 @@ export class NetworkManager {
       console.log('Player quit successful:', data);
     });
 
+    // Listen for initial player positions from server
+    socketManager.on('initialPlayerPositions', (data: any) => {
+      this.handleInitialPlayerPositions(data);
+    });
+
     console.log('NetworkManager: Event listeners set up');
   }
 
@@ -192,6 +197,34 @@ export class NetworkManager {
     // For now, we'll emit an event that the GameScene can listen to
     this.scene.events.emit('positionCorrection', data);
     console.warn('Position corrected by server');
+  }
+
+  private handleInitialPlayerPositions(data: {
+    players: Array<{
+      playerId: string;
+      position: { x: number; y: number };
+      velocity: { x: number; y: number };
+    }>;
+    timestamp: number;
+  }): void {
+    console.log(
+      'NetworkManager: Received initial player positions from server:',
+      data
+    );
+
+    // Apply initial positions to remote players
+    data.players.forEach(playerData => {
+      const remotePlayer = this.remotePlayers.get(playerData.playerId);
+      if (remotePlayer) {
+        console.log(
+          `NetworkManager: Setting initial position for ${playerData.playerId}: (${playerData.position.x}, ${playerData.position.y})`
+        );
+        remotePlayer.applyRemotePosition(
+          playerData.position,
+          playerData.velocity
+        );
+      }
+    });
   }
 
   public createRemotePlayer(
@@ -322,6 +355,7 @@ export class NetworkManager {
       socketManager.off(SOCKET_EVENTS.GAME_RESUMED);
       socketManager.off(SOCKET_EVENTS.PLAYER_DISCONNECTED);
       socketManager.off(SOCKET_EVENTS.PLAYER_RECONNECTED);
+      socketManager.off('initialPlayerPositions');
     }
   }
 }

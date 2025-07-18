@@ -177,49 +177,66 @@ export class GameScene extends Phaser.Scene {
     }
 
     const spawnPoints = this.stage.getSpawnPoints();
-    let spawnIndex = 1; // Start from index 1, assuming local player uses index 0
+    const connectionState = getConnectionState();
+    const localPlayerId = connectionState.userId;
 
-    this.gameData.remotePlayers.forEach((playerData: any) => {
-      // Strict validation of remote player data
-      if (!playerData.userId) {
-        throw new Error('GameScene: Remote player missing userId.');
-      }
+    // Process all players from server data to maintain consistent spawn assignment
+    if (this.gameData.serverData?.players) {
+      this.gameData.serverData.players.forEach(
+        (playerData: any, index: number) => {
+          // Skip the local player
+          if (playerData.userId === localPlayerId) {
+            return;
+          }
 
-      if (!playerData.username) {
-        throw new Error('GameScene: Remote player missing username.');
-      }
+          // Strict validation of remote player data
+          if (!playerData.userId) {
+            throw new Error('GameScene: Remote player missing userId.');
+          }
 
-      if (!playerData.character) {
-        throw new Error(
-          `GameScene: Remote player ${playerData.username} missing character assignment from server.`
-        );
-      }
+          if (!playerData.username) {
+            throw new Error('GameScene: Remote player missing username.');
+          }
 
-      const spawnPoint = spawnPoints[spawnIndex % spawnPoints.length];
-      const characterType = this.mapCharacterName(playerData.character);
+          if (!playerData.character) {
+            throw new Error(
+              `GameScene: Remote player ${playerData.username} missing character assignment from server.`
+            );
+          }
 
-      // Create remote player with server-provided character type
-      const remotePlayer = this.networkManager!.createRemotePlayerWithCharacter(
-        playerData.userId,
-        playerData.username,
-        spawnPoint,
-        characterType
+          // Use the same index from server data to ensure consistent spawn assignment
+          const safeSpawnIndex = Math.min(index, spawnPoints.length - 1);
+          const spawnPoint = spawnPoints[safeSpawnIndex];
+          const characterType = this.mapCharacterName(playerData.character);
+
+          console.log(
+            `GameScene: Creating remote player ${playerData.username} at spawn point ${safeSpawnIndex}: (${spawnPoint.x}, ${spawnPoint.y})`
+          );
+
+          // Create remote player with server-provided character type
+          const remotePlayer =
+            this.networkManager!.createRemotePlayerWithCharacter(
+              playerData.userId,
+              playerData.username,
+              spawnPoint,
+              characterType
+            );
+
+          if (!remotePlayer) {
+            throw new Error(
+              `GameScene: Failed to create remote player ${playerData.username}.`
+            );
+          }
+
+          this.players.push(remotePlayer);
+          this.stage!.setupPlayerCollisions(remotePlayer);
+
+          console.log(
+            `GameScene: Created remote player ${playerData.username} with character ${characterType} at spawn ${safeSpawnIndex}`
+          );
+        }
       );
-
-      if (!remotePlayer) {
-        throw new Error(
-          `GameScene: Failed to create remote player ${playerData.username}.`
-        );
-      }
-
-      this.players.push(remotePlayer);
-      this.stage!.setupPlayerCollisions(remotePlayer);
-
-      console.log(
-        `GameScene: Created remote player ${playerData.username} with character ${characterType}`
-      );
-      spawnIndex += 1;
-    });
+    }
 
     console.log(
       `GameScene: Initialized ${this.gameData.remotePlayers.length} remote players from server data`
@@ -346,13 +363,35 @@ export class GameScene extends Phaser.Scene {
     // Get spawn points from stage
     const spawnPoints = this.stage.getSpawnPoints();
 
+    // Find the local player's assigned spawn index from server data
+    const connectionState = getConnectionState();
+    const localPlayerId = connectionState.userId;
+    let spawnIndex = 0; // Default to first spawn point
+
+    if (this.gameData?.serverData?.players) {
+      const playerIndex = this.gameData.serverData.players.findIndex(
+        (p: any) => p.userId === localPlayerId
+      );
+      if (playerIndex !== -1) {
+        spawnIndex = playerIndex;
+      }
+    }
+
+    // Ensure spawn index is within bounds
+    const safeSpawnIndex = Math.min(spawnIndex, spawnPoints.length - 1);
+    const spawnPoint = spawnPoints[safeSpawnIndex];
+
+    console.log(
+      `GameScene: Creating local player at spawn point ${safeSpawnIndex}: (${spawnPoint.x}, ${spawnPoint.y})`
+    );
+
     // Create main player
     this.player = new Player({
       scene: this,
-      x: spawnPoints[0].x,
-      y: spawnPoints[0].y,
+      x: spawnPoint.x,
+      y: spawnPoint.y,
       characterType: this.selectedCharacter,
-      playerId: 'local_player',
+      playerId: localPlayerId || 'local_player',
       isLocalPlayer: true,
     });
 
