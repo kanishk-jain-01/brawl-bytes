@@ -149,6 +149,11 @@ export class BootScene extends Phaser.Scene {
       { frameWidth: 48, frameHeight: 48 }
     );
 
+    // Load character card images
+    this.load.image(ASSET_KEYS.IMAGES.DASH_CARD, '/assets/dash_card.jpg');
+    this.load.image(ASSET_KEYS.IMAGES.NINJA_CARD, '/assets/ninja_card.jpg');
+    this.load.image(ASSET_KEYS.IMAGES.REX_CARD, '/assets/rex_card.jpg');
+
     // Keep titan as placeholder for now since no spritesheet provided
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_TITAN,

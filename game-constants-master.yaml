@@ -253,6 +253,9 @@ assets:
     character_rex: "character_rex"  # Now uses rex_spritesheet.png
     character_titan: "character_titan"  # Using jungle-themed placeholder
     character_ninja: "character_ninja"  # Now uses ninja_spritesheet.png
+    dash_card: "dash_card"  # Dash character card image
+    ninja_card: "ninja_card"  # Ninja character card image
+    rex_card: "rex_card"  # Rex character card image
     platform: "platform"  # Keep existing
     ui_button: "ui_button"  # Using jungle-themed placeholder
     ui_button_hover: "ui_button_hover"  # Using jungle-themed placeholder

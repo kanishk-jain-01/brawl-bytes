@@ -11,7 +11,12 @@
 import Phaser from 'phaser';
 import { updateState } from '@/state/GameState';
 import { getSocketManager, SocketManager } from '@/managers/SocketManager';
-import { GAME_CONFIG, CharacterType, UI_COLORS } from '../utils/constants';
+import {
+  GAME_CONFIG,
+  CharacterType,
+  UI_COLORS,
+  ASSET_KEYS,
+} from '../utils/constants';
 
 export class CharacterSelectScene extends Phaser.Scene {
   private selectedCharacter: CharacterType | null = null;
@@ -212,67 +217,124 @@ export class CharacterSelectScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
 
-    // Card background
-    const background = this.add.rectangle(
-      0,
-      0,
-      width,
-      height,
-      UI_COLORS.SECONDARY()
-    );
-    background.setStrokeStyle(2, UI_COLORS.PRIMARY());
-    container.add(background);
+    // Check if this character has a special card image
+    const isDashCharacter =
+      characterKey === 'DASH' || character.name === 'Dash';
+    const isNinjaCharacter =
+      characterKey === 'NINJA' || character.name === 'Ninja';
+    const isRexCharacter = characterKey === 'REX' || character.name === 'Rex';
+    let hasCardImage = isDashCharacter || isNinjaCharacter || isRexCharacter;
 
-    // Character placeholder image (using colored rectangle for now)
-    const characterColors: Record<CharacterType, number> = {
-      FAST_LIGHTWEIGHT: UI_COLORS.SUCCESS(),
-      BALANCED_ALLROUNDER: UI_COLORS.PRIMARY(),
-      HEAVY_HITTER: UI_COLORS.DANGER(),
-    };
+    if (hasCardImage) {
+      // Determine which card image to use
+      let cardImageKey: string;
+      if (isDashCharacter && ASSET_KEYS.IMAGES.DASH_CARD) {
+        cardImageKey = ASSET_KEYS.IMAGES.DASH_CARD;
+      } else if (isNinjaCharacter && ASSET_KEYS.IMAGES.NINJA_CARD) {
+        cardImageKey = ASSET_KEYS.IMAGES.NINJA_CARD;
+      } else if (isRexCharacter && ASSET_KEYS.IMAGES.REX_CARD) {
+        cardImageKey = ASSET_KEYS.IMAGES.REX_CARD;
+      } else {
+        // Fallback to colored rectangle if image not available
+        hasCardImage = false;
+      }
 
-    const characterImage = this.add.rectangle(
-      0,
-      -50,
-      120,
-      120,
-      characterColors[characterKey]
-    );
-    characterImage.setStrokeStyle(2, UI_COLORS.PRIMARY());
-    container.add(characterImage);
+      if (hasCardImage && cardImageKey!) {
+        // Use the character card image as background
+        const cardImage = this.add.image(0, 0, cardImageKey);
 
-    // Character name
+        // Scale the image to fit the card dimensions
+        const imageScaleX = width / cardImage.width;
+        const imageScaleY = height / cardImage.height;
+        const scale = Math.min(imageScaleX, imageScaleY);
+        cardImage.setScale(scale);
+
+        container.add(cardImage);
+
+        // Add a subtle overlay for better text readability
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.3);
+        container.add(overlay);
+      }
+    }
+
+    if (!hasCardImage) {
+      // Card background for characters without special images
+      const background = this.add.rectangle(
+        0,
+        0,
+        width,
+        height,
+        UI_COLORS.SECONDARY()
+      );
+      background.setStrokeStyle(2, UI_COLORS.PRIMARY());
+      container.add(background);
+
+      // Character placeholder image (using colored rectangle for now)
+      const characterColors: Record<string, number> = {
+        REX: UI_COLORS.PRIMARY(),
+        TITAN: UI_COLORS.DANGER(),
+        NINJA: 0x9b59b6, // Purple for ninja (if no card image)
+      };
+
+      const characterImage = this.add.rectangle(
+        0,
+        -50,
+        120,
+        120,
+        characterColors[characterKey] || UI_COLORS.SUCCESS()
+      );
+      characterImage.setStrokeStyle(2, UI_COLORS.PRIMARY());
+      container.add(characterImage);
+    }
+
+    // Character name - enhanced styling for better readability
     const nameText = this.add
-      .text(0, 20, character.name, {
-        fontSize: '24px',
+      .text(0, hasCardImage ? 50 : 20, character.name, {
+        fontSize: '28px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-        color: GAME_CONFIG.UI.COLORS.TEXT,
+        color: '#ffffff',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+
+    // Add text stroke and shadow for better visibility
+    nameText.setStroke('#000000', 6);
+    nameText.setShadow(3, 3, '#000000', 3);
     container.add(nameText);
 
-    // Character stats preview
+    // Character stats preview - enhanced styling
     const statsText = this.add
       .text(
         0,
-        60,
+        hasCardImage ? 90 : 60,
         `Speed: ${character.speed}\nHealth: ${character.health}\nAttack: ${character.attackDamage}`,
         {
-          fontSize: '14px',
+          fontSize: '16px',
           fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
-          color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+          color: '#ffffff',
           align: 'center',
+          fontStyle: 'bold',
         }
       )
       .setOrigin(0.5);
+
+    // Add text stroke and shadow for stats
+    statsText.setStroke('#000000', 4);
+    statsText.setShadow(2, 2, '#000000', 2);
     container.add(statsText);
 
-    // Make card interactive
-    background.setInteractive();
-    background.on('pointerdown', () => this.selectCharacter(characterKey));
-    background.on('pointerover', () => this.onCardHover(container, background));
-    background.on('pointerout', () =>
-      this.onCardHoverOut(container, background)
+    // Make card interactive - use the first element (image or background) for interaction
+    const interactiveElement = container
+      .list[0] as Phaser.GameObjects.GameObject;
+    interactiveElement.setInteractive();
+    interactiveElement.on('pointerdown', () =>
+      this.selectCharacter(characterKey)
+    );
+    interactiveElement.on('pointerover', () =>
+      this.onCardHover(container, hasCardImage)
+    );
+    interactiveElement.on('pointerout', () =>
+      this.onCardHoverOut(container, hasCardImage)
     );
 
     return container;
@@ -280,27 +342,45 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   private onCardHover(
     container: Phaser.GameObjects.Container,
-    background: Phaser.GameObjects.Rectangle
+    hasCardImage: boolean
   ): void {
-    background.setFillStyle(0x34495e);
-    background.setStrokeStyle(2, 0x5dade2);
+    if (hasCardImage) {
+      // For characters with card images, just add a glow effect to the container
+      this.tweens.add({
+        targets: container,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 150,
+        ease: 'Power2',
+      });
+    } else {
+      // For other characters, modify the background rectangle
+      const background = container.list[0] as Phaser.GameObjects.Rectangle;
+      background.setFillStyle(0x34495e);
+      background.setStrokeStyle(2, 0x5dade2);
 
-    this.tweens.add({
-      targets: container,
-      scaleX: 1.05,
-      scaleY: 1.05,
-      duration: 150,
-      ease: 'Power2',
-    });
+      this.tweens.add({
+        targets: container,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 150,
+        ease: 'Power2',
+      });
+    }
   }
 
   private onCardHoverOut(
     container: Phaser.GameObjects.Container,
-    background: Phaser.GameObjects.Rectangle
+    hasCardImage: boolean
   ): void {
-    if (this.getCharacterFromContainer(container) !== this.selectedCharacter) {
-      background.setFillStyle(0x2c3e50);
-      background.setStrokeStyle(2, 0x3498db);
+    if (!hasCardImage) {
+      // Only modify background for non-image characters
+      const characterKey = this.getCharacterFromContainer(container);
+      if (characterKey !== this.selectedCharacter) {
+        const background = container.list[0] as Phaser.GameObjects.Rectangle;
+        background.setFillStyle(UI_COLORS.SECONDARY());
+        background.setStrokeStyle(2, UI_COLORS.PRIMARY());
+      }
     }
 
     this.tweens.add({
@@ -326,25 +406,49 @@ export class CharacterSelectScene extends Phaser.Scene {
     const characters = Object.keys(GAME_CONFIG.CHARACTERS);
 
     this.characterCards.forEach((card, index) => {
-      // Safely get the background element (first child should be the background rectangle)
-      const background = card.list[0] as Phaser.GameObjects.Rectangle;
-
-      // Validate that we have a proper background element
-      if (!background || typeof background.setFillStyle !== 'function') {
-        console.warn(
-          `CharacterSelectScene: Invalid background element at card index ${index}`
-        );
-        return;
-      }
-
       const characterKey = characters[index] as CharacterType;
+      const character = GAME_CONFIG.CHARACTERS[characterKey];
+      const isDashCharacter =
+        characterKey === 'DASH' || character.name === 'Dash';
+      const isNinjaCharacter =
+        characterKey === 'NINJA' || character.name === 'Ninja';
+      const isRexCharacter = characterKey === 'REX' || character.name === 'Rex';
+      const hasCardImage =
+        isDashCharacter || isNinjaCharacter || isRexCharacter;
 
-      if (characterKey === selectedKey) {
-        background.setFillStyle(UI_COLORS.SUCCESS());
-        background.setStrokeStyle(3, UI_COLORS.SUCCESS());
+      if (hasCardImage) {
+        // For characters with card images, we'll use a glow effect or tint
+        const cardImage = card.list[0] as Phaser.GameObjects.Image;
+        const overlay = card.list[1] as Phaser.GameObjects.Rectangle;
+
+        if (characterKey === selectedKey) {
+          // Selected state - add green tint and reduce overlay opacity
+          cardImage.setTint(0x27ae60);
+          overlay.setAlpha(0.1);
+        } else {
+          // Unselected state - remove tint and restore overlay
+          cardImage.clearTint();
+          overlay.setAlpha(0.3);
+        }
       } else {
-        background.setFillStyle(UI_COLORS.SECONDARY());
-        background.setStrokeStyle(2, UI_COLORS.PRIMARY());
+        // For other characters with rectangle backgrounds
+        const background = card.list[0] as Phaser.GameObjects.Rectangle;
+
+        // Validate that we have a proper background element
+        if (!background || typeof background.setFillStyle !== 'function') {
+          console.warn(
+            `CharacterSelectScene: Invalid background element at card index ${index}`
+          );
+          return;
+        }
+
+        if (characterKey === selectedKey) {
+          background.setFillStyle(UI_COLORS.SUCCESS());
+          background.setStrokeStyle(3, UI_COLORS.SUCCESS());
+        } else {
+          background.setFillStyle(UI_COLORS.SECONDARY());
+          background.setStrokeStyle(2, UI_COLORS.PRIMARY());
+        }
       }
     });
   }
