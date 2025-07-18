@@ -173,13 +173,6 @@ export class SocketManager {
         );
       });
 
-      socket.on('playerAttack', () => {
-        // Legacy playerAttack handler removed - use modern GameRoom system
-        console.warn(
-          'Legacy playerAttack event received - clients should use modern attack system'
-        );
-      });
-
       socket.on('disconnect', reason => {
         this.handleDisconnect(socket, reason);
       });

@@ -65,11 +65,6 @@ export class NetworkManager {
       this.handleRemotePlayerMove(data);
     });
 
-    // Listen for player attack events
-    socketManager.on(SOCKET_EVENTS.PLAYER_ATTACK, (data: any) => {
-      this.handleRemotePlayerAttack(data);
-    });
-
     // Listen for players joining the game
     socketManager.on(SOCKET_EVENTS.PLAYER_JOINED, (data: any) => {
       this.handlers.onPlayerJoined(data);
@@ -174,23 +169,6 @@ export class NetworkManager {
     if (!remotePlayer) return;
 
     remotePlayer.applyRemotePosition(data.position, data.velocity);
-  }
-
-  private handleRemotePlayerAttack(data: {
-    playerId: string;
-    attackType: string;
-    direction: number;
-    hitbox?: any;
-  }): void {
-    // Debug: remote player attack received
-    console.log(
-      `[REMOTE_ATTACK] from=${data.playerId} type=${data.attackType} dir=${data.direction}`
-    );
-
-    const remotePlayer = this.remotePlayers.get(data.playerId);
-    if (!remotePlayer) return;
-
-    remotePlayer.applyRemoteAttack(data.attackType, data.direction);
   }
 
   private handleServerState(data: {
@@ -335,7 +313,6 @@ export class NetworkManager {
     if (socketManager) {
       socketManager.off(SOCKET_EVENTS.PLAYER_INPUT);
       socketManager.off(SOCKET_EVENTS.PLAYER_MOVE);
-      socketManager.off(SOCKET_EVENTS.PLAYER_ATTACK);
       socketManager.off(SOCKET_EVENTS.PLAYER_JOINED);
       socketManager.off(SOCKET_EVENTS.PLAYER_LEFT);
       socketManager.off(SOCKET_EVENTS.GAME_EVENT);
