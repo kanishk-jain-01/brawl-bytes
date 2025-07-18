@@ -80,12 +80,211 @@ export class Stage {
   }
 
   private addArenaDecorations(): void {
-    // Add some clouds
-    for (let i = 0; i < 5; i += 1) {
+    this.addJungleCanopy();
+    this.addTropicalTrees();
+    this.addJungleVines();
+    this.addFallingLeaves();
+    this.addJungleMist();
+    this.addBirds();
+    this.addFireflies();
+  }
+
+  private addJungleCanopy(): void {
+    // Dense jungle canopy at the top
+    for (let i = 0; i < 15; i += 1) {
+      const x = Phaser.Math.Between(0, this.worldWidth);
+      const y = Phaser.Math.Between(0, 150);
+      const size = Phaser.Math.Between(60, 120);
+      
+      // Layered canopy leaves
+      const leaf = this.scene.add.circle(x, y, size, 0x228b22, 0.7);
+      leaf.setScrollFactor(0.2); // Far background parallax
+      
+      // Add subtle animation
+      this.scene.tweens.add({
+        targets: leaf,
+        scaleX: { from: 1, to: 1.1 },
+        scaleY: { from: 1, to: 0.95 },
+        duration: Phaser.Math.Between(3000, 5000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 2000)
+      });
+    }
+  }
+
+  private addTropicalTrees(): void {
+    // Background tropical trees
+    for (let i = 0; i < 8; i += 1) {
       const x = Phaser.Math.Between(100, this.worldWidth - 100);
-      const y = Phaser.Math.Between(50, 200);
-      const cloud = this.scene.add.circle(x, y, 40, 0xffffff, 0.8);
-      cloud.setScrollFactor(0.5); // Parallax effect
+      const y = this.worldHeight - Phaser.Math.Between(200, 400);
+      
+      // Tree trunk
+      const trunk = this.scene.add.rectangle(x, y, 20, 150, 0x8b4513, 0.8);
+      trunk.setScrollFactor(0.4);
+      
+      // Tree crown (multiple overlapping circles for fullness)
+      for (let j = 0; j < 3; j += 1) {
+        const crownX = x + Phaser.Math.Between(-30, 30);
+        const crownY = y - 100 + Phaser.Math.Between(-20, 20);
+        const crown = this.scene.add.circle(crownX, crownY, Phaser.Math.Between(40, 70), 0x2e7d32, 0.8);
+        crown.setScrollFactor(0.4);
+        
+        // Gentle swaying animation
+        this.scene.tweens.add({
+          targets: crown,
+          x: { from: crownX, to: crownX + Phaser.Math.Between(-10, 10) },
+          duration: Phaser.Math.Between(4000, 6000),
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+          delay: Phaser.Math.Between(0, 3000)
+        });
+      }
+    }
+  }
+
+  private addJungleVines(): void {
+    // Hanging animated vines
+    for (let i = 0; i < 12; i += 1) {
+      const x = Phaser.Math.Between(100, this.worldWidth - 100);
+      const startY = Phaser.Math.Between(50, 200);
+      const length = Phaser.Math.Between(200, 400);
+      
+      // Create vine segments
+      const vineSegments: Phaser.GameObjects.Rectangle[] = [];
+      const segmentCount = Math.floor(length / 20);
+      
+      for (let j = 0; j < segmentCount; j += 1) {
+        const segmentY = startY + (j * 20);
+        const segment = this.scene.add.rectangle(x, segmentY, 6, 18, 0x2d5016, 0.9);
+        segment.setScrollFactor(0.6);
+        vineSegments.push(segment);
+      }
+      
+      // Vine swaying animation
+      this.scene.tweens.add({
+        targets: vineSegments,
+        x: { from: x, to: x + Phaser.Math.Between(-15, 15) },
+        rotation: { from: 0, to: Phaser.Math.Between(-0.1, 0.1) },
+        duration: Phaser.Math.Between(3000, 5000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 2000)
+      });
+    }
+  }
+
+  private addFallingLeaves(): void {
+    // Animated falling leaves
+    const createLeaf = () => {
+      const x = Phaser.Math.Between(0, this.worldWidth);
+      const y = -50;
+      const leaf = this.scene.add.ellipse(x, y, 8, 12, 0x32cd32, 0.8);
+      leaf.setScrollFactor(0.8);
+      
+      // Falling animation with gentle swaying
+      this.scene.tweens.add({
+        targets: leaf,
+        y: this.worldHeight + 50,
+        x: x + Phaser.Math.Between(-100, 100),
+        rotation: Phaser.Math.Between(-2, 2),
+        duration: Phaser.Math.Between(8000, 12000),
+        ease: 'Sine.easeInOut',
+        onComplete: () => {
+          leaf.destroy();
+        }
+      });
+    };
+    
+    // Initial leaves
+    for (let i = 0; i < 6; i += 1) {
+      this.scene.time.delayedCall(Phaser.Math.Between(0, 5000), createLeaf);
+    }
+    
+    // Continuous leaf generation
+    this.scene.time.addEvent({
+      delay: Phaser.Math.Between(2000, 4000),
+      callback: createLeaf,
+      loop: true
+    });
+  }
+
+  private addJungleMist(): void {
+    // Atmospheric mist/fog
+    for (let i = 0; i < 5; i += 1) {
+      const x = Phaser.Math.Between(0, this.worldWidth);
+      const y = this.worldHeight - Phaser.Math.Between(100, 300);
+      const mist = this.scene.add.ellipse(x, y, 200, 60, 0xffffff, 0.1);
+      mist.setScrollFactor(0.3);
+      
+      // Slow drifting animation
+      this.scene.tweens.add({
+        targets: mist,
+        x: x + Phaser.Math.Between(-50, 50),
+        alpha: { from: 0.1, to: 0.05 },
+        scaleX: { from: 1, to: 1.2 },
+        duration: Phaser.Math.Between(8000, 12000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 4000)
+      });
+    }
+  }
+
+  private addBirds(): void {
+    // Occasional flying birds in the distance
+    const createBird = () => {
+      const startX = -50;
+      const y = Phaser.Math.Between(100, 300);
+      const bird = this.scene.add.ellipse(startX, y, 4, 2, 0x000000, 0.6);
+      bird.setScrollFactor(0.2);
+      
+      // Flying animation across screen
+      this.scene.tweens.add({
+        targets: bird,
+        x: this.worldWidth + 50,
+        y: y + Phaser.Math.Between(-50, 50),
+        duration: Phaser.Math.Between(15000, 25000),
+        ease: 'Linear',
+        onComplete: () => {
+          bird.destroy();
+        }
+      });
+    };
+    
+    // Random bird generation
+    this.scene.time.addEvent({
+      delay: Phaser.Math.Between(10000, 20000),
+      callback: createBird,
+      loop: true
+    });
+  }
+
+  private addFireflies(): void {
+    // Magical fireflies for evening ambiance
+    for (let i = 0; i < 8; i += 1) {
+      const x = Phaser.Math.Between(100, this.worldWidth - 100);
+      const y = Phaser.Math.Between(300, this.worldHeight - 200);
+      const firefly = this.scene.add.circle(x, y, 2, 0xffff00, 0.8);
+      firefly.setScrollFactor(0.9);
+      
+      // Floating glow animation
+      this.scene.tweens.add({
+        targets: firefly,
+        x: x + Phaser.Math.Between(-100, 100),
+        y: y + Phaser.Math.Between(-50, 50),
+        alpha: { from: 0.8, to: 0.3 },
+        scale: { from: 1, to: 1.5 },
+        duration: Phaser.Math.Between(3000, 6000),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        delay: Phaser.Math.Between(0, 3000)
+      });
     }
   }
 
@@ -134,7 +333,7 @@ export class Stage {
 
   private getPlatformColor(): number {
     const colors = {
-      BATTLE_ARENA: 0x8b4513, // Brown
+      BATTLE_ARENA: 0x8b4513, // Rich jungle wood brown
       FLOATING_ISLANDS: 0x708090, // Slate gray
       VOLCANIC_CHAMBER: 0x2f4f4f, // Dark slate gray
     } as const;

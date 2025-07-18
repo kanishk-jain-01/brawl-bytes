@@ -9,6 +9,7 @@ export interface InputState {
   down: boolean;
   attack: boolean;
   special: boolean;
+  jumpPressed: boolean; // New: tracks discrete jump press events
 }
 
 export class InputManager {
@@ -21,6 +22,10 @@ export class InputManager {
   private actionKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
 
   private inputEnabled = true;
+
+  // Track previous jump key states for discrete press detection
+  private previousJumpState = false;
+  private jumpPressed = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -64,20 +69,29 @@ export class InputManager {
         down: false,
         attack: false,
         special: false,
+        jumpPressed: false,
       };
     }
+
+    // Check current jump key state
+    const currentJumpState =
+      this.cursors.up.isDown ||
+      this.wasdKeys.W?.isDown ||
+      this.actionKeys.SPACE?.isDown ||
+      false;
+
+    // Detect discrete jump press (transition from not pressed to pressed)
+    this.jumpPressed = !this.previousJumpState && currentJumpState;
+    this.previousJumpState = currentJumpState;
 
     return {
       left: this.cursors.left.isDown || this.wasdKeys.A?.isDown || false,
       right: this.cursors.right.isDown || this.wasdKeys.D?.isDown || false,
-      up:
-        this.cursors.up.isDown ||
-        this.wasdKeys.W?.isDown ||
-        this.actionKeys.SPACE?.isDown ||
-        false,
+      up: currentJumpState, // Keep this for compatibility
       down: this.cursors.down.isDown || this.wasdKeys.S?.isDown || false,
       attack: this.actionKeys.X?.isDown || false,
       special: this.actionKeys.Z?.isDown || false,
+      jumpPressed: this.jumpPressed, // New discrete jump press detection
     };
   }
 

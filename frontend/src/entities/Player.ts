@@ -91,6 +91,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     down: false,
     attack: false,
     special: false,
+    jumpPressed: false,
   };
 
   // Add explicit facing direction state
@@ -119,6 +120,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       down: boolean;
       attack: boolean;
       special: boolean;
+      jumpPressed: boolean;
     };
     timestamp: number;
     position: { x: number; y: number };
@@ -416,8 +418,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.facingDirection = 'right';
     }
 
-    // Jumping
-    if (this.inputState.up && this.canJump()) {
+    // Jumping - use discrete press detection for proper double jump
+    if (this.inputState.jumpPressed && this.canJump()) {
       this.jump();
     }
   }
@@ -1351,6 +1353,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     down: boolean;
     attack: boolean;
     special: boolean;
+    jumpPressed: boolean;
   }): void {
     if (!this.body) return;
 
