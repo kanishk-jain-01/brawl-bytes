@@ -80,7 +80,7 @@ async function initializeGame(): Promise<Phaser.Game> {
         default: 'arcade',
         arcade: {
           gravity: { x: 0, y: GAME_CONFIG.PHYSICS.GRAVITY },
-          debug: process.env.NODE_ENV === 'development',
+          debug: false,
           fps: 60,
         },
       },

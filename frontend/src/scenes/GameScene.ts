@@ -255,10 +255,10 @@ export class GameScene extends Phaser.Scene {
     // Configure physics
     this.physics.world.gravity.y = GAME_CONFIG.PHYSICS.GRAVITY;
 
-    // Enable physics debugging if in development
-    if (process.env.NODE_ENV === 'development') {
-      this.physics.world.createDebugGraphic();
-    }
+    // Physics debugging disabled for production-ready visuals
+    // if (process.env.NODE_ENV === 'development') {
+    //   this.physics.world.createDebugGraphic();
+    // }
   }
 
   private createStage(): void {
