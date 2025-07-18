@@ -55,6 +55,7 @@ export const SOCKET_EVENTS = {
   GAME_EVENT: 'gameEvent',
   SERVER_STATE: 'serverState',
   POSITION_CORRECTION: 'positionCorrection',
+  MATCH_TIMER_UPDATE: 'matchTimerUpdate',
   GAME_PAUSED: 'gamePaused',
   GAME_RESUMED: 'gameResumed',
   PLAYER_DISCONNECTED: 'playerDisconnected',
@@ -309,4 +310,11 @@ export interface MatchEndData {
   winner?: string;
   reason: string;
   stats: any;
+}
+
+export interface MatchTimerUpdate {
+  timeRemaining: number; // milliseconds
+  timeElapsed: number; // milliseconds
+  serverTimestamp: number; // server's current time
+  isPaused: boolean;
 }

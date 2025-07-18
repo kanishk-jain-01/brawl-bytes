@@ -1,6 +1,6 @@
 import { SOCKET_EVENTS } from '@/types/Network';
 import { DamageType } from '@/types';
-import type { DamageInfo } from '@/types';
+import type { DamageInfo, MatchTimerUpdate } from '@/types';
 import { getSocketManager } from '@/managers/SocketManager';
 import { Player } from '../entities/Player';
 
@@ -19,6 +19,7 @@ export interface NetworkEventHandlers {
     matchDuration: number;
   }) => void;
   onGameEvent: (data: any) => void;
+  onMatchTimerUpdate: (data: MatchTimerUpdate) => void;
   onGamePaused: (data: {
     reason: string;
     disconnectedPlayer?: { userId: string; username: string };
@@ -125,6 +126,11 @@ export class NetworkManager {
     // Listen for initial player positions from server
     socketManager.on('initialPlayerPositions', (data: any) => {
       this.handleInitialPlayerPositions(data);
+    });
+
+    // Listen for match timer updates
+    socketManager.on(SOCKET_EVENTS.MATCH_TIMER_UPDATE, (data: any) => {
+      this.handlers.onMatchTimerUpdate(data);
     });
 
     console.log('NetworkManager: Event listeners set up');
@@ -382,6 +388,7 @@ export class NetworkManager {
       socketManager.off(SOCKET_EVENTS.PLAYER_DISCONNECTED);
       socketManager.off(SOCKET_EVENTS.PLAYER_RECONNECTED);
       socketManager.off('initialPlayerPositions');
+      socketManager.off(SOCKET_EVENTS.MATCH_TIMER_UPDATE);
     }
   }
 }

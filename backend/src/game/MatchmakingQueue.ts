@@ -1,9 +1,5 @@
-import {
-  AuthenticatedSocket,
-} from '../types';
-import {
-  SocketManager,
-} from '../networking/SocketManager';
+import { AuthenticatedSocket } from '../types';
+import { SocketManager } from '../networking/SocketManager';
 import { GameRoom, GameRoomConfig } from './GameRoom';
 
 export interface MatchPreferences {
@@ -420,10 +416,10 @@ export class MatchmakingQueue {
     // lobby and GameRoom already know which arena to load.
     const hostPreferredStage = players[0]?.preferences?.preferredStage;
 
-    const config: Partial<GameRoomConfig> = {
+    const roomConfig: Partial<GameRoomConfig> = {
       maxPlayers: this.matchSize,
       gameMode: 'versus',
-      timeLimit: 300, // 5 minutes
+      timeLimit: 180, // 3 minutes in seconds (matches game constants)
       stockCount: 3,
       stage: hostPreferredStage, // may be undefined – lobby can still change
     };
@@ -432,7 +428,7 @@ export class MatchmakingQueue {
     if (!this.socketManager) {
       throw new Error('SocketManager not set in MatchmakingQueue');
     }
-    const gameRoom = new GameRoom(roomId, this.socketManager, config);
+    const gameRoom = new GameRoom(roomId, this.socketManager, roomConfig);
 
     // Add players to the room
     const addedPlayers: QueuedPlayer[] = [];

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
-import { GAME_CONFIG } from '../utils/constants';
+import type { MatchTimerUpdate } from '../types/Network';
 
 export type MatchEndReason = 'timer' | 'elimination' | 'defeat';
 
@@ -20,9 +20,12 @@ export class GameStateManager {
 
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
 
-  private matchTimer: Phaser.Time.TimerEvent | null = null;
+  // Server-side timer state (no longer using client timer)
+  private serverTimeRemaining = 0;
 
-  private matchTimeRemaining = 0;
+  private serverTimestamp = 0;
+
+  private timerPaused = false;
 
   private callbacks: MatchEndCallbacks;
 
@@ -33,39 +36,56 @@ export class GameStateManager {
 
   public startMatch(): void {
     this.gameStarted = true;
-    this.matchTimeRemaining = GAME_CONFIG.GAME.MATCH_TIME;
+    // Don't initialize with any time - wait for server to provide authoritative time
+    this.serverTimeRemaining = 0;
 
-    // Start match timer
-    this.matchTimer = this.scene.time.addEvent({
-      delay: 1000, // 1 second
-      callback: this.updateMatchTimer,
-      callbackScope: this,
-      loop: true,
-    });
-
-    console.log('GameStateManager: Match started');
+    console.log(
+      'GameStateManager: Match started - waiting for server timer updates'
+    );
   }
 
-  private updateMatchTimer(): void {
+  /**
+   * Handle server timer updates - replaces the old client-side timer
+   */
+  public handleServerTimerUpdate(timerData: MatchTimerUpdate): void {
     if (!this.gameStarted) return;
 
-    this.matchTimeRemaining -= 1000;
+    this.serverTimeRemaining = timerData.timeRemaining;
+    this.serverTimestamp = timerData.serverTimestamp;
+    this.timerPaused = timerData.isPaused;
 
-    if (this.matchTimeRemaining <= 0) {
+    // Check if match time has expired
+    if (this.serverTimeRemaining <= 0) {
       this.endMatch('timer');
       return;
     }
 
-    // Emit event for UI update
-    this.scene.events.emit('matchTimerUpdate', this.matchTimeRemaining);
+    // Emit event for UI update - convert to milliseconds for consistency
+    this.scene.events.emit('matchTimerUpdate', this.serverTimeRemaining);
+  }
+
+  /**
+   * Get current time remaining based on server state with client interpolation
+   */
+  public getTimeRemaining(): number {
+    if (this.timerPaused || !this.gameStarted) {
+      return this.serverTimeRemaining;
+    }
+
+    // Calculate interpolated time based on server timestamp
+    const clientTime = Date.now();
+    const timeSinceUpdate = clientTime - this.serverTimestamp;
+    const interpolatedTime = Math.max(
+      0,
+      this.serverTimeRemaining - timeSinceUpdate
+    );
+
+    return interpolatedTime;
   }
 
   public endMatch(reason: MatchEndReason, winner?: Player): void {
     this.gameStarted = false;
-
-    if (this.matchTimer) {
-      this.matchTimer.remove();
-    }
+    this.serverTimeRemaining = 0;
 
     console.log(`GameStateManager: Match ended due to ${reason}`);
     this.callbacks.onMatchEnd(reason, winner);
@@ -106,10 +126,7 @@ export class GameStateManager {
     // Pause physics
     this.scene.physics.pause();
 
-    // Pause timers
-    if (this.matchTimer) {
-      this.matchTimer.paused = true;
-    }
+    // Note: Server handles timer pausing - no client timer to pause
 
     // Show pause overlay
     this.showPauseOverlay(data);
@@ -126,10 +143,7 @@ export class GameStateManager {
     // Resume physics
     this.scene.physics.resume();
 
-    // Resume timers
-    if (this.matchTimer) {
-      this.matchTimer.paused = false;
-    }
+    // Note: Server handles timer resuming - no client timer to resume
 
     // Hide pause overlay
     this.hidePauseOverlay();
@@ -387,18 +401,19 @@ export class GameStateManager {
   }
 
   public getMatchTimeRemaining(): number {
-    return this.matchTimeRemaining;
+    return this.serverTimeRemaining;
   }
 
   public destroy(): void {
-    if (this.matchTimer) {
-      this.matchTimer.remove();
-      this.matchTimer = null;
-    }
+    this.gameStarted = false;
+
+    // No client timer to clean up - server manages timing
 
     if (this.pauseOverlay) {
       this.pauseOverlay.destroy();
       this.pauseOverlay = null;
     }
+
+    console.log('GameStateManager: Destroyed');
   }
 }

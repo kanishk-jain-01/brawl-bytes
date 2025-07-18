@@ -12,7 +12,7 @@ import Phaser from 'phaser';
 import { getState } from '@/state/GameState';
 import { getSocketManager, SocketManager } from '@/managers/SocketManager';
 import { getConnectionState } from '@/state/connectionStore';
-import type { DamageInfo } from '@/types';
+import type { DamageInfo, MatchTimerUpdate } from '@/types';
 import { DamageType } from '@/types';
 import { GAME_CONFIG, CharacterType, StageType } from '../utils/constants';
 import { Player } from '../entities/Player';
@@ -83,6 +83,11 @@ export class GameScene extends Phaser.Scene {
     this.initializeManagers();
     this.initializeConnectionStatusDisplay();
     this.startMatch();
+
+    // Set up tab visibility handling for proper timer synchronization
+    this.setupVisibilityHandling();
+
+    console.log('GameScene: Scene initialized');
   }
 
   private initializeFromServerData(): void {
@@ -458,6 +463,7 @@ export class GameScene extends Phaser.Scene {
       onPlayerQuit: data => this.handlePlayerQuit(data),
       onMatchEnd: data => this.handleMatchEnd(data),
       onGameEvent: data => this.handleGameEvent(data),
+      onMatchTimerUpdate: data => this.handleMatchTimerUpdate(data),
       onGamePaused: data => this.gameStateManager?.pauseGame(data),
       onGameResumed: data => this.gameStateManager?.resumeGame(data),
       onPlayerDisconnected: data => this.handlePlayerDisconnected(data),
@@ -818,11 +824,63 @@ export class GameScene extends Phaser.Scene {
   }): void {
     console.log('Player reconnected:', data);
 
-    // Show welcome back notification
+    // Show notification about reconnected player
     this.gameStateManager?.showPlayerReconnectedNotification(data);
 
-    // Mark remote player as connected if they exist
+    // Mark remote player as reconnected if they exist
     this.networkManager?.setPlayerDisconnectedState(data.playerId, false);
+  }
+
+  private handleMatchTimerUpdate(data: MatchTimerUpdate): void {
+    // Forward server timer updates to the game state manager
+    this.gameStateManager?.handleServerTimerUpdate(data);
+  }
+
+  /**
+   * Set up handling for page visibility changes to prevent timer desync
+   * when players switch tabs
+   */
+  private setupVisibilityHandling(): void {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log(
+          'GameScene: Tab became hidden - server maintains authoritative time'
+        );
+      } else {
+        console.log(
+          'GameScene: Tab became visible - syncing with server state'
+        );
+        this.handleTabBecameVisible();
+      }
+    };
+
+    // Listen for visibility change events
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Clean up listener when scene is destroyed
+    this.events.once('shutdown', () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    });
+  }
+
+  /**
+   * Handle when tab becomes visible after being hidden
+   */
+  private handleTabBecameVisible(): void {
+    // With server-authoritative timing, we don't need to pause/resume anything
+    // The server continues running and will send us the latest state
+
+    // Request a fresh game state sync from server to ensure we're up to date
+    const socketManager = getSocketManager();
+    if (socketManager && SocketManager.isConnected()) {
+      SocketManager.emit('requestGameStateSync', {
+        reason: 'tab_visibility_change',
+        timestamp: Date.now(),
+      });
+    }
+
+    // Update UI elements that might have stale state
+    this.updateUI();
   }
 
   // eslint-disable-next-line class-methods-use-this

@@ -337,7 +337,7 @@ export class SocketManager {
         const config = {
           maxPlayers: 2,
           gameMode: 'versus',
-          timeLimit: 300,
+          timeLimit: 180,
           stockCount: 3,
           stage: data.stage,
         };

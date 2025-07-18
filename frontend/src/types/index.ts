@@ -40,6 +40,7 @@ export type {
   RoomData,
   ConnectionEvents,
   SocketClient,
+  MatchTimerUpdate,
 } from './Network';
 
 // Re-export commonly used types from utils/constants

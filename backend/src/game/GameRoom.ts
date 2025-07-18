@@ -1,7 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import {
-  SocketManager,
-} from '../networking/SocketManager';
+import { SocketManager } from '../networking/SocketManager';
 import {
   PhysicsSystem,
   type AttackData,
@@ -108,6 +106,15 @@ export class GameRoom {
 
   private matchStartTime: Date | null = null;
 
+  // Match timer - server authoritative
+  private matchTimerInterval: NodeJS.Timeout | null = null;
+
+  private matchTimeElapsed: number = 0; // in milliseconds
+
+  private matchTimerPaused: boolean = false;
+
+  private lastTimerUpdate: number = 0;
+
   // Disconnect handling configuration
   private readonly RECONNECTION_GRACE_PERIOD: number;
 
@@ -136,7 +143,7 @@ export class GameRoom {
     this.config = {
       maxPlayers: 2,
       gameMode: 'versus',
-      timeLimit: 300, // 5 minutes in seconds
+      timeLimit: 180, // 3 minutes in seconds (matches game constants)
       stockCount: 3,
       reconnectionGracePeriod: 30000, // 30 seconds
       maxReconnectionTime: 120000, // 2 minutes total
@@ -586,6 +593,10 @@ export class GameRoom {
     // If game is in progress, pause it
     if (this.gameState === GameState.PLAYING) {
       this.gameState = GameState.PAUSED;
+
+      // Pause the match timer
+      this.pauseMatchTimer();
+
       this.broadcastToRoom('gamePaused', {
         reason: 'player_disconnect',
         disconnectedPlayer: {
@@ -667,6 +678,10 @@ export class GameRoom {
 
     if (shouldResumeGame) {
       this.gameState = GameState.PLAYING;
+
+      // Resume the match timer
+      this.resumeMatchTimer();
+
       this.broadcastToRoom('gameResumed', {
         reason: 'all_players_reconnected',
         resumedAt: new Date(),
@@ -787,6 +802,9 @@ export class GameRoom {
 
           // Start physics updates when game begins
           this.startPhysicsUpdate();
+
+          // Start server-side match timer
+          this.startMatchTimer();
         }
       }, 3000); // 3 second countdown
 
@@ -804,6 +822,9 @@ export class GameRoom {
 
     this.gameState = GameState.PAUSED;
     this.updateActivity();
+
+    // Pause the match timer
+    this.pauseMatchTimer();
 
     return { success: true };
   }
@@ -826,6 +847,9 @@ export class GameRoom {
 
     this.gameState = GameState.PLAYING;
     this.updateActivity();
+
+    // Resume the match timer
+    this.resumeMatchTimer();
 
     return { success: true };
   }
@@ -948,6 +972,9 @@ export class GameRoom {
 
     // Stop physics updates
     this.stopPhysicsUpdate();
+
+    // Stop match timer
+    this.stopMatchTimer();
 
     // Reset player states to connected
     this.players.forEach(player => {
@@ -1562,6 +1589,93 @@ export class GameRoom {
     }
   }
 
+  // Match timer methods - server authoritative timing
+  public startMatchTimer(): void {
+    if (this.matchTimerInterval) {
+      clearInterval(this.matchTimerInterval);
+    }
+
+    this.matchTimeElapsed = 0;
+    this.matchTimerPaused = false;
+    this.lastTimerUpdate = Date.now();
+
+    // Update match timer every second and send to clients
+    this.matchTimerInterval = setInterval(() => {
+      this.updateMatchTimer();
+    }, 1000);
+
+    console.log(
+      `GameRoom: Started match timer for room ${this.id} with time limit ${this.config.timeLimit}s`
+    );
+
+    // Send initial timer state to all players
+    this.broadcastMatchTimer();
+  }
+
+  private updateMatchTimer(): void {
+    if (this.matchTimerPaused || this.gameState !== GameState.PLAYING) {
+      return;
+    }
+
+    const now = Date.now();
+    const deltaTime = now - this.lastTimerUpdate;
+    this.matchTimeElapsed += deltaTime;
+    this.lastTimerUpdate = now;
+
+    const timeLimit = this.config.timeLimit! * 1000; // Convert to milliseconds
+    const timeRemaining = Math.max(0, timeLimit - this.matchTimeElapsed);
+
+    // Check if match time has expired
+    if (timeRemaining <= 0) {
+      this.handleMatchTimeout();
+      return;
+    }
+
+    // Broadcast timer update to all players
+    this.broadcastMatchTimer();
+  }
+
+  private broadcastMatchTimer(): void {
+    const timeLimit = this.config.timeLimit! * 1000; // Convert to milliseconds
+    const timeRemaining = Math.max(0, timeLimit - this.matchTimeElapsed);
+
+    this.broadcastToRoom('matchTimerUpdate', {
+      timeRemaining: Math.floor(timeRemaining), // Send as milliseconds
+      timeElapsed: Math.floor(this.matchTimeElapsed),
+      serverTimestamp: Date.now(),
+      isPaused: this.matchTimerPaused,
+    });
+  }
+
+  public pauseMatchTimer(): void {
+    this.matchTimerPaused = true;
+    this.broadcastMatchTimer();
+    console.log(`GameRoom: Paused match timer for room ${this.id}`);
+  }
+
+  public resumeMatchTimer(): void {
+    this.matchTimerPaused = false;
+    this.lastTimerUpdate = Date.now(); // Reset timer baseline
+    this.broadcastMatchTimer();
+    console.log(`GameRoom: Resumed match timer for room ${this.id}`);
+  }
+
+  public stopMatchTimer(): void {
+    if (this.matchTimerInterval) {
+      clearInterval(this.matchTimerInterval);
+      this.matchTimerInterval = null;
+    }
+
+    this.matchTimeElapsed = 0;
+    this.matchTimerPaused = false;
+    console.log(`GameRoom: Stopped match timer for room ${this.id}`);
+  }
+
+  public getMatchTimeRemaining(): number {
+    const timeLimit = this.config.timeLimit! * 1000; // Convert to milliseconds
+    return Math.max(0, timeLimit - this.matchTimeElapsed);
+  }
+
   // Periodic state synchronization
   public startPeriodicSync(intervalMs: number = 1000): NodeJS.Timeout {
     return setInterval(() => {
@@ -1846,6 +1960,9 @@ export class GameRoom {
 
     // Stop physics updates
     this.stopPhysicsUpdate();
+
+    // Stop match timer
+    this.stopMatchTimer();
 
     // Clear players
     this.players.clear();

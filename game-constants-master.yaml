@@ -288,7 +288,7 @@ assets:
 # Match settings and gameplay parameters
 game:
   max_stocks: 3
-  match_time: 180000  # 3 minutes in milliseconds
+  match_time: 180000  # 3 minutes in milliseconds (server uses 180 seconds)
   respawn_time: 3000
   max_players: 4
   min_players: 2
