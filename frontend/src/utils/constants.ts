@@ -210,6 +210,7 @@ export function updateGameConfig(serverConstants: any): void {
       DASH_CARD: serverConstants.assets.images_dash_card,
       NINJA_CARD: serverConstants.assets.images_ninja_card,
       REX_CARD: serverConstants.assets.images_rex_card,
+      TITAN_CARD: serverConstants.assets.images_titan_card,
       PLATFORM: serverConstants.assets.images_platform,
       UI_BUTTON: serverConstants.assets.images_ui_button,
       UI_BUTTON_HOVER: serverConstants.assets.images_ui_button_hover,

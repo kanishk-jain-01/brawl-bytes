@@ -149,16 +149,17 @@ export class BootScene extends Phaser.Scene {
       { frameWidth: 48, frameHeight: 48 }
     );
 
+    this.load.spritesheet(
+      ASSET_KEYS.SPRITESHEETS.TITAN_SPRITES,
+      '/assets/titan_spritesheet.png',
+      { frameWidth: 192, frameHeight: 192 }
+    );
+
     // Load character card images
     this.load.image(ASSET_KEYS.IMAGES.DASH_CARD, '/assets/dash_card.jpg');
     this.load.image(ASSET_KEYS.IMAGES.NINJA_CARD, '/assets/ninja_card.jpg');
     this.load.image(ASSET_KEYS.IMAGES.REX_CARD, '/assets/rex_card.jpg');
-
-    // Keep titan as placeholder for now since no spritesheet provided
-    this.load.image(
-      ASSET_KEYS.IMAGES.CHARACTER_TITAN,
-      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTc0YzNjIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VElUQU48L3RleHQ+Cjwvc3ZnPg=='
-    );
+    this.load.image(ASSET_KEYS.IMAGES.TITAN_CARD, '/assets/titan_card.jpg');
 
     // Load jungle canopy video background (served from frontend to avoid CORS)
     this.load.video({

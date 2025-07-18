@@ -223,7 +223,10 @@ export class CharacterSelectScene extends Phaser.Scene {
     const isNinjaCharacter =
       characterKey === 'NINJA' || character.name === 'Ninja';
     const isRexCharacter = characterKey === 'REX' || character.name === 'Rex';
-    let hasCardImage = isDashCharacter || isNinjaCharacter || isRexCharacter;
+    const isTitanCharacter =
+      characterKey === 'TITAN' || character.name === 'Titan';
+    let hasCardImage =
+      isDashCharacter || isNinjaCharacter || isRexCharacter || isTitanCharacter;
 
     if (hasCardImage) {
       // Determine which card image to use
@@ -234,6 +237,8 @@ export class CharacterSelectScene extends Phaser.Scene {
         cardImageKey = ASSET_KEYS.IMAGES.NINJA_CARD;
       } else if (isRexCharacter && ASSET_KEYS.IMAGES.REX_CARD) {
         cardImageKey = ASSET_KEYS.IMAGES.REX_CARD;
+      } else if (isTitanCharacter && ASSET_KEYS.IMAGES.TITAN_CARD) {
+        cardImageKey = ASSET_KEYS.IMAGES.TITAN_CARD;
       } else {
         // Fallback to colored rectangle if image not available
         hasCardImage = false;
@@ -413,8 +418,13 @@ export class CharacterSelectScene extends Phaser.Scene {
       const isNinjaCharacter =
         characterKey === 'NINJA' || character.name === 'Ninja';
       const isRexCharacter = characterKey === 'REX' || character.name === 'Rex';
+      const isTitanCharacter =
+        characterKey === 'TITAN' || character.name === 'Titan';
       const hasCardImage =
-        isDashCharacter || isNinjaCharacter || isRexCharacter;
+        isDashCharacter ||
+        isNinjaCharacter ||
+        isRexCharacter ||
+        isTitanCharacter;
 
       if (hasCardImage) {
         // For characters with card images, we'll use a glow effect or tint

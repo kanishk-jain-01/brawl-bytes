@@ -156,7 +156,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const spriteMapping: Record<string, string> = {
       DASH: ASSET_KEYS.SPRITESHEETS.DASH_SPRITES,
       REX: ASSET_KEYS.SPRITESHEETS.REX_SPRITES,
-      TITAN: ASSET_KEYS.IMAGES.CHARACTER_TITAN, // Still using image for titan
+      TITAN: ASSET_KEYS.SPRITESHEETS.TITAN_SPRITES,
       NINJA: ASSET_KEYS.SPRITESHEETS.NINJA_SPRITES,
     };
 
@@ -249,12 +249,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private setupAnimations(): void {
-    // Only create animations for spritesheet characters
-    if (this.characterType === 'TITAN') {
-      // Titan still uses single image, skip animation setup
-      return;
-    }
-
     const animKey = this.characterType.toLowerCase();
     const spriteKey = Player.getCharacterSpriteKey(this.characterType);
 
@@ -517,137 +511,46 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setScale(this.baseScaleX, this.baseScaleY);
     this.setRotation(0);
 
-    // Apply state-specific animations
-    if (this.characterType === 'TITAN') {
-      // Titan uses old tween animations
+    // Use spritesheet animations with directional support
+    const animKey = this.characterType.toLowerCase();
+    const direction = this.facingDirection;
+
+    try {
       switch (newState) {
         case 'idle':
-          this.playIdleAnimation();
+          if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
+            this.play(`${animKey}_idle_${direction}`);
+          }
           break;
         case 'walking':
-          this.playWalkingAnimation();
+          if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
+            this.play(`${animKey}_walk_${direction}`);
+          }
           break;
         case 'jumping':
-          this.playJumpingAnimation();
-          break;
         case 'falling':
-          this.playFallingAnimation();
+          if (this.scene.anims.exists(`${animKey}_jump_${direction}`)) {
+            this.play(`${animKey}_jump_${direction}`);
+          }
           break;
         case 'attacking':
-          this.playAttackingAnimation();
+          // No attack animation available, use walking animation as feedback
+          if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
+            this.play(`${animKey}_walk_${direction}`);
+          }
           break;
         default:
-          this.playIdleAnimation();
+          if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
+            this.play(`${animKey}_idle_${direction}`);
+          }
           break;
       }
-    } else {
-      // Use spritesheet animations with directional support
-      const animKey = this.characterType.toLowerCase();
-      const direction = this.facingDirection;
-
-      try {
-        switch (newState) {
-          case 'idle':
-            if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
-              this.play(`${animKey}_idle_${direction}`);
-            }
-            break;
-          case 'walking':
-            if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
-              this.play(`${animKey}_walk_${direction}`);
-            }
-            break;
-          case 'jumping':
-          case 'falling':
-            if (this.scene.anims.exists(`${animKey}_jump_${direction}`)) {
-              this.play(`${animKey}_jump_${direction}`);
-            }
-            break;
-          case 'attacking':
-            // No attack animation available, use walking animation as feedback
-            if (this.scene.anims.exists(`${animKey}_walk_${direction}`)) {
-              this.play(`${animKey}_walk_${direction}`);
-            }
-            break;
-          default:
-            if (this.scene.anims.exists(`${animKey}_idle_${direction}`)) {
-              this.play(`${animKey}_idle_${direction}`);
-            }
-            break;
-        }
-      } catch (error) {
-        console.error(
-          `Failed to play animation ${newState} for ${this.characterType}:`,
-          error
-        );
-      }
+    } catch (error) {
+      console.error(
+        `Failed to play animation ${newState} for ${this.characterType}:`,
+        error
+      );
     }
-  }
-
-  private playIdleAnimation(): void {
-    // Gentle breathing effect
-    this.currentTween = this.scene.tweens.add({
-      targets: this,
-      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.BREATHING_SCALE.SCALE_Y,
-      duration: GAME_CONFIG.ANIMATION.BREATHING_SCALE.DURATION,
-      ease: 'Sine.easeInOut',
-      yoyo: true,
-      repeat: -1,
-    });
-  }
-
-  private playWalkingAnimation(): void {
-    // Subtle bounce while walking
-    this.currentTween = this.scene.tweens.add({
-      targets: this,
-      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.HIT_EFFECT.SCALE_Y,
-      duration: GAME_CONFIG.ANIMATION.HIT_EFFECT.DURATION,
-      ease: 'Sine.easeInOut',
-      yoyo: true,
-      repeat: -1,
-    });
-  }
-
-  private playJumpingAnimation(): void {
-    // Stretch effect when jumping
-    this.currentTween = this.scene.tweens.add({
-      targets: this,
-      scaleY: this.baseScaleY * GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.SCALE_Y,
-      scaleX: this.baseScaleX * 0.95,
-      duration: GAME_CONFIG.ANIMATION.DAMAGE_EFFECT.DURATION,
-      ease: 'Back.easeOut',
-      yoyo: false,
-      onComplete: () => {
-        this.setScale(this.baseScaleX, this.baseScaleY);
-      },
-    });
-  }
-
-  private playFallingAnimation(): void {
-    // Compress effect when falling
-    this.currentTween = this.scene.tweens.add({
-      targets: this,
-      scaleY: this.baseScaleY * 0.9,
-      scaleX: this.baseScaleX * 1.1,
-      duration: 300,
-      ease: 'Sine.easeInOut',
-      yoyo: false,
-    });
-  }
-
-  private playAttackingAnimation(): void {
-    // Scale up briefly for attack
-    this.currentTween = this.scene.tweens.add({
-      targets: this,
-      scaleX: this.baseScaleX * 1.2,
-      scaleY: this.baseScaleY * 1.1,
-      duration: 100,
-      ease: 'Back.easeOut',
-      yoyo: true,
-      onComplete: () => {
-        this.setScale(this.baseScaleX, this.baseScaleY);
-      },
-    });
   }
 
   private canJump(): boolean {
