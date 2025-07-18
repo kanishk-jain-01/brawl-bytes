@@ -40,23 +40,72 @@ export class MenuScene extends Phaser.Scene {
   private createBackground(): void {
     const { width, height } = this.cameras.main;
 
-    // Create gradient background
+    // Try to create jungle canopy video background
+    try {
+      const jungleVideo = this.add.video(width / 2, height / 2, 'jungle_canopy');
+      if (jungleVideo) {
+        // Set depth first
+        jungleVideo.setDepth(-1);
+        jungleVideo.setOrigin(0.5, 0.5); // Center the video
+        
+        // Wait for video metadata to load
+        jungleVideo.on('loadeddata', () => {
+          // Get video's native dimensions
+          const videoWidth = jungleVideo.video.videoWidth;
+          const videoHeight = jungleVideo.video.videoHeight;
+          
+          console.log(`Video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`);
+          
+          // Calculate aspect ratios
+          const videoAspect = videoWidth / videoHeight;
+          const screenAspect = width / height;
+          
+          let newWidth, newHeight;
+          
+          if (videoAspect > screenAspect) {
+            // Video is wider - fit to height
+            newHeight = height;
+            newWidth = height * videoAspect;
+          } else {
+            // Video is taller - fit to width  
+            newWidth = width;
+            newHeight = width / videoAspect;
+          }
+          
+          // Apply the calculated size
+          jungleVideo.setDisplaySize(newWidth, newHeight);
+          
+          console.log(`Applied video size: ${newWidth}x${newHeight}`);
+        });
+        
+        // Start playing
+        jungleVideo.play(true); // Loop the video
+        
+        // Add subtle overlay for better text readability
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.2);
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to load jungle video background, falling back to gradient:', error);
+    }
+
+    // Fallback to jungle-themed gradient background
     const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x2c3e50, 0x2c3e50, 0x34495e, 0x34495e, 1);
+    graphics.fillGradientStyle(0x1a4a3a, 0x1a4a3a, 0x2e5230, 0x2e5230, 1);
     graphics.fillRect(0, 0, width, height);
 
-    // Add some decorative elements
+    // Add some jungle-themed decorative elements
     for (let i = 0; i < 20; i += 1) {
       const x = Phaser.Math.Between(0, width);
       const y = Phaser.Math.Between(0, height);
       const size = Phaser.Math.Between(2, 8);
       const alpha = Phaser.Math.FloatBetween(0.1, 0.3);
 
-      const star = this.add.circle(x, y, size, 0xffffff, alpha);
+      const leaf = this.add.circle(x, y, size, 0x4caf50, alpha);
 
-      // Add twinkling animation
+      // Add gentle swaying animation
       this.tweens.add({
-        targets: star,
+        targets: leaf,
         alpha: alpha + 0.2,
         duration: Phaser.Math.Between(1000, 3000),
         yoyo: true,
@@ -82,7 +131,7 @@ export class MenuScene extends Phaser.Scene {
       color: GAME_CONFIG.UI.COLORS.TEXT,
       fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
       fontStyle: 'bold',
-      stroke: UI_COLORS.SECONDARY_HEX(),
+      stroke: '#1a4a3a',
       strokeThickness: 4,
     });
     this.title.setOrigin(0.5);

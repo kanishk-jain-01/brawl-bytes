@@ -17,6 +17,8 @@ export const GAME_CONFIG = {
   // Scene identifiers - loaded from database
   SCENE_KEYS: {} as Record<string, string>,
 
+
+
   // Physics constants - loaded from database
   PHYSICS: {} as {
     GRAVITY: number;
@@ -202,6 +204,7 @@ export function updateGameConfig(serverConstants: any): void {
       BACKGROUND_MENU: serverConstants.assets.images_background_menu,
       BACKGROUND_STAGE1: serverConstants.assets.images_background_stage1,
       BACKGROUND_STAGE2: serverConstants.assets.images_background_stage2,
+      BACKGROUND_STAGE3: serverConstants.assets.images_background_stage3,
       CHARACTER_DASH: serverConstants.assets.images_character_dash,
       CHARACTER_REX: serverConstants.assets.images_character_rex,
       CHARACTER_TITAN: serverConstants.assets.images_character_titan,

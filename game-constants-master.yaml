@@ -240,33 +240,37 @@ scenes:
 # ASSET MANAGEMENT
 # All game assets organized by type
 assets:
+  # Note: Currently using frontend-served assets and placeholders
+  # Future: Add base_url when implementing full asset system
+  
   images:
-    logo: "logo"
-    background_menu: "background_menu"
-    background_stage1: "background_stage1"
-    background_stage2: "background_stage2"
-    character_dash: "character_dash"
-    character_rex: "character_rex"
-    character_titan: "character_titan"
-    character_ninja: "character_ninja"
-    platform: "platform"
-    ui_button: "ui_button"
-    ui_button_hover: "ui_button_hover"
-    health_bar: "health_bar"
-    energy_bar: "energy_bar"
+    logo: "logo"  # Using jungle-themed placeholder
+    background_menu: "background_menu"  # Jungle video served from frontend
+    background_stage1: "background_stage1"  # Future: jungle backgrounds
+    background_stage2: "background_stage2"  # Future: jungle backgrounds
+    background_stage3: "background_stage3"  # Future: jungle backgrounds
+    character_dash: "character_dash"  # Using jungle-themed placeholder
+    character_rex: "character_rex"  # Using jungle-themed placeholder
+    character_titan: "character_titan"  # Using jungle-themed placeholder
+    character_ninja: "character_ninja"  # Using jungle-themed placeholder
+    platform: "platform"  # Keep existing
+    ui_button: "ui_button"  # Using jungle-themed placeholder
+    ui_button_hover: "ui_button_hover"  # Using jungle-themed placeholder
+    health_bar: "health_bar"  # Keep existing
+    energy_bar: "energy_bar"  # Keep existing
   
   audio:
-    menu_music: "menu_music"
-    game_music: "game_music"
-    battle_theme: "battle_theme"
-    sky_theme: "sky_theme"
-    volcano_theme: "volcano_theme"
-    sfx_jump: "sfx_jump"
-    sfx_attack: "sfx_attack"
-    sfx_hit: "sfx_hit"
-    sfx_button: "sfx_button"
-    sfx_victory: "sfx_victory"
-    sfx_defeat: "sfx_defeat"
+    menu_music: "menu_music"  # Future: jungle ambient
+    game_music: "game_music"  # Keep existing
+    battle_theme: "battle_theme"  # Keep existing
+    sky_theme: "sky_theme"  # Keep existing
+    volcano_theme: "volcano_theme"  # Keep existing
+    sfx_jump: "sfx_jump"  # Keep existing
+    sfx_attack: "sfx_attack"  # Keep existing
+    sfx_hit: "sfx_hit"  # Keep existing
+    sfx_button: "sfx_button"  # Future: wooden click
+    sfx_victory: "sfx_victory"  # Keep existing
+    sfx_defeat: "sfx_defeat"  # Keep existing
   
   spritesheets:
     dash_sprites: "dash_sprites"
@@ -294,15 +298,15 @@ game:
 # Colors, fonts, and styling configuration
 ui:
   colors:
-    primary: "#3498db"
-    secondary: "#2c3e50"
-    success: "#27ae60"
-    danger: "#e74c3c"
-    warning: "#f39c12"
-    text: "#ffffff"
-    text_secondary: "#bdc3c7"
-    background: "#34495e"
-    accent: "#9b59b6"
+    primary: "#4caf50"        # Jungle Green
+    secondary: "#1a4a3a"      # Deep Forest Green
+    success: "#66bb6a"        # Light Green
+    danger: "#c62828"         # Vine Red
+    warning: "#f9a825"        # Bamboo Gold
+    text: "#ffffff"           # White (keep)
+    text_secondary: "#a5d6a7" # Light Forest Green
+    background: "#2e5230"     # Dark Forest
+    accent: "#ff6f00"         # Tribal Orange
     # Character type colors for sprite tinting
     character_dash: "#27ae60"        # Green for fast/lightweight
     character_rex: "#3498db"         # Blue for balanced/allrounder  
