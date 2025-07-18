@@ -17,8 +17,6 @@ export const GAME_CONFIG = {
   // Scene identifiers - loaded from database
   SCENE_KEYS: {} as Record<string, string>,
 
-
-
   // Physics constants - loaded from database
   PHYSICS: {} as {
     GRAVITY: number;

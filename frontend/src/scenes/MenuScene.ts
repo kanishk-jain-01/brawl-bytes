@@ -17,8 +17,6 @@ export class MenuScene extends Phaser.Scene {
 
   private playButtonText!: Phaser.GameObjects.Text;
 
-  private logo!: Phaser.GameObjects.Image;
-
   private title!: Phaser.GameObjects.Text;
 
   private subtitle!: Phaser.GameObjects.Text;
@@ -31,7 +29,6 @@ export class MenuScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
 
     this.createBackground();
-    this.createLogo(width, height);
     this.createTitle(width, height);
     this.createButtons(width, height);
     this.setupAnimations();
@@ -42,51 +39,67 @@ export class MenuScene extends Phaser.Scene {
 
     // Try to create jungle canopy video background
     try {
-      const jungleVideo = this.add.video(width / 2, height / 2, 'jungle_canopy');
+      const jungleVideo = this.add.video(
+        width / 2,
+        height / 2,
+        'jungle_canopy'
+      );
       if (jungleVideo) {
         // Set depth first
         jungleVideo.setDepth(-1);
         jungleVideo.setOrigin(0.5, 0.5); // Center the video
-        
+
         // Wait for video metadata to load
         jungleVideo.on('loadeddata', () => {
           // Get video's native dimensions
-          const videoWidth = jungleVideo.video.videoWidth;
-          const videoHeight = jungleVideo.video.videoHeight;
-          
-          console.log(`Video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`);
-          
+          const videoElement = jungleVideo.video;
+          if (!videoElement) {
+            console.warn('Video element is null, cannot get dimensions');
+            return;
+          }
+
+          const { videoWidth } = videoElement;
+          const { videoHeight } = videoElement;
+
+          console.log(
+            `Video native size: ${videoWidth}x${videoHeight}, Screen: ${width}x${height}`
+          );
+
           // Calculate aspect ratios
           const videoAspect = videoWidth / videoHeight;
           const screenAspect = width / height;
-          
-          let newWidth, newHeight;
-          
+
+          let newWidth;
+          let newHeight;
+
           if (videoAspect > screenAspect) {
             // Video is wider - fit to height
             newHeight = height;
             newWidth = height * videoAspect;
           } else {
-            // Video is taller - fit to width  
+            // Video is taller - fit to width
             newWidth = width;
             newHeight = width / videoAspect;
           }
-          
+
           // Apply the calculated size
           jungleVideo.setDisplaySize(newWidth, newHeight);
-          
+
           console.log(`Applied video size: ${newWidth}x${newHeight}`);
         });
-        
+
         // Start playing
         jungleVideo.play(true); // Loop the video
-        
+
         // Add subtle overlay for better text readability
         this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.2);
         return;
       }
     } catch (error) {
-      console.warn('Failed to load jungle video background, falling back to gradient:', error);
+      console.warn(
+        'Failed to load jungle video background, falling back to gradient:',
+        error
+      );
     }
 
     // Fallback to jungle-themed gradient background
@@ -113,16 +126,6 @@ export class MenuScene extends Phaser.Scene {
         delay: Phaser.Math.Between(0, 2000),
       });
     }
-  }
-
-  private createLogo(width: number, height: number): void {
-    this.logo = this.add.image(
-      width / 2,
-      height / 2 - 200,
-      ASSET_KEYS.IMAGES.LOGO
-    );
-    this.logo.setScale(3);
-    this.logo.setTint(0x3498db);
   }
 
   private createTitle(width: number, height: number): void {
@@ -264,17 +267,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private setupAnimations(): void {
-    // Logo pulse animation
-    this.tweens.add({
-      targets: this.logo,
-      scaleX: 3.1,
-      scaleY: 3.1,
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-
     // Title glow animation
     this.tweens.add({
       targets: this.title,

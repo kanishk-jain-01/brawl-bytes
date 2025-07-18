@@ -97,32 +97,28 @@ export class BootScene extends Phaser.Scene {
       this.loadingText.setText('Loading Complete!');
       this.percentText.setText('100%');
 
+      // Automatically transition to next scene after a brief delay
       this.time.delayedCall(500, () => {
-        this.loadingText.setText('BRAWL BYTES');
-        this.loadingText.setFontSize('48px');
-        this.loadingText.setStyle({ fontStyle: 'bold' });
-        this.percentText.setText('Press any key to continue');
-        this.percentText.setFontSize('20px');
-        this.percentText.setY(height / 2 + 60);
+        this.startGame();
       });
     });
   }
 
   private loadAssets(): void {
     // Using frontend-served assets and jungle-themed placeholders
-    
+
     // Load logo (use placeholder for now since jungle logo doesn't exist yet)
     this.load.image(
       ASSET_KEYS.IMAGES.LOGO,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRjYWY1MCIvPgogIDx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkI8L3RleHQ+Cjwvc3ZnPg=='
     );
-    
+
     // Load UI buttons (use jungle-themed placeholders for now)
     this.load.image(
       ASSET_KEYS.IMAGES.UI_BUTTON,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIGZpbGw9IiM1ZDRlMzciIHJ4PSI1Ii8+CiAgPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE5NCIgaGVpZ2h0PSI1NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGQ2ZTYzIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIzIi8+Cjwvc3ZnPg=='
     );
-    
+
     this.load.image(
       ASSET_KEYS.IMAGES.UI_BUTTON_HOVER,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIGZpbGw9IiNmOWE4MjUiIHJ4PSI1Ii8+CiAgPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE5NCIgaGVpZ2h0PSI1NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIzIi8+Cjwvc3ZnPg=='
@@ -133,23 +129,23 @@ export class BootScene extends Phaser.Scene {
       ASSET_KEYS.IMAGES.PLATFORM,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAiIGZpbGw9IiM5NWE1YTYiLz4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUiIGZpbGw9IiM3ZjhlOGYiLz4KPC9zdmc+'
     );
-    
+
     // Load character images (use placeholder for now since jungle characters don't exist yet)
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_DASH,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMjdhZTYwIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRBU0g8L3RleHQ+Cjwvc3ZnPg=='
     );
-    
+
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_REX,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzQ5OGRiIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJFWDwvdGV4dD4KPC9zdmc+'
     );
-    
+
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_TITAN,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZTc0YzNjIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VElUQU48L3RleHQ+Cjwvc3ZnPg=='
     );
-    
+
     this.load.image(
       ASSET_KEYS.IMAGES.CHARACTER_NINJA,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjOWI1OWI2IiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICA8dGV4dCB4PSIzMCIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TklOSkE8L3RleHQ+Cjwvc3ZnPg=='
@@ -159,9 +155,7 @@ export class BootScene extends Phaser.Scene {
     this.load.video({
       key: 'jungle_canopy',
       url: '/assets/backgrounds/jungle-canopy.mp4',
-      loadEvent: 'loadeddata',
-      asBlob: false,
-      noAudio: false
+      noAudio: false,
     });
 
     // Load player placeholder
@@ -177,44 +171,6 @@ export class BootScene extends Phaser.Scene {
         'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
       );
     }
-  }
-
-  create(): void {
-    this.setupInputHandlers();
-  }
-
-  private setupInputHandlers(): void {
-    let inputEnabled = false;
-
-    // Enable input after a delay (loading has already completed by create())
-    this.time.delayedCall(1000, () => {
-      inputEnabled = true;
-      this.setupBlinkingText();
-    });
-
-    // Listen for any key press
-    this.input.keyboard?.on('keydown', () => {
-      if (inputEnabled) {
-        this.startGame();
-      }
-    });
-
-    // Listen for click/touch
-    this.input.on('pointerdown', () => {
-      if (inputEnabled) {
-        this.startGame();
-      }
-    });
-  }
-
-  private setupBlinkingText(): void {
-    this.tweens.add({
-      targets: this.percentText,
-      alpha: 0.3,
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-    });
   }
 
   private startGame(): void {
