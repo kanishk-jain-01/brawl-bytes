@@ -55,7 +55,6 @@ export class LoginScene extends Phaser.Scene {
       <h2 style="margin-bottom:16px;text-align:center;">Brawl Bytes</h2>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <input id="bb-username" placeholder="Username" style="padding:8px;border:none;border-radius:4px;" />
-        <input id="bb-email" placeholder="Email" style="padding:8px;border:none;border-radius:4px;display:none;" />
         <input id="bb-password" type="password" placeholder="Password" style="padding:8px;border:none;border-radius:4px;" />
         <button id="bb-submit" style="padding:10px;background:#27ae60;border:none;border-radius:4px;color:#fff;font-weight:bold;cursor:pointer;">LOGIN</button>
         <button id="bb-toggle" style="padding:6px;background:none;border:none;color:#3498db;cursor:pointer;font-size:14px;">No account? Register</button>
@@ -68,7 +67,6 @@ export class LoginScene extends Phaser.Scene {
 
     const usernameInput =
       wrapper.querySelector<HTMLInputElement>('#bb-username')!;
-    const emailInput = wrapper.querySelector<HTMLInputElement>('#bb-email')!;
     const passwordInput =
       wrapper.querySelector<HTMLInputElement>('#bb-password')!;
     const submitBtn = wrapper.querySelector<HTMLButtonElement>('#bb-submit')!;
@@ -82,7 +80,6 @@ export class LoginScene extends Phaser.Scene {
 
     const setMode = (registerMode: boolean) => {
       this.isRegisterMode = registerMode;
-      emailInput.style.display = registerMode ? 'block' : 'none';
       submitBtn.textContent = registerMode ? 'REGISTER' : 'LOGIN';
       toggleBtn.textContent = registerMode
         ? 'Have an account? Login'
@@ -95,9 +92,8 @@ export class LoginScene extends Phaser.Scene {
     const handleSubmit = async () => {
       const username = usernameInput.value.trim();
       const password = passwordInput.value.trim();
-      const email = emailInput.value.trim();
 
-      if (!username || !password || (this.isRegisterMode && !email)) {
+      if (!username || !password) {
         showError('Please fill out all required fields');
         return;
       }
@@ -107,7 +103,7 @@ export class LoginScene extends Phaser.Scene {
 
       let resp: AuthResponse;
       if (this.isRegisterMode) {
-        resp = await register(username, email, password);
+        resp = await register(username, '', password);
       } else {
         resp = await login(username, password);
       }

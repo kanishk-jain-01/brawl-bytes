@@ -55,31 +55,10 @@ export const validateUsername = (username: string): boolean => {
 export const validatePasswordStrength = (
   password: string
 ): { valid: boolean; message?: string } => {
-  if (password.length < 8) {
+  if (password.length < 1) {
     return {
       valid: false,
-      message: 'Password must be at least 8 characters long',
-    };
-  }
-
-  if (!/(?=.*[a-z])/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one lowercase letter',
-    };
-  }
-
-  if (!/(?=.*[A-Z])/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one uppercase letter',
-    };
-  }
-
-  if (!/(?=.*\d)/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one number',
+      message: 'Password cannot be empty',
     };
   }
 

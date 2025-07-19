@@ -16,10 +16,10 @@ router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Username, email, and password are required',
+        message: 'Username and password are required',
       });
     }
 
@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    if (!validateEmail(email)) {
+    if (email && !validateEmail(email)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid email format',
@@ -57,18 +57,20 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const existingUserByEmail = await UserRepository.getUserByEmail(email);
-    if (existingUserByEmail) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already exists',
-      });
+    if (email) {
+      const existingUserByEmail = await UserRepository.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email already exists',
+        });
+      }
     }
 
     // Create user
     const user = await UserRepository.createUser({
       username,
-      email,
+      email: email || null,
       password,
     });
 
@@ -76,7 +78,7 @@ router.post('/register', async (req, res) => {
     const token = generateToken({
       userId: user.id,
       username: user.username,
-      email: user.email,
+      email: user.email || '',
     });
 
     return res.status(201).json({
@@ -145,7 +147,7 @@ router.post('/login', async (req, res) => {
     const token = generateToken({
       userId: user.id,
       username: user.username,
-      email: user.email,
+      email: user.email || '',
     });
 
     return res.json({
@@ -197,7 +199,7 @@ router.post(
       const token = generateToken({
         userId: user.id,
         username: user.username,
-        email: user.email,
+        email: user.email || '',
       });
 
       return res.json({

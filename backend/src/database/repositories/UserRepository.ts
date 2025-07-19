@@ -5,14 +5,14 @@ const prisma = new PrismaClient();
 
 export interface CreateUserData {
   username: string;
-  email: string;
+  email: string | null;
   password: string;
 }
 
 export interface UserWithProfile {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   passwordHash: string;
   createdAt: Date;
   updatedAt: Date;
