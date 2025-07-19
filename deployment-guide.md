@@ -107,7 +107,7 @@
    # Import your GitHub repository
    # Set framework preset to "Other"
    # Set root directory: "." (project root, not frontend)
-   # Set build command: "npm run build:shared && cd frontend && npm run build"
+   # Set build command: "cd shared-types && npm run build && cd ../frontend && npm run build"
    # Set output directory: "frontend/dist"
    # Set install command: "npm install && npm install --workspaces"
    ```
@@ -199,6 +199,13 @@
    - Ensure all @types/* packages are in dependencies (not devDependencies)
    - Run `npm install` locally to verify the build works
    - Check that TypeScript is included in dependencies for production builds
+
+6. **Vercel Monorepo Issues:**
+   - Error: "Missing script: install:all" → Set root directory to "." (project root)
+   - Error: "Missing script: build:shared" → Use direct directory navigation instead
+   - Use install command: `npm install && npm install --workspaces`
+   - Use build command: `cd shared-types && npm run build && cd ../frontend && npm run build`
+   - Ensure vercel.json is in project root, not frontend directory
 
 ## URLs After Deployment:
 - **Frontend:** https://your-app.vercel.app
