@@ -1,5 +1,7 @@
-import { PrismaClient, type PlayerProfile } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import type { DetailedMatchResult, DatabasePlayerStats } from '../types';
+
+type PlayerProfile = Prisma.PlayerProfileGetPayload<Record<string, never>>;
 
 const prisma = new PrismaClient();
 
