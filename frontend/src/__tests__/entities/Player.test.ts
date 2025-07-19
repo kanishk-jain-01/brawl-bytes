@@ -161,7 +161,7 @@ describe('Player Entity', () => {
       scene: mockScene,
       x: 400,
       y: 300,
-      characterType: 'BALANCED_ALLROUNDER' as CharacterType,
+      characterType: 'REX' as CharacterType,
       playerId: 'test-player',
       isLocalPlayer: true,
     };
@@ -191,22 +191,16 @@ describe('Player Entity', () => {
     it('should create a player with correct initial properties', () => {
       const player = new Player(basePlayerConfig);
 
-      expect(player.characterType).toBe('BALANCED_ALLROUNDER');
+      expect(player.characterType).toBe('REX');
       expect(player.playerId).toBe('test-player');
       expect(player.isLocalPlayer).toBe(true);
-      expect(player.getHealth()).toBe(
-        GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER.health
-      );
+      expect(player.getHealth()).toBe(GAME_CONFIG.CHARACTERS.REX.health);
       expect(player.getStocks()).toBe(GAME_CONFIG.GAME.MAX_STOCKS);
       expect(player.isDefeated()).toBe(false);
     });
 
     it('should initialize different character types correctly', () => {
-      const characterTypes: CharacterType[] = [
-        'FAST_LIGHTWEIGHT',
-        'BALANCED_ALLROUNDER',
-        'HEAVY_HITTER',
-      ];
+      const characterTypes: CharacterType[] = ['DASH', 'REX', 'TITAN'];
 
       characterTypes.forEach(characterType => {
         const config = { ...basePlayerConfig, characterType };
@@ -276,7 +270,7 @@ describe('Player Entity', () => {
       player.update();
 
       expect(mockPhysicsBody.setVelocityX).toHaveBeenCalledWith(
-        -GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER.speed
+        -GAME_CONFIG.CHARACTERS.REX.speed
       );
       expect(player.setFlipX).toHaveBeenCalledWith(true);
     });
@@ -312,7 +306,7 @@ describe('Player Entity', () => {
       player.update();
 
       expect(mockPhysicsBody.setVelocityX).toHaveBeenCalledWith(
-        GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER.speed
+        GAME_CONFIG.CHARACTERS.REX.speed
       );
       expect(player.setFlipX).toHaveBeenCalledWith(false);
     });
@@ -334,7 +328,7 @@ describe('Player Entity', () => {
       player.update();
 
       expect(mockPhysicsBody.setVelocityY).toHaveBeenCalledWith(
-        GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER.jumpVelocity
+        GAME_CONFIG.CHARACTERS.REX.jumpVelocity
       );
     });
 
@@ -359,7 +353,7 @@ describe('Player Entity', () => {
       player.update();
 
       expect(mockPhysicsBody.setVelocityY).toHaveBeenCalledWith(
-        GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER.jumpVelocity *
+        GAME_CONFIG.CHARACTERS.REX.jumpVelocity *
           GAME_CONFIG.PHYSICS.DOUBLE_JUMP_MULTIPLIER
       );
     });
@@ -688,7 +682,7 @@ describe('Player Entity', () => {
 
       // Should have been called with scaled knockback values
       // With 50% accumulated damage, multiplier = 1.0 + 50 * 0.015 = 1.75
-      // Weight for BALANCED_ALLROUNDER = 1.0, so weight multiplier = 1.0
+      // Weight for REX = 1.0, so weight multiplier = 1.0
       // Expected: x = 200 * 1.75 = 350, y = -100 * 1.75 = -175
       expect(mockPhysicsBody.setVelocity).toHaveBeenCalledWith(
         expect.any(Number),

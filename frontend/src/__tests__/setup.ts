@@ -231,7 +231,7 @@ Object.assign(GAME_CONFIG, {
     RADIUS: 25,
   },
   CHARACTERS: {
-    BALANCED_ALLROUNDER: {
+    REX: {
       name: 'Balanced All-rounder',
       speed: 200,
       jumpVelocity: -400,
@@ -239,7 +239,7 @@ Object.assign(GAME_CONFIG, {
       attackDamage: 10,
       weight: 1.0,
     },
-    HEAVY_HITTER: {
+    TITAN: {
       name: 'Heavy Hitter',
       speed: 150,
       jumpVelocity: -350,
@@ -247,7 +247,7 @@ Object.assign(GAME_CONFIG, {
       attackDamage: 15,
       weight: 1.5,
     },
-    FAST_LIGHTWEIGHT: {
+    DASH: {
       name: 'Fast Lightweight',
       speed: 250,
       jumpVelocity: -450,
@@ -255,10 +255,6 @@ Object.assign(GAME_CONFIG, {
       attackDamage: 8,
       weight: 0.8,
     },
-    // New database identifiers mapped for getCharacterStats() point to same data to satisfy legacy tests
-    REX: null as any,
-    DASH: null as any,
-    TITAN: null as any,
   },
   STAGES: {
     BATTLE_ARENA: {
@@ -321,6 +317,6 @@ Object.assign(GAME_CONFIG, {
 console.info('\u2705 Mock GAME_CONFIG populated for Jest');
 
 // Alias database identifiers to legacy identifiers for character mapping
-GAME_CONFIG.CHARACTERS.REX = GAME_CONFIG.CHARACTERS.BALANCED_ALLROUNDER;
-GAME_CONFIG.CHARACTERS.DASH = GAME_CONFIG.CHARACTERS.FAST_LIGHTWEIGHT;
-GAME_CONFIG.CHARACTERS.TITAN = GAME_CONFIG.CHARACTERS.HEAVY_HITTER;
+GAME_CONFIG.CHARACTERS.REX = GAME_CONFIG.CHARACTERS.REX;
+GAME_CONFIG.CHARACTERS.DASH = GAME_CONFIG.CHARACTERS.DASH;
+GAME_CONFIG.CHARACTERS.TITAN = GAME_CONFIG.CHARACTERS.TITAN;

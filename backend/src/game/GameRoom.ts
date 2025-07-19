@@ -1375,14 +1375,21 @@ export class GameRoom {
       if (stage && stage.config) {
         const config = stage.config as any;
         return {
+          name: stage.name || stageName,
+          width: config.width || 4000,
+          height: config.height || 3200,
           platforms: config.platforms || [],
+          hazards: config.hazards || [],
+          spawnPoints: config.spawnPoints || [
+            { x: 900, y: 1000 },
+            { x: 1100, y: 1000 },
+          ],
           boundaries: {
             left: -2000,
             right: 2000,
             top: -2000,
             bottom: 1200,
           },
-          hazards: config.hazards || [],
         };
       }
     } catch (error) {
@@ -1395,8 +1402,16 @@ export class GameRoom {
     // Fallback configuration if database fetch fails
     console.warn(`Using fallback stage configuration for ${stageName}`);
     return {
+      name: stageName,
+      width: 4000,
+      height: 3200,
       platforms: [
         { x: 1000, y: 1100, width: 10, height: 1 }, // Default main platform matching YAML
+      ],
+      hazards: [],
+      spawnPoints: [
+        { x: 900, y: 1000 },
+        { x: 1100, y: 1000 },
       ],
       boundaries: {
         left: -2000,
@@ -1404,7 +1419,6 @@ export class GameRoom {
         top: -2000,
         bottom: 1200,
       },
-      hazards: [],
     };
   }
 

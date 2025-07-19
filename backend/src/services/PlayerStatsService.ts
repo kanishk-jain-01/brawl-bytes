@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import type { DetailedMatchResult, PlayerStats } from '../types';
+import type { DetailedMatchResult, DatabasePlayerStats } from '../types';
 
 const prisma = new PrismaClient();
 
@@ -131,7 +131,9 @@ export class PlayerStatsService {
     return 'Bronze';
   }
 
-  static async getPlayerStats(userId: string): Promise<PlayerStats | null> {
+  static async getPlayerStats(
+    userId: string
+  ): Promise<DatabasePlayerStats | null> {
     const profile = await prisma.playerProfile.findUnique({
       where: { userId },
     });

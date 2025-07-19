@@ -7,7 +7,7 @@
 import { getState, updateState, resetState } from '@/state/GameState';
 import type { CharacterType } from '@/utils/constants';
 
-const SAMPLE_CHARACTER: CharacterType = 'FAST_LIGHTWEIGHT';
+const SAMPLE_CHARACTER: CharacterType = 'DASH';
 
 describe('GameState store', () => {
   beforeEach(() => {

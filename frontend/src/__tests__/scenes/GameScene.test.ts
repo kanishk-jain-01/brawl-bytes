@@ -66,7 +66,7 @@ describe('GameScene', () => {
 
     // Mock GameState
     (GameState.getState as jest.Mock).mockReturnValue({
-      selectedCharacter: 'BALANCED_ALLROUNDER',
+      selectedCharacter: 'REX',
     });
 
     // Create comprehensive mock scene

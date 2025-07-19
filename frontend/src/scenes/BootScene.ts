@@ -105,15 +105,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   private loadAssets(): void {
-    // Using frontend-served assets and jungle-themed placeholders
+    // Using frontend-served assets and jungle-themed graphics
 
-    // Load logo (use placeholder for now since jungle logo doesn't exist yet)
+    // Load logo
     this.load.image(
       ASSET_KEYS.IMAGES.LOGO,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRjYWY1MCIvPgogIDx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkI8L3RleHQ+Cjwvc3ZnPg=='
     );
 
-    // Load UI buttons (use jungle-themed placeholders for now)
+    // Load UI buttons
     this.load.image(
       ASSET_KEYS.IMAGES.UI_BUTTON,
       'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIGZpbGw9IiM1ZDRlMzciIHJ4PSI1Ii8+CiAgPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjE5NCIgaGVpZ2h0PSI1NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGQ2ZTYzIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSIzIi8+Cjwvc3ZnPg=='

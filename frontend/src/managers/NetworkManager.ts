@@ -258,7 +258,7 @@ export class NetworkManager {
       scene: this.scene,
       x: spawnPoint.x,
       y: spawnPoint.y,
-      characterType: 'BALANCED_ALLROUNDER', // Default, will be updated by character selection sync
+      characterType: 'REX', // Default, will be updated by character selection sync
       playerId,
       isLocalPlayer: false,
     });

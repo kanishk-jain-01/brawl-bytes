@@ -9,7 +9,7 @@ import { CharacterSelectScene } from '@/scenes/CharacterSelectScene';
 import * as GameState from '@/state/GameState';
 import type { CharacterType } from '@/utils/constants';
 
-const CHOSEN: CharacterType = 'HEAVY_HITTER';
+const CHOSEN: CharacterType = 'TITAN';
 
 describe('CharacterSelectScene integration', () => {
   beforeEach(() => {

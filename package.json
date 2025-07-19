@@ -1,0 +1,26 @@
+{
+  "name": "brawl-bytes-monorepo",
+  "version": "1.0.0",
+  "description": "Brawl Bytes - Multiplayer fighting game monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared-types"
+  ],
+  "scripts": {
+    "build:shared": "cd shared-types && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:all": "npm run build:shared && npm run build:frontend && npm run build:backend",
+    "dev:shared": "cd shared-types && npm run dev",
+    "install:all": "npm install && npm run install:workspaces",
+    "install:workspaces": "npm install --workspaces"
+  },
+  "keywords": ["multiplayer", "game", "typescript", "monorepo"],
+  "author": "Brawl Bytes Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

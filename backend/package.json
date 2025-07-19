@@ -25,6 +25,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@brawl-bytes/shared-types": "file:../shared-types",
     "@prisma/client": "^6.11.1",
     "@types/yaml": "^1.9.6",
     "bcryptjs": "^3.0.2",

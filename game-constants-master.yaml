@@ -70,7 +70,7 @@ characters:
     id: "dash"
     name: "Dash"
     description: "A lightning-fast fighter who relies on speed and agility"
-    type: "FAST_LIGHTWEIGHT"
+    type: "DASH"
     stats:
       health: 80
       speed: 400
@@ -92,7 +92,7 @@ characters:
     id: "rex"
     name: "Rex"
     description: "A well-balanced all-around fighter with solid stats"
-    type: "BALANCED_ALLROUNDER"
+    type: "REX"
     stats:
       health: 100
       speed: 300
@@ -114,7 +114,7 @@ characters:
     id: "titan"
     name: "Titan"
     description: "A heavy-hitting tank with massive damage and health"
-    type: "HEAVY_HITTER"
+    type: "TITAN"
     stats:
       health: 130
       speed: 200
@@ -136,7 +136,7 @@ characters:
     id: "ninja"
     name: "Ninja"
     description: "A stealthy assassin with mobility and precision strikes"
-    type: "FAST_LIGHTWEIGHT"
+    type: "DASH"
     stats:
       health: 75
       speed: 450

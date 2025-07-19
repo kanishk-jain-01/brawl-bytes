@@ -501,13 +501,7 @@ export type SceneKey = string;
 export function getCharacterStats(characterType: string) {
   const normalizedType = characterType.toUpperCase();
 
-  // Map old names to new names for backward compatibility
-  let mappedType = normalizedType;
-  if (normalizedType === 'FAST_LIGHTWEIGHT') mappedType = 'DASH';
-  if (normalizedType === 'BALANCED_ALLROUNDER') mappedType = 'REX';
-  if (normalizedType === 'HEAVY_HITTER') mappedType = 'TITAN';
-
-  const character = GAME_CONFIG.CHARACTERS[mappedType];
+  const character = GAME_CONFIG.CHARACTERS[normalizedType];
 
   // Strict validation - no fallbacks allowed
   if (!character || !character.health || character.health === 0) {

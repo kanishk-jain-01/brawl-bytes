@@ -274,7 +274,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       background.setStrokeStyle(2, UI_COLORS.PRIMARY());
       container.add(background);
 
-      // Character placeholder image (using colored rectangle for now)
+      // Character representation
       const characterColors: Record<string, number> = {
         REX: UI_COLORS.PRIMARY(),
         TITAN: UI_COLORS.DANGER(),

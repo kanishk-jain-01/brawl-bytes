@@ -884,18 +884,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private mapCharacterName(oldName: string): string {
-    const characterMap: Record<string, string> = {
-      FAST_LIGHTWEIGHT: 'DASH',
-      BALANCED_ALLROUNDER: 'REX',
-      HEAVY_HITTER: 'TITAN',
-      // Also support new names directly
-      DASH: 'DASH',
-      REX: 'REX',
-      TITAN: 'TITAN',
-    };
+  private mapCharacterName(characterName: string): string {
+    // Validate character name and return as-is (no legacy mapping needed)
+    const validCharacters = ['DASH', 'REX', 'TITAN', 'NINJA'];
 
-    return characterMap[oldName] || 'REX'; // Default to REX if unknown
+    if (validCharacters.includes(characterName)) {
+      return characterName;
+    }
+
+    throw new Error(`Invalid character name: ${characterName}`);
   }
 
   // Cleanup method for when scene is destroyed

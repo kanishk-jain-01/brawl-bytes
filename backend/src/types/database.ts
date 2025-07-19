@@ -1,4 +1,6 @@
-export interface DatabaseStats {
+// Backend-specific database entity types (avoid conflicts with shared types)
+
+export interface DatabaseCharacterStats {
   health: number;
   speed: number;
   jumpPower: number;
@@ -6,14 +8,14 @@ export interface DatabaseStats {
   range: number;
 }
 
-export interface Character {
+export interface DatabaseCharacter {
   id: string;
   name: string;
-  stats: DatabaseStats;
+  stats: DatabaseCharacterStats;
   unlocked: boolean;
 }
 
-export interface Stage {
+export interface DatabaseStage {
   id: string;
   name: string;
   spawns: Array<{ x: number; y: number }>;
@@ -25,7 +27,7 @@ export interface Stage {
   }>;
 }
 
-export interface MatchResult {
+export interface DatabaseMatchResult {
   winnerId: string;
   winnerUsername: string;
   loserId: string;
@@ -34,7 +36,7 @@ export interface MatchResult {
   endReason: 'knockout' | 'timeout' | 'forfeit' | 'disconnect';
 }
 
-export interface UserStats {
+export interface DatabaseUserStats {
   wins: number;
   losses: number;
   totalMatches: number;
@@ -43,34 +45,10 @@ export interface UserStats {
   favoriteCharacter?: string;
 }
 
-export interface PlayerStats {
-  level: number;
-  experiencePoints: number;
-  coins: number;
-  totalMatches: number;
-  wins: number;
-  losses: number;
-  winStreak: number;
-  bestWinStreak: number;
-  rating: number;
-  rankTier: string;
-}
-
-export interface DetailedMatchResult {
-  userId: string;
-  won: boolean;
-  placement: number;
-  damageDealt: number;
-  damageTaken: number;
-  kills: number;
-  deaths: number;
-  experienceGained: number;
-  coinsEarned: number;
-  ratingChange: number;
-}
-
-export interface GameConstants {
+export interface DatabaseGameConstants {
   [category: string]: {
     [key: string]: number | string | boolean;
   };
 }
+
+// Removed backward compatibility alias - use DatabaseCharacterStats directly
