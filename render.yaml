@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: brawl-bytes-backend
+    env: node
+    plan: starter # Change to 'standard' for production
+    region: oregon # Choose region closest to your users
+    buildCommand: npm run install:all && npm run build:shared && npm run build:backend
+    startCommand: npm run start
+    rootDir: backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 443
+      - key: DATABASE_URL
+        fromDatabase:
+          name: brawl-bytes-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://your-game.vercel.app # Update this after Vercel deployment
+      - key: CORS_ORIGIN
+        value: https://your-game.vercel.app # Update this after Vercel deployment
+      - key: GAME_TICK_RATE
+        value: 60
+      - key: MAX_PLAYERS_PER_MATCH
+        value: 4
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+      - key: LOG_LEVEL
+        value: info
+
+databases:
+  - name: brawl-bytes-db              # Render service name (for referencing in envVars)
+    databaseName: brawlbytes_prod     # Actual PostgreSQL database name
+    user: brawlbytes
+    version: "15"                     # PostgreSQL 15 (recommended for gaming)
+    plan: starter # Change to 'standard' for production 
