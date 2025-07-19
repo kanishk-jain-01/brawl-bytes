@@ -1,42 +1,19 @@
 import { PrismaClient } from '@prisma/client';
+import type { DetailedMatchResult, PlayerStats } from '../types';
 
 const prisma = new PrismaClient();
 
-export interface MatchResult {
-  userId: string;
-  won: boolean;
-  placement: number;
-  damageDealt: number;
-  damageTaken: number;
-  kills: number;
-  deaths: number;
-  experienceGained: number;
-  coinsEarned: number;
-  ratingChange: number;
-}
-
-export interface PlayerStats {
-  level: number;
-  experiencePoints: number;
-  coins: number;
-  totalMatches: number;
-  wins: number;
-  losses: number;
-  winStreak: number;
-  bestWinStreak: number;
-  rating: number;
-  rankTier: string;
-}
-
 export class PlayerStatsService {
-  static async updatePlayerStats(matchResults: MatchResult[]): Promise<void> {
+  static async updatePlayerStats(
+    matchResults: DetailedMatchResult[]
+  ): Promise<void> {
     await Promise.all(
       matchResults.map(result => this.updateSinglePlayerStats(result))
     );
   }
 
   private static async updateSinglePlayerStats(
-    result: MatchResult
+    result: DetailedMatchResult
   ): Promise<void> {
     const currentProfile = await prisma.playerProfile.findUnique({
       where: { userId: result.userId },
@@ -189,9 +166,9 @@ export class PlayerStatsService {
       deaths: number;
     }>,
     matchDurationSeconds: number
-  ): Promise<MatchResult[]> {
+  ): Promise<DetailedMatchResult[]> {
     const totalPlayers = participants.length;
-    const results: MatchResult[] = [];
+    const results: DetailedMatchResult[] = [];
 
     // Calculate average rating for ELO calculations
     const playerProfiles = await prisma.playerProfile.findMany({
@@ -244,7 +221,7 @@ export class PlayerStatsService {
           ratingChange,
         };
       })
-      .filter((result): result is MatchResult => result !== null);
+      .filter((result): result is DetailedMatchResult => result !== null);
 
     results.push(...processedResults);
 

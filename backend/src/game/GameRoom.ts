@@ -10,11 +10,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { SocketManager } from '../networking/SocketManager';
-import {
-  PhysicsSystem,
-  type AttackData,
-  type StageData,
-} from './PhysicsSystem';
+import { PhysicsSystem } from './PhysicsSystem';
 import { GameConstantsService } from '../services/GameConstantsService';
 import { MatchRepository } from '../database/repositories/MatchRepository';
 import { PlayerStatsService } from '../services/PlayerStatsService';
@@ -24,31 +20,11 @@ import type {
   ProcessedPlayerInput,
   PlayerInputData,
   AuthenticatedSocket,
+  GameRoomConfig,
+  GameResults,
+  AttackData,
+  StageData,
 } from '../types';
-
-export interface GameRoomConfig {
-  maxPlayers: number;
-  gameMode: string;
-  stage?: string | undefined;
-  timeLimit?: number;
-  stockCount?: number;
-  // Reconnection timeout configuration
-  reconnectionGracePeriod?: number; // milliseconds
-  maxReconnectionTime?: number; // milliseconds
-  maxDisconnectCount?: number;
-  autoCleanupOnTimeout?: boolean;
-}
-
-export interface GameResults {
-  winnerId?: string | undefined;
-  winnerUsername?: string | undefined;
-  loserId?: string | undefined;
-  loserUsername?: string | undefined;
-  endReason: 'knockout' | 'timeout' | 'forfeit' | 'disconnect';
-  finalScores: { [playerId: string]: number };
-  matchDuration: number;
-  endedAt: Date;
-}
 
 export interface RoomState {
   roomId: string;
@@ -69,7 +45,7 @@ export interface RoomState {
 
 export interface GameEvent {
   type: 'player_hit' | 'player_ko' | 'match_timeout' | 'stage_hazard';
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface ProcessedGameEvent extends GameEvent {
@@ -1135,12 +1111,12 @@ export class GameRoom {
       playerId: userId,
       timestamp: Date.now(),
       inputType: inputData.type,
-      data: inputData.data,
+      data: inputData.data || {},
       sequence: inputData.sequence || 0,
       ...(inputData.type === 'attack' && {
-        attackType: (inputData as any).attackType,
-        direction: (inputData as any).direction,
-        facing: (inputData as any).facing,
+        attackType: inputData.attackType,
+        direction: inputData.direction,
+        facing: inputData.facing,
       }),
     };
 

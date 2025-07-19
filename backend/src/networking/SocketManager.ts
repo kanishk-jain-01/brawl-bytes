@@ -10,8 +10,8 @@
 
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { MatchmakingQueue, MatchPreferences } from '../game/MatchmakingQueue';
-import type { AuthenticatedSocket } from '../types';
+import { MatchmakingQueue } from '../game/MatchmakingQueue';
+import type { AuthenticatedSocket, MatchPreferences } from '../types';
 import { GameRoom as ActualGameRoom } from '../game/GameRoom';
 import { PlayerState } from '../types';
 

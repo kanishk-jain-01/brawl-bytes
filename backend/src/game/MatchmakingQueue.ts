@@ -1,21 +1,11 @@
-import { AuthenticatedSocket } from '../types';
+import type {
+  AuthenticatedSocket,
+  MatchPreferences,
+  QueuedPlayer,
+  GameRoomConfig,
+} from '../types';
 import { SocketManager } from '../networking/SocketManager';
-import { GameRoom, GameRoomConfig } from './GameRoom';
-
-export interface MatchPreferences {
-  gameMode?: string;
-  preferredStage?: string;
-  preferredCharacter?: string;
-  maxLatency?: number;
-}
-
-export interface QueuedPlayer {
-  socket: AuthenticatedSocket;
-  userId: string;
-  username: string;
-  queuedAt: Date;
-  preferences?: MatchPreferences;
-}
+import { GameRoom } from './GameRoom';
 
 export interface MatchFoundEvent {
   players: QueuedPlayer[];

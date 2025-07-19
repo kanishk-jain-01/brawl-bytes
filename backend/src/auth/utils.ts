@@ -1,9 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import type { TokenPayload } from '../types';
 
-export interface JWTPayload {
-  userId: string;
-  username: string;
+export interface JWTPayload extends TokenPayload {
   email: string;
 }
 

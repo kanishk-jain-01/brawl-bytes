@@ -1,63 +1,14 @@
-import type { GameRoomPlayer } from '../types';
+import type {
+  GameRoomPlayer,
+  PlayerPhysicsState,
+  PhysicsValidationResult,
+  AttackData,
+  StageData,
+} from '../types';
 import {
   GameConstantsService,
   type PhysicsConstants,
 } from '../services/GameConstantsService';
-
-export interface PlayerPhysicsState {
-  playerId: string;
-  position: { x: number; y: number };
-  velocity: { x: number; y: number };
-  isGrounded: boolean;
-  canDoubleJump: boolean;
-  hasUsedDoubleJump: boolean;
-  health: number;
-  stocks: number;
-  isInvulnerable: boolean;
-  lastInvulnerabilityStart: number;
-  lastAttackTime: number;
-  isAttacking: boolean;
-  accumulatedDamage: number;
-  lastUpdateTime: number;
-}
-
-export interface PhysicsValidationResult {
-  valid: boolean;
-  correctedState?: Partial<PlayerPhysicsState>;
-  reason?: string;
-}
-
-export interface AttackData {
-  attackerId: string;
-  targetId: string;
-  damage: number;
-  knockback: { x: number; y: number };
-  attackType: string;
-  timestamp: number;
-}
-
-export interface StageData {
-  platforms: ReadonlyArray<{
-    readonly x: number;
-    readonly y: number;
-    readonly width: number;
-    readonly height: number;
-  }>;
-  boundaries: {
-    readonly left: number;
-    readonly right: number;
-    readonly top: number;
-    readonly bottom: number;
-  };
-  hazards?: ReadonlyArray<{
-    readonly type?: string;
-    readonly x: number;
-    readonly y: number;
-    readonly width: number;
-    readonly height: number;
-    readonly damage?: number;
-  }>;
-}
 
 export class PhysicsSystem {
   private playerStates: Map<string, PlayerPhysicsState>;
