@@ -373,12 +373,18 @@ export class GameScene extends Phaser.Scene {
     const localPlayerId = connectionState.userId;
     let spawnIndex = 0; // Default to first spawn point
 
+    // Find local player data to get username
+    let localPlayerUsername = 'Local Player'; // Default fallback
     if (this.gameData?.serverData?.players) {
       const playerIndex = this.gameData.serverData.players.findIndex(
         (p: any) => p.userId === localPlayerId
       );
       if (playerIndex !== -1) {
         spawnIndex = playerIndex;
+        const localPlayerData = this.gameData.serverData.players[playerIndex];
+        if (localPlayerData.username) {
+          localPlayerUsername = localPlayerData.username;
+        }
       }
     }
 
@@ -387,7 +393,7 @@ export class GameScene extends Phaser.Scene {
     const spawnPoint = spawnPoints[safeSpawnIndex];
 
     console.log(
-      `GameScene: Creating local player at spawn point ${safeSpawnIndex}: (${spawnPoint.x}, ${spawnPoint.y})`
+      `GameScene: Creating local player ${localPlayerUsername} at spawn point ${safeSpawnIndex}: (${spawnPoint.x}, ${spawnPoint.y})`
     );
 
     // Create main player
@@ -398,6 +404,7 @@ export class GameScene extends Phaser.Scene {
       characterType: this.selectedCharacter,
       playerId: localPlayerId || 'local_player',
       isLocalPlayer: true,
+      username: localPlayerUsername,
     });
 
     // Add player to players array
@@ -439,9 +446,6 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize UI manager
     this.uiManager = new UIManager(this);
-    if (this.player) {
-      this.uiManager.createPlayerHUD(this.player);
-    }
 
     // Initialize combat manager
     this.combatManager = new CombatManager(this);
@@ -473,6 +477,11 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize remote players from server data if available
     this.initializeRemotePlayers();
+
+    // Create HUDs for all players (local + remote)
+    if (this.uiManager && this.players.length > 0) {
+      this.uiManager.createAllPlayerHUDs(this.players);
+    }
 
     // Set up event listeners for manager coordination
     this.setupManagerEvents();
@@ -628,7 +637,10 @@ export class GameScene extends Phaser.Scene {
   private updateUI(): void {
     if (!this.player) return;
 
-    this.uiManager?.updatePlayerHUD(this.player);
+    // Update all player HUDs
+    if (this.players.length > 0) {
+      this.uiManager?.updateAllPlayerHUDs(this.players);
+    }
 
     if (this.selectedCharacter && this.gameStateManager) {
       this.uiManager?.updateDebugInfo(
@@ -658,6 +670,11 @@ export class GameScene extends Phaser.Scene {
         if (remotePlayer) {
           this.players.push(remotePlayer);
           this.stage.setupPlayerCollisions(remotePlayer);
+
+          // Refresh HUDs to include new player
+          if (this.uiManager) {
+            this.uiManager.createAllPlayerHUDs(this.players);
+          }
         }
       }
     }

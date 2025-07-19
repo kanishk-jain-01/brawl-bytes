@@ -28,6 +28,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   public isLocalPlayer: boolean;
 
+  public username: string;
+
   private character: (typeof GAME_CONFIG.CHARACTERS)[CharacterType];
 
   private currentHealth: number;
@@ -180,6 +182,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.characterType = config.characterType;
     this.playerId = config.playerId;
     this.isLocalPlayer = config.isLocalPlayer;
+    this.username = config.username;
 
     this.character = getCharacterStats(this.characterType as string);
 
@@ -714,6 +717,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.loseStock();
     }
 
+    // Sync health/stock changes to network for local player
+    if (this.isLocalPlayer) {
+      this.syncHealthAndStocks();
+    }
+
     // Emit damage event for logging/statistics
     this.scene.events.emit('playerDamaged', {
       playerId: this.playerId,
@@ -882,6 +890,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Grant respawn invulnerability
     this.makeInvulnerable(GAME_CONFIG.TIMING.RESPAWN_INVULNERABILITY);
 
+    // Sync health/stock changes to network for local player
+    if (this.isLocalPlayer) {
+      this.syncHealthAndStocks();
+    }
+
     // Emit respawn event
     this.scene.events.emit('playerRespawned', {
       playerId: this.playerId,
@@ -972,6 +985,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   public getCharacterData(): (typeof GAME_CONFIG.CHARACTERS)[CharacterType] {
     return this.character;
+  }
+
+  public getUsername(): string {
+    return this.username;
   }
 
   public isDefeated(): boolean {
@@ -1088,6 +1105,32 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  public syncHealthAndStocks(): void {
+    if (!this.isLocalPlayer) return;
+
+    const socketManager = getSocketManager();
+    if (!socketManager || !this.body) return;
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+
+    // Create player update message with current state
+    const playerUpdate = {
+      position: { x: this.x, y: this.y },
+      velocity: { x: body.velocity.x, y: body.velocity.y },
+      animation: this.animationState,
+      health: this.currentHealth,
+      stocks: this.currentStocks,
+      isInvulnerable: this.isInvulnerable,
+    };
+
+    // Send update to server using PLAYER_UPDATE event
+    SocketManager.emit(SOCKET_EVENTS.PLAYER_UPDATE, {
+      playerId: this.playerId,
+      update: playerUpdate,
+      timestamp: Date.now(),
+    });
+  }
+
   // Methods to handle remote player updates
   public applyRemotePosition(
     position: { x: number; y: number },
@@ -1172,6 +1215,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       default:
         // No action needed for unknown input types
         break;
+    }
+  }
+
+  public applyRemoteHealthUpdate(update: {
+    health: number;
+    stocks: number;
+    isInvulnerable?: boolean;
+  }): void {
+    if (this.isLocalPlayer) return; // Only apply to remote players
+
+    // Update health and stocks
+    this.currentHealth = update.health;
+    this.currentStocks = update.stocks;
+
+    // Update invulnerability state if provided
+    if (update.isInvulnerable !== undefined) {
+      this.isInvulnerable = update.isInvulnerable;
+    }
+
+    // Handle defeat state
+    if (this.currentStocks <= 0) {
+      this.setVisible(false);
+      if (this.body) {
+        (this.body as Phaser.Physics.Arcade.Body).enable = false;
+      }
+    } else {
+      // Ensure player is visible if they have stocks
+      this.setVisible(true);
+      if (this.body) {
+        (this.body as Phaser.Physics.Arcade.Body).enable = true;
+      }
     }
   }
 

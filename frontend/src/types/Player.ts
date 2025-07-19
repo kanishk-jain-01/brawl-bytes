@@ -29,6 +29,7 @@ export interface PlayerConfig {
   characterType: CharacterType;
   playerId: string;
   isLocalPlayer: boolean;
+  username: string;
 }
 
 export interface PlayerInputState {

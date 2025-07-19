@@ -157,6 +157,32 @@ export class SocketManager {
         }
       });
 
+      // Handle player update events (health, stocks, etc.)
+      socket.on('playerUpdate', (updateData: any) => {
+        if (!socket.userId) return;
+
+        // Find GameRoom containing this player
+        const targetRoom = Array.from(this.gameRooms.values()).find(r =>
+          r.hasPlayer(socket.userId!)
+        );
+
+        if (!targetRoom) {
+          return;
+        }
+
+        // Debug: player update received
+        console.log(
+          `[PLAYER_UPDATE] user=${socket.userId} health=${updateData.update?.health} stocks=${updateData.update?.stocks}`
+        );
+
+        // Broadcast update to other players in the room
+        targetRoom.broadcastToOthers(
+          socket.userId!,
+          'playerUpdate',
+          updateData
+        );
+      });
+
       // Handle game events
       socket.on('gameEvent', async (eventData: any) => {
         if (!socket.userId) return;

@@ -7,6 +7,17 @@ export class UIManager {
 
   private uiContainer: Phaser.GameObjects.Container | null = null;
 
+  // Store player HUD data for updates
+  private playerHUDs: Map<
+    string,
+    {
+      container: Phaser.GameObjects.Container;
+      healthBar: Phaser.GameObjects.Rectangle;
+      healthText: Phaser.GameObjects.Text;
+      stockText: Phaser.GameObjects.Text;
+    }
+  > = new Map();
+
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.createUI();
@@ -58,58 +69,114 @@ export class UIManager {
     timerText.setName('matchTimer');
   }
 
-  public createPlayerHUD(player: Player): void {
+  public createAllPlayerHUDs(players: Player[]): void {
+    if (!this.uiContainer) return;
+
+    // Clear existing HUDs
+    this.clearPlayerHUDs();
+
+    // Create HUD for each player
+    players.forEach((player, index) => {
+      this.createSinglePlayerHUD(player, index);
+    });
+  }
+
+  private createSinglePlayerHUD(player: Player, playerIndex: number): void {
     if (!this.uiContainer) return;
 
     const character = player.getCharacterData();
     const health = player.getHealth();
     const stocks = player.getStocks();
+    const username = player.getUsername();
 
-    // Health bar
-    const healthBarBg = this.scene.add.rectangle(
-      150,
-      100,
-      250,
-      30,
-      0x2c3e50,
-      0.8
-    );
-    healthBarBg.setStrokeStyle(2, 0x3498db);
-    this.uiContainer.add(healthBarBg);
+    // Position calculations for top-left stacking
+    const hudHeight = 80;
+    const startY = 20;
+    const yPosition = startY + playerIndex * hudHeight;
+    const xPosition = 20;
 
-    const healthBar = this.scene.add.rectangle(150, 100, 240, 20, 0x27ae60);
-    healthBar.setName('healthBar');
-    this.uiContainer.add(healthBar);
+    // Create container for this player's HUD
+    const hudContainer = this.scene.add.container(xPosition, yPosition);
+    this.uiContainer.add(hudContainer);
 
-    const healthText = this.scene.add
-      .text(150, 100, `${health}/${character.health}`, {
+    // Username text
+    const usernameText = this.scene.add
+      .text(0, 0, username, {
         fontSize: '16px',
         fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
         color: GAME_CONFIG.UI.COLORS.TEXT,
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
-    healthText.setName('healthText');
-    this.uiContainer.add(healthText);
+      .setOrigin(0, 0);
+    hudContainer.add(usernameText);
+
+    // Character name (smaller, below username)
+    const characterText = this.scene.add
+      .text(0, 20, character.name, {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.SECONDARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT_SECONDARY,
+        fontStyle: 'normal',
+      })
+      .setOrigin(0, 0);
+    hudContainer.add(characterText);
+
+    // Health bar background
+    const healthBarBg = this.scene.add
+      .rectangle(0, 40, 200, 20, 0x2c3e50, 0.8)
+      .setOrigin(0, 0);
+    healthBarBg.setStrokeStyle(2, 0x3498db);
+    hudContainer.add(healthBarBg);
+
+    // Health bar (foreground)
+    const healthBar = this.scene.add
+      .rectangle(2, 42, 196, 16, 0x27ae60)
+      .setOrigin(0, 0);
+    hudContainer.add(healthBar);
+
+    // Health text
+    const healthText = this.scene.add
+      .text(100, 50, `${health}/${character.health}`, {
+        fontSize: '12px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5, 0.5);
+    hudContainer.add(healthText);
 
     // Stock counter
-    const stockText = this.scene.add.text(50, 150, `Lives: ${stocks}`, {
-      fontSize: '18px',
-      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-      color: GAME_CONFIG.UI.COLORS.TEXT,
-      fontStyle: 'bold',
-    });
-    stockText.setName('stockText');
-    this.uiContainer.add(stockText);
+    const stockText = this.scene.add
+      .text(210, 45, `Lives: ${stocks}`, {
+        fontSize: '14px',
+        fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
+        color: GAME_CONFIG.UI.COLORS.TEXT,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
+    hudContainer.add(stockText);
 
-    // Character name
-    const nameText = this.scene.add.text(50, 50, character.name, {
-      fontSize: '20px',
-      fontFamily: GAME_CONFIG.UI.FONTS.PRIMARY,
-      color: GAME_CONFIG.UI.COLORS.TEXT,
-      fontStyle: 'bold',
+    // Store HUD elements for updates
+    this.playerHUDs.set(player.playerId, {
+      container: hudContainer,
+      healthBar,
+      healthText,
+      stockText,
     });
-    this.uiContainer.add(nameText);
+  }
+
+  private clearPlayerHUDs(): void {
+    // Destroy all existing player HUDs
+    this.playerHUDs.forEach(hud => {
+      hud.container.destroy();
+    });
+    this.playerHUDs.clear();
+  }
+
+  // Legacy method - now redirects to new system
+  public createPlayerHUD(player: Player): void {
+    // For backwards compatibility, just create HUD for this single player
+    this.createAllPlayerHUDs([player]);
   }
 
   private createDebugInfo(): void {
@@ -136,42 +203,35 @@ export class UIManager {
   }
 
   public updatePlayerHUD(player: Player): void {
-    if (!this.uiContainer) return;
+    const hud = this.playerHUDs.get(player.playerId);
+    if (!hud) return;
 
     const health = player.getHealth();
     const maxHealth = player.getMaxHealth();
     const stocks = player.getStocks();
 
     // Update health bar
-    const healthBar = this.uiContainer.getByName(
-      'healthBar'
-    ) as Phaser.GameObjects.Rectangle;
-    const healthText = this.uiContainer.getByName(
-      'healthText'
-    ) as Phaser.GameObjects.Text;
+    const healthPercent = health / maxHealth;
+    hud.healthBar.setScale(healthPercent, 1);
+    hud.healthText.setText(`${health}/${maxHealth}`);
 
-    if (healthBar && healthText) {
-      const healthPercent = health / maxHealth;
-      healthBar.setScale(healthPercent, 1);
-      healthText.setText(`${health}/${maxHealth}`);
-
-      // Color based on health
-      if (healthPercent > 0.6) {
-        healthBar.setFillStyle(0x27ae60);
-      } else if (healthPercent > 0.3) {
-        healthBar.setFillStyle(0xf39c12);
-      } else {
-        healthBar.setFillStyle(0xe74c3c);
-      }
+    // Color based on health
+    if (healthPercent > 0.6) {
+      hud.healthBar.setFillStyle(0x27ae60);
+    } else if (healthPercent > 0.3) {
+      hud.healthBar.setFillStyle(0xf39c12);
+    } else {
+      hud.healthBar.setFillStyle(0xe74c3c);
     }
 
     // Update stock counter
-    const stockText = this.uiContainer.getByName(
-      'stockText'
-    ) as Phaser.GameObjects.Text;
-    if (stockText) {
-      stockText.setText(`Lives: ${stocks}`);
-    }
+    hud.stockText.setText(`Lives: ${stocks}`);
+  }
+
+  public updateAllPlayerHUDs(players: Player[]): void {
+    players.forEach(player => {
+      this.updatePlayerHUD(player);
+    });
   }
 
   public updateDebugInfo(
@@ -405,6 +465,9 @@ export class UIManager {
   }
 
   public destroy(): void {
+    // Clear player HUDs first
+    this.clearPlayerHUDs();
+
     if (this.uiContainer) {
       this.uiContainer.destroy();
       this.uiContainer = null;

@@ -67,6 +67,11 @@ export class NetworkManager {
       this.handleRemotePlayerMove(data);
     });
 
+    // Listen for player update events (health, stocks, etc.)
+    socketManager.on(SOCKET_EVENTS.PLAYER_UPDATE, (data: any) => {
+      this.handleRemotePlayerUpdate(data);
+    });
+
     // Listen for players joining the game
     socketManager.on(SOCKET_EVENTS.PLAYER_JOINED, (data: any) => {
       this.handlers.onPlayerJoined(data);
@@ -196,6 +201,40 @@ export class NetworkManager {
     remotePlayer.applyRemotePosition(data.position, data.velocity, data.facing);
   }
 
+  private handleRemotePlayerUpdate(data: {
+    playerId: string;
+    update: {
+      position: { x: number; y: number };
+      velocity: { x: number; y: number };
+      animation: string;
+      health: number;
+      stocks: number;
+      isInvulnerable: boolean;
+    };
+    timestamp: number;
+  }): void {
+    const remotePlayer = this.remotePlayers.get(data.playerId);
+    if (!remotePlayer) return;
+
+    // Debug: remote player update received
+    console.log(
+      `[REMOTE_UPDATE] player=${data.playerId} health=${data.update.health} stocks=${data.update.stocks}`
+    );
+
+    // Apply position and movement updates
+    remotePlayer.applyRemotePosition(
+      data.update.position,
+      data.update.velocity
+    );
+
+    // Apply health and stock updates
+    remotePlayer.applyRemoteHealthUpdate({
+      health: data.update.health,
+      stocks: data.update.stocks,
+      isInvulnerable: data.update.isInvulnerable,
+    });
+  }
+
   private handleServerState(data: {
     position: { x: number; y: number };
     velocity: { x: number; y: number };
@@ -261,6 +300,7 @@ export class NetworkManager {
       characterType: 'REX', // Default, will be updated by character selection sync
       playerId,
       isLocalPlayer: false,
+      username,
     });
 
     this.remotePlayers.set(playerId, remotePlayer);
@@ -282,6 +322,7 @@ export class NetworkManager {
       characterType: characterType as any,
       playerId,
       isLocalPlayer: false,
+      username,
     });
 
     this.remotePlayers.set(playerId, remotePlayer);
