@@ -102,17 +102,18 @@
    npm install -g vercel
    vercel --prod
    
-   # Option B: GitHub Integration
+   # Option B: GitHub Integration (RECOMMENDED)
    # Go to https://vercel.com/dashboard
    # Import your GitHub repository
-   # Set framework preset to "Other"
-   # Set root directory: "." (project root, not frontend)
-   # Set build command: "cd shared-types && npm run build && cd ../frontend && npm run build"
-   # Set output directory: "frontend/dist"
-   # Set install command: "npm install && npm install --workspaces"
+   # IMPORTANT: Set these exact settings:
+   # - Framework Preset: "Other"
+   # - Root Directory: "." (leave empty or set to project root)
+   # - Build Command: "npm run build:shared && cd frontend && npm run build"
+   # - Output Directory: "frontend/dist"
+   # - Install Command: "npm install && npm install --workspaces"
    ```
 
-3. **Configure Environment:**
+   3. **Configure Environment:**
    - In Vercel dashboard → Project Settings → Environment Variables
    - Add production environment variables:
      ```
@@ -120,6 +121,12 @@
      VITE_SOCKET_URL=https://your-backend-name.onrender.com
      NODE_ENV=production
      ```
+
+   4. **Fix Root Directory (CRITICAL):**
+   - Go to Vercel Dashboard → Your Project → Settings → General
+   - Find "Root Directory" section
+   - **IMPORTANT**: Set to "." or leave completely empty
+   - This ensures Vercel runs builds from your project root, not frontend subfolder
 
 ## Step 5: Update Backend CORS
 
@@ -201,11 +208,12 @@
    - Check that TypeScript is included in dependencies for production builds
 
 6. **Vercel Monorepo Issues:**
-   - Error: "Missing script: install:all" → Set root directory to "." (project root)
-   - Error: "Missing script: build:shared" → Use direct directory navigation instead
-   - Use install command: `npm install && npm install --workspaces`
-   - Use build command: `cd shared-types && npm run build && cd ../frontend && npm run build`
-   - Ensure vercel.json is in project root, not frontend directory
+   - **ROOT CAUSE**: Vercel auto-detects subdirectories as project root
+   - **SOLUTION**: In Vercel Dashboard → Project Settings → General → Root Directory
+   - **Set Root Directory to**: "." (empty field or just a dot)
+   - **This ensures**: Build commands run from the actual project root
+   - **Alternative**: Leave Root Directory completely empty in the dashboard
+   - If still having issues, check that vercel.json is in the project root
 
 ## URLs After Deployment:
 - **Frontend:** https://your-app.vercel.app
