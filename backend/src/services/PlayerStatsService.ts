@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type PlayerProfile } from '@prisma/client';
 import type { DetailedMatchResult, DatabasePlayerStats } from '../types';
 
 const prisma = new PrismaClient();
@@ -182,13 +182,15 @@ export class PlayerStatsService {
     });
 
     const averageRating =
-      playerProfiles.reduce((sum, profile) => sum + profile.rating, 0) /
-      playerProfiles.length;
+      playerProfiles.reduce(
+        (sum: number, profile: PlayerProfile) => sum + profile.rating,
+        0
+      ) / playerProfiles.length;
 
     const processedResults = participants
       .map(participant => {
         const playerProfile = playerProfiles.find(
-          p => p.userId === participant.userId
+          (p: PlayerProfile) => p.userId === participant.userId
         );
         if (!playerProfile) return null;
 
