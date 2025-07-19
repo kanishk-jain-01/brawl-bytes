@@ -25,6 +25,7 @@ export class InputManager {
 
   // Track previous jump key states for discrete press detection
   private previousJumpState = false;
+
   private jumpPressed = false;
 
   constructor(scene: Phaser.Scene) {

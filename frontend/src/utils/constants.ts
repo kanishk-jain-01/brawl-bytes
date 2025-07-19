@@ -166,13 +166,23 @@ export const GAME_CONFIG = {
 };
 
 /**
- * Asset keys - loaded from database
+ * Asset keys and paths - loaded from database
  * All asset identifiers for images, audio, and spritesheets
  */
 export const ASSET_KEYS = {
   IMAGES: {} as Record<string, string>,
   AUDIO: {} as Record<string, string>,
   SPRITESHEETS: {} as Record<string, string>,
+};
+
+/**
+ * Asset paths - loaded from database
+ * All asset file paths for consistent loading
+ */
+export const ASSET_PATHS = {
+  VIDEOS: {} as Record<string, string>,
+  SPRITESHEETS: {} as Record<string, string>,
+  CARDS: {} as Record<string, string>,
 };
 
 /**
@@ -389,6 +399,30 @@ export function updateGameConfig(serverConstants: any): void {
       PORT: serverConstants.server.port,
       FRONTEND_PORT: serverConstants.server.frontend_port,
     });
+  }
+
+  // Asset Paths
+  if (serverConstants.asset_paths) {
+    ASSET_PATHS.VIDEOS = {
+      JUNGLE_CANOPY: serverConstants.asset_paths.jungle_canopy,
+      ANCIENT_COLOSSEUM: serverConstants.asset_paths.ancient_colosseum,
+      MAP_TABLE: serverConstants.asset_paths.map_table,
+      JUNGLE_CLEARING: serverConstants.asset_paths.jungle_clearing,
+    };
+
+    ASSET_PATHS.SPRITESHEETS = {
+      DASH: serverConstants.asset_paths.dash_spritesheet,
+      REX: serverConstants.asset_paths.rex_spritesheet,
+      NINJA: serverConstants.asset_paths.ninja_spritesheet,
+      TITAN: serverConstants.asset_paths.titan_spritesheet,
+    };
+
+    ASSET_PATHS.CARDS = {
+      DASH: serverConstants.asset_paths.dash_card,
+      REX: serverConstants.asset_paths.rex_card,
+      NINJA: serverConstants.asset_paths.ninja_card,
+      TITAN: serverConstants.asset_paths.titan_card,
+    };
   }
 
   console.log('✅ Game config updated with ALL database constants');

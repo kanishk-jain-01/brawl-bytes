@@ -423,6 +423,18 @@ asset_paths:
   map_table: '/assets/backgrounds/map-table.mp4'
   jungle_clearing: '/assets/backgrounds/jungle-clearing.mp4'
   
+  # Character spritesheets
+  dash_spritesheet: '/assets/dash_spritesheet.png'
+  rex_spritesheet: '/assets/rex_spritesheet.png'
+  ninja_spritesheet: '/assets/ninja_spritesheet.png'
+  titan_spritesheet: '/assets/titan_spritesheet.png'
+  
+  # Character cards
+  dash_card: '/assets/dash_card.jpg'
+  rex_card: '/assets/rex_card.jpg'
+  ninja_card: '/assets/ninja_card.jpg'
+  titan_card: '/assets/titan_card.jpg'
+  
 # ENVIRONMENT VARIABLES
 # All environment variable names
 env_vars:

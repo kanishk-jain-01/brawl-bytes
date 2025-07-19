@@ -8,7 +8,7 @@
  */
 
 import Phaser from 'phaser';
-import { GAME_CONFIG, ASSET_KEYS } from '@/utils/constants';
+import { GAME_CONFIG, ASSET_KEYS, ASSET_PATHS } from '@/utils/constants';
 import { getStoredToken } from '@/api/auth';
 
 export class BootScene extends Phaser.Scene {
@@ -133,59 +133,59 @@ export class BootScene extends Phaser.Scene {
     // Load character spritesheets - 192x192 pixels, 4x4 grid = 48x48 per frame
     this.load.spritesheet(
       ASSET_KEYS.SPRITESHEETS.DASH_SPRITES,
-      '/assets/dash_spritesheet.png',
+      ASSET_PATHS.SPRITESHEETS.DASH,
       { frameWidth: 48, frameHeight: 48 }
     );
 
     this.load.spritesheet(
       ASSET_KEYS.SPRITESHEETS.REX_SPRITES,
-      '/assets/rex_spritesheet.png',
+      ASSET_PATHS.SPRITESHEETS.REX,
       { frameWidth: 48, frameHeight: 48 }
     );
 
     this.load.spritesheet(
       ASSET_KEYS.SPRITESHEETS.NINJA_SPRITES,
-      '/assets/ninja_spritesheet.png',
+      ASSET_PATHS.SPRITESHEETS.NINJA,
       { frameWidth: 48, frameHeight: 48 }
     );
 
     this.load.spritesheet(
       ASSET_KEYS.SPRITESHEETS.TITAN_SPRITES,
-      '/assets/titan_spritesheet.png',
+      ASSET_PATHS.SPRITESHEETS.TITAN,
       { frameWidth: 192, frameHeight: 192 }
     );
 
     // Load character card images
-    this.load.image(ASSET_KEYS.IMAGES.DASH_CARD, '/assets/dash_card.jpg');
-    this.load.image(ASSET_KEYS.IMAGES.NINJA_CARD, '/assets/ninja_card.jpg');
-    this.load.image(ASSET_KEYS.IMAGES.REX_CARD, '/assets/rex_card.jpg');
-    this.load.image(ASSET_KEYS.IMAGES.TITAN_CARD, '/assets/titan_card.jpg');
+    this.load.image(ASSET_KEYS.IMAGES.DASH_CARD, ASSET_PATHS.CARDS.DASH);
+    this.load.image(ASSET_KEYS.IMAGES.NINJA_CARD, ASSET_PATHS.CARDS.NINJA);
+    this.load.image(ASSET_KEYS.IMAGES.REX_CARD, ASSET_PATHS.CARDS.REX);
+    this.load.image(ASSET_KEYS.IMAGES.TITAN_CARD, ASSET_PATHS.CARDS.TITAN);
 
     // Load jungle canopy video background (served from frontend to avoid CORS)
     this.load.video({
       key: 'jungle_canopy',
-      url: '/assets/backgrounds/jungle-canopy.mp4',
+      url: ASSET_PATHS.VIDEOS.JUNGLE_CANOPY,
       noAudio: false,
     });
 
     // Load ancient colosseum video background for character select
     this.load.video({
       key: 'ancient_colosseum',
-      url: '/assets/backgrounds/ancient-colosseum.mp4',
+      url: ASSET_PATHS.VIDEOS.ANCIENT_COLOSSEUM,
       noAudio: false,
     });
 
     // Load map table video background for stage select
     this.load.video({
       key: 'map_table',
-      url: '/assets/backgrounds/map-table.mp4',
+      url: ASSET_PATHS.VIDEOS.MAP_TABLE,
       noAudio: false,
     });
 
     // Load jungle clearing video background for lobby
     this.load.video({
       key: 'jungle_clearing',
-      url: '/assets/backgrounds/jungle-clearing.mp4',
+      url: ASSET_PATHS.VIDEOS.JUNGLE_CLEARING,
       noAudio: false,
     });
 

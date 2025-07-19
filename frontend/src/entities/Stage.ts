@@ -95,11 +95,11 @@ export class Stage {
       const x = Phaser.Math.Between(0, this.worldWidth);
       const y = Phaser.Math.Between(0, 150);
       const size = Phaser.Math.Between(60, 120);
-      
+
       // Layered canopy leaves
       const leaf = this.scene.add.circle(x, y, size, 0x228b22, 0.7);
       leaf.setScrollFactor(0.2); // Far background parallax
-      
+
       // Add subtle animation
       this.scene.tweens.add({
         targets: leaf,
@@ -109,7 +109,7 @@ export class Stage {
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
-        delay: Phaser.Math.Between(0, 2000)
+        delay: Phaser.Math.Between(0, 2000),
       });
     }
   }
@@ -119,18 +119,24 @@ export class Stage {
     for (let i = 0; i < 8; i += 1) {
       const x = Phaser.Math.Between(100, this.worldWidth - 100);
       const y = this.worldHeight - Phaser.Math.Between(200, 400);
-      
+
       // Tree trunk
       const trunk = this.scene.add.rectangle(x, y, 20, 150, 0x8b4513, 0.8);
       trunk.setScrollFactor(0.4);
-      
+
       // Tree crown (multiple overlapping circles for fullness)
       for (let j = 0; j < 3; j += 1) {
         const crownX = x + Phaser.Math.Between(-30, 30);
         const crownY = y - 100 + Phaser.Math.Between(-20, 20);
-        const crown = this.scene.add.circle(crownX, crownY, Phaser.Math.Between(40, 70), 0x2e7d32, 0.8);
+        const crown = this.scene.add.circle(
+          crownX,
+          crownY,
+          Phaser.Math.Between(40, 70),
+          0x2e7d32,
+          0.8
+        );
         crown.setScrollFactor(0.4);
-        
+
         // Gentle swaying animation
         this.scene.tweens.add({
           targets: crown,
@@ -139,7 +145,7 @@ export class Stage {
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut',
-          delay: Phaser.Math.Between(0, 3000)
+          delay: Phaser.Math.Between(0, 3000),
         });
       }
     }
@@ -151,18 +157,25 @@ export class Stage {
       const x = Phaser.Math.Between(100, this.worldWidth - 100);
       const startY = Phaser.Math.Between(50, 200);
       const length = Phaser.Math.Between(200, 400);
-      
+
       // Create vine segments
       const vineSegments: Phaser.GameObjects.Rectangle[] = [];
       const segmentCount = Math.floor(length / 20);
-      
+
       for (let j = 0; j < segmentCount; j += 1) {
-        const segmentY = startY + (j * 20);
-        const segment = this.scene.add.rectangle(x, segmentY, 6, 18, 0x2d5016, 0.9);
+        const segmentY = startY + j * 20;
+        const segment = this.scene.add.rectangle(
+          x,
+          segmentY,
+          6,
+          18,
+          0x2d5016,
+          0.9
+        );
         segment.setScrollFactor(0.6);
         vineSegments.push(segment);
       }
-      
+
       // Vine swaying animation
       this.scene.tweens.add({
         targets: vineSegments,
@@ -172,7 +185,7 @@ export class Stage {
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
-        delay: Phaser.Math.Between(0, 2000)
+        delay: Phaser.Math.Between(0, 2000),
       });
     }
   }
@@ -184,7 +197,7 @@ export class Stage {
       const y = -50;
       const leaf = this.scene.add.ellipse(x, y, 8, 12, 0x32cd32, 0.8);
       leaf.setScrollFactor(0.8);
-      
+
       // Falling animation with gentle swaying
       this.scene.tweens.add({
         targets: leaf,
@@ -195,20 +208,20 @@ export class Stage {
         ease: 'Sine.easeInOut',
         onComplete: () => {
           leaf.destroy();
-        }
+        },
       });
     };
-    
+
     // Initial leaves
     for (let i = 0; i < 6; i += 1) {
       this.scene.time.delayedCall(Phaser.Math.Between(0, 5000), createLeaf);
     }
-    
+
     // Continuous leaf generation
     this.scene.time.addEvent({
       delay: Phaser.Math.Between(2000, 4000),
       callback: createLeaf,
-      loop: true
+      loop: true,
     });
   }
 
@@ -219,7 +232,7 @@ export class Stage {
       const y = this.worldHeight - Phaser.Math.Between(100, 300);
       const mist = this.scene.add.ellipse(x, y, 200, 60, 0xffffff, 0.1);
       mist.setScrollFactor(0.3);
-      
+
       // Slow drifting animation
       this.scene.tweens.add({
         targets: mist,
@@ -230,7 +243,7 @@ export class Stage {
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
-        delay: Phaser.Math.Between(0, 4000)
+        delay: Phaser.Math.Between(0, 4000),
       });
     }
   }
@@ -242,7 +255,7 @@ export class Stage {
       const y = Phaser.Math.Between(100, 300);
       const bird = this.scene.add.ellipse(startX, y, 4, 2, 0x000000, 0.6);
       bird.setScrollFactor(0.2);
-      
+
       // Flying animation across screen
       this.scene.tweens.add({
         targets: bird,
@@ -252,15 +265,15 @@ export class Stage {
         ease: 'Linear',
         onComplete: () => {
           bird.destroy();
-        }
+        },
       });
     };
-    
+
     // Random bird generation
     this.scene.time.addEvent({
       delay: Phaser.Math.Between(10000, 20000),
       callback: createBird,
-      loop: true
+      loop: true,
     });
   }
 
@@ -271,7 +284,7 @@ export class Stage {
       const y = Phaser.Math.Between(300, this.worldHeight - 200);
       const firefly = this.scene.add.circle(x, y, 2, 0xffff00, 0.8);
       firefly.setScrollFactor(0.9);
-      
+
       // Floating glow animation
       this.scene.tweens.add({
         targets: firefly,
@@ -283,7 +296,7 @@ export class Stage {
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
-        delay: Phaser.Math.Between(0, 3000)
+        delay: Phaser.Math.Between(0, 3000),
       });
     }
   }
