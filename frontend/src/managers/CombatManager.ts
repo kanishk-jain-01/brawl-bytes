@@ -104,6 +104,9 @@ export class CombatManager {
     // Apply visual hit effect to victim (visible to both attacker and victim)
     victim.applyVisibleHitEffect(attackDamage);
 
+    // Create impact effect at hit location
+    this.createImpactEffect(victim.x, victim.y, isCritical);
+
     // Only apply damage if victim is local player (each client handles their own damage)
     if (victim.isLocalPlayer) {
       victim.takeDamage(attackDamage);
@@ -137,6 +140,14 @@ export class CombatManager {
     console.log(
       `${attacker.playerId} hit ${victim.playerId} for ${damage} damage${isCritical ? ' (CRITICAL!)' : ''}`
     );
+  }
+
+  private createImpactEffect(x: number, y: number, isCritical: boolean): void {
+    // Import AttackEffects dynamically to avoid circular dependencies
+    import('./AttackEffects').then(({ AttackEffects }) => {
+      const attackEffects = new AttackEffects(this.scene);
+      attackEffects.createImpactEffect(x, y, isCritical);
+    });
   }
 
   public handlePlayerFallOffStage(player: Player): void {

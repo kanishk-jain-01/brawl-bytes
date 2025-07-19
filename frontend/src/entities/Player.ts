@@ -632,14 +632,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       : this.x + hitboxWidth / 2;
     const hitboxY = this.y - hitboxHeight / 2;
 
-    // Create temporary hitbox for attack detection
+    // Create invisible hitbox for attack detection (no visual)
     const attackHitbox = this.scene.add.rectangle(
       hitboxX,
       hitboxY,
       hitboxWidth,
       hitboxHeight,
       0xff0000,
-      0.3
+      0 // Completely transparent - no more red rectangle!
     );
 
     // Enable physics for hitbox
@@ -654,6 +654,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     attackHitbox.setData('attacker', this);
     attackHitbox.setData('damage', this.character.attackDamage);
     attackHitbox.setData('knockback', this.calculateAttackKnockback());
+
+    // Create dynamic visual attack effects
+    this.createAttackVisualEffects(hitboxX, hitboxY, hitboxWidth, hitboxHeight);
 
     // Emit event for GameScene to handle collisions
     this.scene.events.emit('attackHitboxCreated', {
@@ -673,6 +676,31 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Store reference for collision detection
     this.setData('attackHitbox', attackHitbox);
+  }
+
+  private createAttackVisualEffects(
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): void {
+    // Import AttackEffects dynamically to avoid circular dependencies
+    import('../managers/AttackEffects').then(({ AttackEffects }) => {
+      const attackEffects = new AttackEffects(this.scene);
+
+      // Create character-specific attack effect
+      attackEffects.createCharacterAttackEffect({
+        scene: this.scene,
+        x,
+        y,
+        width,
+        height,
+        direction: this.facingDirection,
+        characterType: this.characterType,
+        attackType: 'light', // Could be made dynamic based on attack type
+        duration: 150,
+      });
+    });
   }
 
   private calculateAttackKnockback(): { x: number; y: number } {
