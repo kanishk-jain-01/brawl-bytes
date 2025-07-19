@@ -371,7 +371,7 @@ export class SocketManager {
       if (!targetRoom) {
         const roomId = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const config = {
-          maxPlayers: 2,
+          maxPlayers: 4,
           gameMode: 'versus',
           timeLimit: 180,
           stockCount: 3,
@@ -497,8 +497,9 @@ export class SocketManager {
       return;
     }
 
-    // 2. All players must be ready AND the room must be full
-    if (gameRoom.areAllPlayersReady() && gameRoom.isFull()) {
+    // 2. Check if game can start (all players ready, characters selected, etc.)
+    const canStart = gameRoom.canStartGame();
+    if (canStart.canStart) {
       const players = gameRoom.getPlayers();
       const roomConfig = gameRoom.getConfig();
 
@@ -561,10 +562,7 @@ export class SocketManager {
       selectedStage: config.stage || null,
       maxPlayers: config.maxPlayers,
       allPlayersReady: gameRoom.areAllPlayersReady(),
-      canStartGame:
-        gameRoom.areAllPlayersReady() &&
-        gameRoom.isFull() &&
-        config.stage !== null,
+      canStartGame: gameRoom.canStartGame().canStart,
     };
 
     gameRoom.broadcastToRoom('lobbyState', lobbyState);

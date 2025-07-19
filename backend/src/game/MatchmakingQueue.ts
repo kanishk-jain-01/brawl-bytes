@@ -42,7 +42,7 @@ export class MatchmakingQueue {
 
   private queue: Map<string, QueuedPlayer>;
 
-  private readonly matchSize: number = 2;
+  private readonly matchSize: number = 4;
 
   private readonly maxWaitTime: number = 60000; // 60 seconds
 
@@ -261,7 +261,7 @@ export class MatchmakingQueue {
     const remainingPlayers = queuedPlayers.filter(
       p => !filledRooms.includes(p.userId)
     );
-    if (remainingPlayers.length >= this.matchSize) {
+    if (remainingPlayers.length >= 2) {
       const matches = this.findMatches(remainingPlayers);
       matches.forEach(match => {
         this.createMatch(match);
@@ -336,8 +336,8 @@ export class MatchmakingQueue {
         j += 1;
       }
 
-      // Only create match if we have enough players
-      if (potentialMatch.length === this.matchSize) {
+      // Only create match if we have enough players (2-4)
+      if (potentialMatch.length >= 2) {
         // Check compatibility
         if (this.arePlayersCompatible(potentialMatch)) {
           matches.push(potentialMatch);
@@ -407,7 +407,7 @@ export class MatchmakingQueue {
     const hostPreferredStage = players[0]?.preferences?.preferredStage;
 
     const roomConfig: Partial<GameRoomConfig> = {
-      maxPlayers: this.matchSize,
+      maxPlayers: Math.max(players.length, 4), // Allow room to accept up to 4 players, but start with current count
       gameMode: 'versus',
       timeLimit: 180, // 3 minutes in seconds (matches game constants)
       stockCount: 3,
@@ -598,9 +598,9 @@ export class MatchmakingQueue {
 
     if (queueSize === 1) {
       message =
-        'Welcome to matchmaking! You are the first player in queue. Waiting for more players...';
-    } else if (queueSize < this.matchSize) {
-      message = `Welcome to matchmaking! ${this.matchSize - queueSize} more player${this.matchSize - queueSize !== 1 ? 's' : ''} needed for a match.`;
+        'Welcome to matchmaking! You are the first player in queue. Need at least 1 more player to start...';
+    } else if (queueSize < 2) {
+      message = `Welcome to matchmaking! ${2 - queueSize} more player needed for a match.`;
     } else {
       message = 'Welcome to matchmaking! Match search in progress...';
     }
@@ -609,7 +609,7 @@ export class MatchmakingQueue {
       message,
       queueSize,
       matchSize: this.matchSize,
-      playersNeeded: Math.max(0, this.matchSize - queueSize),
+      playersNeeded: Math.max(0, 2 - queueSize), // Need at least 2 players
     });
   }
 
@@ -619,16 +619,16 @@ export class MatchmakingQueue {
   private checkQueueMilestone(): void {
     const queueSize = this.queue.size;
 
-    if (queueSize === this.matchSize) {
+    if (queueSize === 2) {
       // Enough players for first match
       this.broadcastMilestone({
         type: 'match_ready',
         message: 'Enough players for a match! Starting matchmaking...',
         queueSize,
       });
-    } else if (queueSize % (this.matchSize * 2) === 0 && queueSize > 0) {
+    } else if (queueSize >= 4 && queueSize % 2 === 0) {
       // Multiple matches worth of players
-      const possibleMatches = Math.floor(queueSize / this.matchSize);
+      const possibleMatches = Math.floor(queueSize / 2);
       this.broadcastMilestone({
         type: 'multiple_matches',
         message: `Queue growing! ${possibleMatches} matches possible with current players.`,

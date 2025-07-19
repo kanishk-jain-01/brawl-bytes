@@ -127,7 +127,7 @@ export class GameRoom {
     this.players = new Map();
     this.gameState = GameState.WAITING;
     this.config = {
-      maxPlayers: 2,
+      maxPlayers: 4,
       gameMode: 'versus',
       timeLimit: 180, // 3 minutes in seconds (matches game constants)
       stockCount: 3,
@@ -1438,26 +1438,31 @@ export class GameRoom {
         platform.y > lowest.y ? platform : lowest
     );
 
-    // Generate spawn points based on main platform
+    // Generate spawn points for up to 4 players in corners/sides
     const spawnPoints = [
-      { x: mainPlatform.x - 100, y: mainPlatform.y - 100 }, // Left side
-      { x: mainPlatform.x + 100, y: mainPlatform.y - 100 }, // Right side
+      { x: mainPlatform.x - 150, y: mainPlatform.y - 100 }, // Player 1: Left
+      { x: mainPlatform.x + 150, y: mainPlatform.y - 100 }, // Player 2: Right
+      { x: mainPlatform.x - 75, y: mainPlatform.y - 150 }, // Player 3: Left-center, higher
+      { x: mainPlatform.x + 75, y: mainPlatform.y - 150 }, // Player 4: Right-center, higher
     ];
 
-    // Add more spawn points if needed for more players
+    // Use modulo to cycle through spawn points for any number of players
+    const spawnIndex = playerIndex % spawnPoints.length;
+
+    // Add slight random offset to prevent exact overlap if more than 4 players
     if (playerIndex >= spawnPoints.length) {
-      const additionalOffset = (playerIndex - spawnPoints.length + 1) * 50;
+      const baseSpawn = spawnPoints[spawnIndex];
+      const additionalOffset =
+        Math.floor(playerIndex / spawnPoints.length) * 25;
       return {
         x:
-          mainPlatform.x +
-          (playerIndex % 2 === 0
-            ? -150 - additionalOffset
-            : 150 + additionalOffset),
-        y: mainPlatform.y - 100,
+          baseSpawn.x +
+          (spawnIndex % 2 === 0 ? -additionalOffset : additionalOffset),
+        y: baseSpawn.y - additionalOffset,
       };
     }
 
-    return spawnPoints[playerIndex];
+    return spawnPoints[spawnIndex];
   }
 
   private sendInitialPositions(): void {

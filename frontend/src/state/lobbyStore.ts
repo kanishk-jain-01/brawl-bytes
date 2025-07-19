@@ -150,7 +150,7 @@ interface LobbyStore {
  * Default game configuration
  */
 const defaultGameConfig: GameConfig = {
-  maxPlayers: 2,
+  maxPlayers: 4,
   gameMode: 'versus',
   timeLimit: 180, // 3 minutes in seconds (matches game constants)
   stockCount: 3,
