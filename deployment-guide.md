@@ -40,7 +40,7 @@
    - **Branch:** `main`
    - **Root Directory:** `backend`
    - **Runtime:** Node
-   - **Build Command:** `cd .. && npm run install:all && npm run build:shared && cd backend && npm run build`
+   - **Build Command:** `cd .. && npm run install:all && npm run build:shared && cd backend && npx prisma generate && npm run build`
    - **Start Command:** `npm run start`
 
 3. **Environment Variables:**
@@ -62,21 +62,30 @@
    - Wait for deployment (5-10 minutes)
    - Note your backend URL: `https://your-backend-name.onrender.com`
 
-## Step 3: Database Migration
+## Step 3: Database Migration (After Backend Deployment)
 
-1. **Connect to Database:**
+**⚠️ Important: Do this AFTER your backend is deployed and you have the DATABASE_URL**
+
+1. **Set up local connection to production database:**
    ```bash
    # In your local backend directory
    cp .env.example .env
-   # Edit .env with your production DATABASE_URL
-   
-   # Run migrations
+   # Edit .env with your production DATABASE_URL from Render
+   ```
+
+2. **Run migrations to create tables:**
+   ```bash
    cd backend
    npx prisma migrate deploy
-   
-   # Seed initial data (optional)
+   ```
+
+3. **Seed initial game data:**
+   ```bash
+   # This populates characters, stages, and game constants
    npm run sync-constants:force
    ```
+
+**Note:** The build process (`npx prisma generate`) only creates TypeScript types and doesn't connect to the database.
 
 ## Step 4: Frontend Deployment on Vercel
 

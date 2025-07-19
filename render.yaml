@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter # Change to 'standard' for production
     region: oregon # Choose region closest to your users
-          buildCommand: cd .. && npm run install:all && npm run build:shared && cd backend && npm run build
+          buildCommand: cd .. && npm run install:all && npm run build:shared && cd backend && npx prisma generate && npm run build
     startCommand: npm run start
     rootDir: backend
     envVars:
