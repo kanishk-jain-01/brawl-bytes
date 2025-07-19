@@ -1,9 +1,11 @@
 /*
- * Socket Manager (Zustand Integration)
- * -----------------------------------
- * Simplified Socket.io manager that uses the Zustand connection store
- * for state management. Provides high-level socket operations while
- * delegating all state management to the centralized store.
+ * Socket Manager (Frontend)
+ * -------------------------
+ * Client-side Socket.io wrapper that manages real-time multiplayer communication with the backend.
+ * Integrates with Zustand connection store for reactive state management, handles authentication flows,
+ * manages automatic reconnection with exponential backoff, and provides high-level socket operations.
+ * Acts as the bridge between Phaser game scenes and the multiplayer backend server.
+ * Features connection lifecycle management, event listener registration, lobby state synchronization, and error handling.
  */
 
 import { Socket } from 'socket.io-client';

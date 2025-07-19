@@ -1,3 +1,13 @@
+/*
+ * Game Room (Backend)
+ * -------------------
+ * Manages individual multiplayer game sessions with server-authoritative gameplay.
+ * Runs real-time physics simulation at 60 FPS, validates all player inputs against anti-cheat rules,
+ * handles combat mechanics including damage and knockback calculations, and broadcasts game state updates.
+ * Each active match runs in its own GameRoom instance with isolated player state and physics.
+ * Features input validation, position reconciliation, match timers, reconnection handling, and database integration for match tracking.
+ */
+
 import { PrismaClient } from '@prisma/client';
 import { SocketManager } from '../networking/SocketManager';
 import {

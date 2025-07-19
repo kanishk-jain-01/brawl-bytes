@@ -1,3 +1,13 @@
+/*
+ * Socket Manager (Backend)
+ * ------------------------
+ * Central networking hub that manages all Socket.io connections and multiplayer communication.
+ * Handles player authentication via JWT tokens, routes real-time inputs to appropriate GameRooms,
+ * manages matchmaking queue operations, and coordinates room lifecycle events.
+ * Acts as the main entry point for all client-server communication in the multiplayer system.
+ * Features connection management, input validation routing, automatic reconnection handling, and room state synchronization.
+ */
+
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { MatchmakingQueue, MatchPreferences } from '../game/MatchmakingQueue';
