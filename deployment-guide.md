@@ -96,7 +96,7 @@
    VITE_SOCKET_URL=https://your-backend-name.onrender.com
    ```
 
-2. **Deploy to Vercel:**
+   2. **Deploy to Vercel:**
    ```bash
    # Option A: Vercel CLI (recommended)
    npm install -g vercel
@@ -106,9 +106,10 @@
    # Go to https://vercel.com/dashboard
    # Import your GitHub repository
    # Set framework preset to "Other"
-   # Set build command: "cd frontend && npm run build"
+   # Set root directory: "." (project root, not frontend)
+   # Set build command: "npm run build:shared && cd frontend && npm run build"
    # Set output directory: "frontend/dist"
-   # Set install command: "npm run install:all && npm run build:shared"
+   # Set install command: "npm install && npm install --workspaces"
    ```
 
 3. **Configure Environment:**
