@@ -459,6 +459,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateInvulnerability(): void {
+    // Ensure scene time plugin is ready before accessing it
+    if (!this.scene || !this.scene.time) return;
+
     // Handle both actual invulnerability and visual flutter effects
     if (this.isInvulnerable || this.isFluttering) {
       // Flash effect during invulnerability or flutter animation
@@ -582,6 +585,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   private canAttack(): boolean {
+    // Ensure scene time plugin is ready before accessing it
+    if (!this.scene || !this.scene.time) return false;
+
     return (
       !this.isAttacking &&
       this.scene.time.now - this.lastAttackTime > this.attackCooldown
@@ -1004,6 +1010,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   public getTimeSinceLastDamage(): number {
+    // Ensure scene time plugin is ready before accessing it
+    if (!this.scene || !this.scene.time) return 0;
+
     return this.scene.time.now - this.lastDamageTime;
   }
 
