@@ -74,6 +74,11 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     console.log('GameScene: Starting game');
 
+    // Force cleanup if there are leftover players from previous sessions
+    if (this.players.length > 0 || this.uiManager || this.networkManager) {
+      this.cleanup();
+    }
+
     // Initialize from server's authoritative game start data
     this.initializeFromServerData();
 
@@ -613,6 +618,8 @@ export class GameScene extends Phaser.Scene {
 
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
+      // Ensure current scene is fully stopped before starting new one
+      this.scene.stop();
       this.scene.start(GAME_CONFIG.SCENE_KEYS.CHARACTER_SELECT);
     });
   }
@@ -912,8 +919,19 @@ export class GameScene extends Phaser.Scene {
     throw new Error(`Invalid character name: ${characterName}`);
   }
 
+  // Cleanup method for when scene is shutdown (scene transitions)
+  public shutdown(): void {
+    console.log('GameScene: Shutting down');
+    this.cleanup();
+  }
+
   // Cleanup method for when scene is destroyed
   public destroy(): void {
+    console.log('GameScene: Destroying');
+    this.cleanup();
+  }
+
+  private cleanup(): void {
     if (this.connectionStatusDisplay) {
       this.connectionStatusDisplay.destroy();
       this.connectionStatusDisplay = null;
@@ -939,7 +957,13 @@ export class GameScene extends Phaser.Scene {
     this.combatManager = null;
     this.gameStateManager = null;
 
-    // Note: Phaser Scene doesn't have a destroy method to call super on
-    // The scene will be cleaned up by Phaser automatically
+    // Clear players array and properly destroy player objects
+    this.players.forEach(player => {
+      player.destroy();
+    });
+    this.players = [];
+    this.player = null;
+    this.stage = null;
+    this.gameData = null;
   }
 }

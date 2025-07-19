@@ -168,7 +168,9 @@ export class UIManager {
   private clearPlayerHUDs(): void {
     // Destroy all existing player HUDs
     this.playerHUDs.forEach(hud => {
-      hud.container.destroy();
+      if (hud.container && hud.container.scene) {
+        hud.container.destroy();
+      }
     });
     this.playerHUDs.clear();
   }
