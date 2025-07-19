@@ -40,7 +40,7 @@
    - **Branch:** `main`
    - **Root Directory:** `backend`
    - **Runtime:** Node
-   - **Build Command:** `npm run install:all && npm run build:shared && npm run build:backend`
+   - **Build Command:** `cd .. && npm run install:all && npm run build:shared && cd backend && npm run build`
    - **Start Command:** `npm run start`
 
 3. **Environment Variables:**
@@ -183,6 +183,12 @@
    - Verify JWT_SECRET is set and consistent
    - Check token expiration settings
    - Ensure HTTPS is used in production
+
+5. **TypeScript Compilation Errors:**
+   - If you see "Could not find declaration file" errors during build
+   - Ensure all @types/* packages are in dependencies (not devDependencies)
+   - Run `npm install` locally to verify the build works
+   - Check that TypeScript is included in dependencies for production builds
 
 ## URLs After Deployment:
 - **Frontend:** https://your-app.vercel.app
