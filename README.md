@@ -21,12 +21,12 @@
 - **Combo System**: Chain attacks together for devastating damage combinations
 
 ### 👥 **Character Roster**
-| Character | Type | Description | Unlock Requirement |
-|-----------|------|-------------|-------------------|
-| **Rex** | Balanced | Well-rounded fighter with solid stats across the board | Default |
-| **Dash** | Speed | Lightning-fast character with high mobility and agility | Default |
-| **Titan** | Heavy | Tank character with massive damage and health | Default |
-| **Ninja** | Assassin | Stealthy fighter with precision strikes and teleportation | Level 5, 10 wins |
+| Character | Type | Description | Status |
+|-----------|------|-------------|--------|
+| **Rex** | Balanced | Well-rounded fighter with solid stats across the board | Available |
+| **Dash** | Speed | Lightning-fast character with high mobility and agility | Available |
+| **Titan** | Heavy | Tank character with massive damage and health | Available |
+| **Ninja** | Assassin | Stealthy fighter with precision strikes and teleportation | Available |
 
 ### 🏟️ **Dynamic Stages**
 - **Battle Arena**: Classic flat stage perfect for competitive play
@@ -37,10 +37,14 @@
 ### 🚀 **Advanced Features**
 - **Database-Driven Configuration**: Live game balancing without code deployments
 - **Matchmaking System**: Intelligent player matching with queue management
-- **Progression System**: Unlock characters, stages, and cosmetics through gameplay
 - **User Authentication**: Secure JWT-based login with persistent sessions
+- **Real-time Synchronization**: Server-authoritative physics with client prediction
+
+### 🚧 **Planned Features** (Coming Soon)
+- **Progression System**: Unlock characters and stages through gameplay
 - **Spectator Mode**: Watch live matches and learn from other players
-- **Replay System**: Save and review your best (and worst) moments
+- **Replay System**: Save and review your matches
+- **Ranked Mode**: Competitive ladder with ELO ratings
 
 ---
 
@@ -368,6 +372,7 @@ We welcome contributions! Here's how to get started:
 - 🏟️ **Stages**: Create dynamic battle arenas
 - 🎵 **Audio**: Add music and sound effects
 - 🎮 **Game Modes**: Tournament brackets, team battles
+- 🏆 **Progression System**: Implement character/stage unlock logic
 - 🔧 **Performance**: Optimize networking and rendering
 - 📚 **Documentation**: Improve guides and tutorials
 
