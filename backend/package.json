@@ -12,7 +12,10 @@
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "sync-constants": "ts-node scripts/sync-constants.ts",
-    "sync-constants:force": "ts-node scripts/sync-constants.ts --force"
+    "sync-constants:force": "ts-node scripts/sync-constants.ts --force",
+    "test": "jest --config test.config.js",
+    "test:watch": "jest --config test.config.js --watch",
+    "test:coverage": "jest --config test.config.js --coverage"
   },
   "prisma": {
     "seed": "npm run sync-constants:force"
@@ -24,6 +27,14 @@
   "dependencies": {
     "@brawl-bytes/shared-types": "file:../shared-types",
     "@prisma/client": "^6.11.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.0.13",
+    "@types/passport": "^1.0.17",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
     "@types/yaml": "^1.9.6",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -35,19 +46,12 @@
     "passport-local": "^1.0.0",
     "prisma": "^6.11.1",
     "socket.io": "^4.8.1",
-    "yaml": "^2.8.0",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.0.13",
-    "@types/passport": "^1.0.17",
-    "@types/passport-jwt": "^4.0.1",
-    "@types/passport-local": "^1.0.38",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/eslint": "^9.6.1",
+    "@types/jest": "^30.0.0",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
     "eslint": "^8.57.1",
@@ -56,9 +60,11 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.1",
+    "jest": "^30.0.4",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "socket.io-client": "^4.8.1",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2"
   }
 }
